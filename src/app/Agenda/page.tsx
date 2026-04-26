@@ -13,6 +13,12 @@ type CalendarEvent = {
   htmlLink: string;
 };
 
+type PatientOption = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 export default function AgendaPage() {
   const { data: session, status } = useSession();
 
@@ -30,6 +36,10 @@ export default function AgendaPage() {
   const [appointmentLocation, setAppointmentLocation] = useState("");
   const [appointmentDescription, setAppointmentDescription] = useState("");
   const [savingAppointment, setSavingAppointment] = useState(false);
+
+  const [patients, setPatients] = useState<PatientOption[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState("");
 
   async function loadEvents() {
     if (!googleConnected) {
@@ -59,9 +69,35 @@ export default function AgendaPage() {
     }
   }
 
+  async function loadPatients() {
+    try {
+      setLoadingPatients(true);
+
+      const response = await fetch("/api/patients", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar pacientes.");
+      }
+
+      setPatients(data.patients || []);
+    } catch (error) {
+      console.error("Erro ao carregar pacientes:", error);
+    } finally {
+      setLoadingPatients(false);
+    }
+  }
+
   useEffect(() => {
     loadEvents();
   }, [googleConnected]);
+
+  useEffect(() => {
+    loadPatients();
+  }, []);
 
   const nextEvent = useMemo(() => {
     return events.length > 0 ? events[0] : null;
@@ -85,6 +121,7 @@ export default function AgendaPage() {
     setAppointmentEndTime("");
     setAppointmentLocation("");
     setAppointmentDescription("");
+    setSelectedPatientId("");
   }
 
   function handleCloseModal() {
@@ -98,7 +135,7 @@ export default function AgendaPage() {
     try {
       setSavingAppointment(true);
 
-      const response = await fetch("/api/google-calendar/create-event", {
+      const response = await fetch("/api/appointments/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -110,6 +147,7 @@ export default function AgendaPage() {
           endTime: appointmentEndTime,
           location: appointmentLocation,
           description: appointmentDescription,
+          patientId: selectedPatientId,
         }),
       });
 
@@ -121,7 +159,7 @@ export default function AgendaPage() {
 
       await loadEvents();
       handleCloseModal();
-      alert("Horário criado com sucesso no Google Calendar.");
+      alert("Consulta criada com sucesso no Google Calendar e no banco.");
     } catch (error: any) {
       alert(error.message || "Erro ao criar horário.");
     } finally {
@@ -631,6 +669,46 @@ export default function AgendaPage() {
                       outline: "none",
                     }}
                   />
+                </div>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Paciente
+                  </label>
+
+                  <select
+                    value={selectedPatientId}
+                    onChange={(e) => setSelectedPatientId(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <option value="">
+                      {loadingPatients
+                        ? "Carregando pacientes..."
+                        : "Selecione um paciente"}
+                    </option>
+
+                    {patients.map((patient) => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.name} — {patient.email}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

@@ -21,16 +21,47 @@ model User {
 }
 
 model Psychologist {
-  id     String @id @default(uuid())
-  userId String @unique
-  crp    String @unique
-  user   User   @relation(fields: [userId], references: [id])
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  crp          String        @unique
+  user         User          @relation(fields: [userId], references: [id])
+  appointments Appointment[]
 }
 
 model Patient {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id])
+  appointments Appointment[]
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+
+  title           String?
+  description     String?
+  location        String?
+
+  dateTime        DateTime
+  endDateTime     DateTime?
+
+  googleEventId   String?           @unique
+  googleEventLink String?
+
+  status          AppointmentStatus @default(SCHEDULED)
+
+  patientId       String
+  patient         Patient           @relation(fields: [patientId], references: [id])
+
+  psychologistId  String
+  psychologist    Psychologist      @relation(fields: [psychologistId], references: [id])
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([dateTime])
+  @@index([psychologistId, dateTime])
+  @@index([patientId, dateTime])
 }
 
 model VerificationToken {
@@ -45,4 +76,9 @@ model VerificationToken {
 enum Role {
   PSYCHOLOGIST
   PATIENT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELLED
 }
