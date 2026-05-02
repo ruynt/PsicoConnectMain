@@ -29,7 +29,9 @@ export async function middleware(req: NextRequest) {
 
   // Controle de acesso por papel
   if (
-    (pathname.startsWith("/dashboard") || pathname.startsWith("/agenda")) &&
+    (pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/agenda") ||
+      pathname.startsWith("/pacientes")) &&
     token.role !== "PSYCHOLOGIST"
   ) {
     return NextResponse.redirect(new URL("/patient", req.url));

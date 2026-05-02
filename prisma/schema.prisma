@@ -26,6 +26,9 @@ model Psychologist {
   crp          String        @unique
   user         User          @relation(fields: [userId], references: [id])
   appointments Appointment[]
+  notes        SessionNote[]
+
+  patientLinks PsychologistPatient[]
 }
 
 model Patient {
@@ -33,21 +36,39 @@ model Patient {
   userId       String        @unique
   user         User          @relation(fields: [userId], references: [id])
   appointments Appointment[]
+  notes        SessionNote[]
+
+  psychologistLinks PsychologistPatient[]
+}
+
+model PsychologistPatient {
+  id             String       @id @default(uuid())
+
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
+
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id])
+
+  active         Boolean      @default(true)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([psychologistId, patientId])
+  @@index([psychologistId])
+  @@index([patientId])
 }
 
 model Appointment {
   id              String            @id @default(uuid())
-
   title           String?
   description     String?
   location        String?
-
   dateTime        DateTime
   endDateTime     DateTime?
-
   googleEventId   String?           @unique
   googleEventLink String?
-
   status          AppointmentStatus @default(SCHEDULED)
 
   patientId       String
@@ -55,6 +76,8 @@ model Appointment {
 
   psychologistId  String
   psychologist    Psychologist      @relation(fields: [psychologistId], references: [id])
+
+  notes           SessionNote[]
 
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -71,6 +94,29 @@ model VerificationToken {
   expiresAt DateTime
 
   @@unique([email, token])
+}
+
+model SessionNote {
+  id             String       @id @default(uuid())
+
+  title          String?
+  content        String
+
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id])
+
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
+
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([patientId, createdAt])
+  @@index([psychologistId, createdAt])
+  @@index([appointmentId])
 }
 
 enum Role {

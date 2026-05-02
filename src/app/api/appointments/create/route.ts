@@ -175,6 +175,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await prisma.psychologistPatient.upsert({
+      where: {
+        psychologistId_patientId: {
+          psychologistId: psychologist.id,
+          patientId: patient.id,
+        },
+      },
+      update: {
+        active: true,
+      },
+      create: {
+        psychologistId: psychologist.id,
+        patientId: patient.id,
+        active: true,
+      },
+    });
+
     const appointment = await prisma.appointment.create({
       data: {
         title,

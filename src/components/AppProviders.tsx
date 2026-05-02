@@ -88,6 +88,14 @@ function AuthGuard({ children }: PropsWithChildren) {
                   <i className="fa-solid fa-calendar-days"></i> Agenda
                 </Link>
               )}
+              {isPsychologist && (
+                <Link
+                  href="/pacientes"
+                  className={isActive("/pacientes") ? "active" : ""}
+                >
+                  <i className="fa-solid fa-users"></i> Pacientes
+                </Link>
+              )}
 
               <Link href="#" className={isActive("/consultas") ? "active" : ""}>
                 <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
