@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type PatientSummary = {
   id: string;
@@ -27,6 +27,8 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [patientEmailToLink, setPatientEmailToLink] = useState("");
@@ -67,6 +69,23 @@ export default function PatientsPage() {
   useEffect(() => {
     loadPatients();
   }, []);
+
+  const filteredPatients = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return patients;
+    }
+
+    return patients.filter((patient) => {
+      const name = patient.name.toLowerCase();
+      const email = patient.email.toLowerCase();
+
+      return (
+        name.includes(normalizedSearch) || email.includes(normalizedSearch)
+      );
+    });
+  }, [patients, searchTerm]);
 
   function showFeedback(type: "success" | "error" | "info", message: string) {
     setFeedback({ type, message });
@@ -230,8 +249,8 @@ export default function PatientsPage() {
                 margin: 0,
               }}
             >
-              Acompanhe seus pacientes, consultas vinculadas e próximos
-              atendimentos.
+              Gerencie seus pacientes vinculados, acompanhe consultas e registre
+              informações relevantes para o atendimento.
             </p>
           </div>
 
@@ -281,7 +300,7 @@ export default function PatientsPage() {
             borderLeft: "4px solid #3b82f6",
             borderRadius: "12px",
             padding: "18px",
-            marginBottom: "28px",
+            marginBottom: "24px",
           }}
         >
           <p
@@ -294,8 +313,77 @@ export default function PatientsPage() {
             Histórico do paciente
           </p>
           <p style={{ color: "#1e40af", margin: 0 }}>
-            Esta área reúne os pacientes vinculados a você e será a base para
-            histórico clínico, anotações e prontuário.
+            Acesse pacientes vinculados, acompanhe consultas e organize
+            anotações clínicas internas.
+          </p>
+        </div>
+
+        <div
+          style={{
+            ...cardStyle,
+            marginBottom: "24px",
+            padding: "18px",
+          }}
+        >
+          <label
+            style={{
+              display: "block",
+              fontWeight: 800,
+              color: "#111827",
+              marginBottom: "8px",
+            }}
+          >
+            Buscar paciente
+          </label>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Digite nome ou e-mail do paciente"
+              style={{
+                flex: "1",
+                minWidth: "240px",
+                border: "1px solid #d1d5db",
+                borderRadius: "12px",
+                padding: "12px 14px",
+                fontSize: "14px",
+                outline: "none",
+              }}
+            />
+
+            {searchTerm && (
+              <button
+                type="button"
+                style={buttonSecondaryStyle}
+                onClick={() => setSearchTerm("")}
+              >
+                Limpar busca
+              </button>
+            )}
+          </div>
+
+          <p
+            style={{
+              color: "#6b7280",
+              fontSize: "14px",
+              marginTop: "10px",
+              marginBottom: 0,
+            }}
+          >
+            {patients.length === 0
+              ? "Nenhum paciente vinculado até o momento."
+              : searchTerm
+                ? `${filteredPatients.length} de ${patients.length} paciente(s) encontrado(s).`
+                : `${patients.length} paciente(s) vinculado(s).`}
           </p>
         </div>
 
@@ -333,6 +421,21 @@ export default function PatientsPage() {
               consultas e anotações.
             </p>
           </div>
+        ) : filteredPatients.length === 0 ? (
+          <div style={cardStyle}>
+            <p
+              style={{
+                color: "#111827",
+                fontWeight: 700,
+                marginBottom: "6px",
+              }}
+            >
+              Nenhum resultado encontrado
+            </p>
+            <p style={{ color: "#6b7280", margin: 0 }}>
+              Não encontramos paciente vinculado com esse nome ou e-mail.
+            </p>
+          </div>
         ) : (
           <div
             style={{
@@ -341,7 +444,7 @@ export default function PatientsPage() {
               gap: "20px",
             }}
           >
-            {patients.map((patient) => (
+            {filteredPatients.map((patient) => (
               <div key={patient.id} style={cardStyle}>
                 <div style={{ marginBottom: "16px" }}>
                   <h2
@@ -498,6 +601,25 @@ export default function PatientsPage() {
                     }}
                   >
                     Ver detalhes
+                  </button>
+
+                  <button
+                    type="button"
+                    style={{
+                      backgroundColor: "#eff6ff",
+                      color: "#1d4ed8",
+                      border: "1px solid #bfdbfe",
+                      borderRadius: "12px",
+                      padding: "10px 14px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontSize: "14px",
+                    }}
+                    onClick={() => {
+                      window.location.href = `/agenda?patientId=${patient.id}`;
+                    }}
+                  >
+                    Agendar
                   </button>
 
                   <button
