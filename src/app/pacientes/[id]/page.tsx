@@ -32,6 +32,8 @@ type PatientNote = {
   id: string;
   title: string;
   content: string;
+  archived: boolean;
+  archivedAt: string | null;
   patientId: string;
   appointmentId: string | null;
   appointment: {
@@ -49,6 +51,9 @@ type Feedback = {
   message: string;
 };
 
+type NoteFilter = "ACTIVE" | "ARCHIVED" | "ALL";
+type PatientTab = "SUMMARY" | "APPOINTMENTS" | "NOTES";
+
 export default function PatientDetailsPage() {
   const params = useParams();
   const patientId = String(params.id);
@@ -59,6 +64,7 @@ export default function PatientDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [archivingNoteId, setArchivingNoteId] = useState("");
 
   const [error, setError] = useState("");
   const [noteError, setNoteError] = useState("");
@@ -67,6 +73,15 @@ export default function PatientDetailsPage() {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [selectedAppointmentId, setSelectedAppointmentId] = useState("");
+
+  const [editingNoteId, setEditingNoteId] = useState("");
+  const [noteFilter, setNoteFilter] = useState<NoteFilter>("ACTIVE");
+  const [activeTab, setActiveTab] = useState<PatientTab>("SUMMARY");
+
+  const [noteToArchive, setNoteToArchive] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   async function loadPatient() {
     try {
@@ -91,14 +106,17 @@ export default function PatientDetailsPage() {
     }
   }
 
-  async function loadNotes() {
+  async function loadNotes(filter: NoteFilter = noteFilter) {
     try {
       setLoadingNotes(true);
       setNoteError("");
 
-      const response = await fetch(`/api/patients/${patientId}/notes`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/patients/${patientId}/notes?status=${filter}`,
+        {
+          cache: "no-store",
+        },
+      );
 
       const data = await response.json();
 
@@ -117,21 +135,14 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (patientId) {
       loadPatient();
-      loadNotes();
     }
   }, [patientId]);
 
-  const futureAppointments = useMemo(() => {
-    if (!patient) return [];
-
-    const now = new Date();
-
-    return patient.appointments.filter(
-      (appointment) =>
-        appointment.status === "SCHEDULED" &&
-        new Date(appointment.dateTime) >= now,
-    );
-  }, [patient]);
+  useEffect(() => {
+    if (patientId) {
+      loadNotes(noteFilter);
+    }
+  }, [patientId, noteFilter]);
 
   const appointmentOptions = useMemo(() => {
     if (!patient) return [];
@@ -164,10 +175,30 @@ export default function PatientDetailsPage() {
     setNoteTitle("");
     setNoteContent("");
     setSelectedAppointmentId("");
+    setEditingNoteId("");
     setNoteError("");
   }
 
-  async function handleCreateNote(e: React.FormEvent) {
+  function handleEditNote(note: PatientNote) {
+    if (note.archived) {
+      showFeedback("error", "Anotações arquivadas não podem ser editadas.");
+      return;
+    }
+
+    setActiveTab("NOTES");
+    setEditingNoteId(note.id);
+    setNoteTitle(note.title || "");
+    setNoteContent(note.content);
+    setSelectedAppointmentId(note.appointmentId || "");
+    setNoteError("");
+
+    setTimeout(() => {
+      const formElement = document.getElementById("note-form");
+      formElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }
+
+  async function handleCreateOrUpdateNote(e: React.FormEvent) {
     e.preventDefault();
 
     setNoteError("");
@@ -180,34 +211,108 @@ export default function PatientDetailsPage() {
     try {
       setSavingNote(true);
 
-      const response = await fetch(`/api/patients/${patientId}/notes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const isEditing = Boolean(editingNoteId);
+
+      const response = await fetch(
+        isEditing
+          ? `/api/patients/${patientId}/notes/${editingNoteId}`
+          : `/api/patients/${patientId}/notes`,
+        {
+          method: isEditing ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: noteTitle,
+            content: noteContent,
+            appointmentId: selectedAppointmentId || null,
+          }),
         },
-        body: JSON.stringify({
-          title: noteTitle,
-          content: noteContent,
-          appointmentId: selectedAppointmentId || null,
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Erro ao salvar anotação.");
+        throw new Error(
+          data?.error ||
+            (isEditing
+              ? "Erro ao atualizar anotação."
+              : "Erro ao salvar anotação."),
+        );
       }
 
-      await loadNotes();
+      await loadNotes(noteFilter);
       resetNoteForm();
 
-      showFeedback("success", "Anotação salva com sucesso.");
+      showFeedback(
+        "success",
+        isEditing
+          ? "Anotação atualizada com sucesso."
+          : "Anotação salva com sucesso.",
+      );
     } catch (error: any) {
       setNoteError(error.message || "Erro ao salvar anotação.");
     } finally {
       setSavingNote(false);
     }
   }
+
+  async function confirmArchiveNote() {
+    if (!noteToArchive) return;
+
+    try {
+      setArchivingNoteId(noteToArchive.id);
+
+      const response = await fetch(
+        `/api/patients/${patientId}/notes/${noteToArchive.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao arquivar anotação.");
+      }
+
+      await loadNotes(noteFilter);
+      setNoteToArchive(null);
+
+      if (editingNoteId === noteToArchive.id) {
+        resetNoteForm();
+      }
+
+      showFeedback("success", "Anotação arquivada com sucesso.");
+    } catch (error: any) {
+      showFeedback("error", error.message || "Erro ao arquivar anotação.");
+    } finally {
+      setArchivingNoteId("");
+    }
+  }
+
+  const noteFilterInfo = {
+    ACTIVE: {
+      title: "Anotações ativas",
+      emptyTitle: "Nenhuma anotação ativa",
+      emptyDescription:
+        "As anotações criadas para este paciente aparecerão aqui.",
+    },
+    ARCHIVED: {
+      title: "Anotações arquivadas",
+      emptyTitle: "Nenhuma anotação arquivada",
+      emptyDescription:
+        "As anotações arquivadas aparecerão aqui para consulta posterior.",
+    },
+    ALL: {
+      title: "Todas as anotações",
+      emptyTitle: "Nenhuma anotação registrada",
+      emptyDescription:
+        "Quando houver anotações para este paciente, elas aparecerão aqui.",
+    },
+  };
+
+  const currentNoteFilterInfo = noteFilterInfo[noteFilter];
 
   const cardStyle = {
     backgroundColor: "#ffffff",
@@ -231,6 +336,8 @@ export default function PatientDetailsPage() {
     fontWeight: 700,
     cursor: "pointer",
     fontSize: "14px",
+    textDecoration: "none",
+    display: "inline-block",
   } as const;
 
   const buttonSecondaryStyle = {
@@ -286,302 +393,265 @@ export default function PatientDetailsPage() {
   }
 
   return (
-    <div style={{ padding: "32px" }}>
-      <div style={{ marginBottom: "24px" }}>
-        <Link
-          href="/pacientes"
-          style={{
-            display: "inline-block",
-            color: "#2563eb",
-            fontWeight: 700,
-            textDecoration: "none",
-            marginBottom: "18px",
-          }}
-        >
-          ← Voltar para pacientes
-        </Link>
+    <>
+      <div style={{ padding: "32px" }}>
+        <div style={{ marginBottom: "24px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "16px",
+              marginBottom: "18px",
+            }}
+          >
+            <Link
+              href="/pacientes"
+              style={{
+                display: "inline-block",
+                color: "#2563eb",
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              ← Voltar para pacientes
+            </Link>
 
-        <h1
-          style={{
-            fontSize: "40px",
-            fontWeight: 800,
-            color: "#111827",
-            marginBottom: "8px",
-          }}
-        >
-          {patient.name}
-        </h1>
+            <Link
+              href={`/agenda?patientId=${patient.id}`}
+              style={buttonPrimaryStyle}
+            >
+              Agendar consulta
+            </Link>
+          </div>
 
-        <p
-          style={{
-            fontSize: "18px",
-            color: "#4f46e5",
-            margin: 0,
-          }}
-        >
-          Histórico de consultas, informações do paciente e anotações clínicas.
-        </p>
-      </div>
+          <h1
+            style={{
+              fontSize: "40px",
+              fontWeight: 800,
+              color: "#111827",
+              marginBottom: "8px",
+            }}
+          >
+            {patient.name}
+          </h1>
 
-      {feedback && (
+          <p
+            style={{
+              fontSize: "18px",
+              color: "#4f46e5",
+              margin: 0,
+            }}
+          >
+            Acompanhe consultas, histórico e anotações internas do paciente.
+          </p>
+        </div>
+
+        {feedback && (
+          <div
+            style={{
+              backgroundColor:
+                feedback.type === "success"
+                  ? "#ecfdf5"
+                  : feedback.type === "error"
+                    ? "#fef2f2"
+                    : "#eff6ff",
+              border:
+                feedback.type === "success"
+                  ? "1px solid #a7f3d0"
+                  : feedback.type === "error"
+                    ? "1px solid #fecaca"
+                    : "1px solid #bfdbfe",
+              color:
+                feedback.type === "success"
+                  ? "#065f46"
+                  : feedback.type === "error"
+                    ? "#b91c1c"
+                    : "#1d4ed8",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              marginBottom: "18px",
+              fontWeight: 700,
+            }}
+          >
+            {feedback.message}
+          </div>
+        )}
+
         <div
           style={{
-            backgroundColor:
-              feedback.type === "success"
-                ? "#ecfdf5"
-                : feedback.type === "error"
-                  ? "#fef2f2"
-                  : "#eff6ff",
-            border:
-              feedback.type === "success"
-                ? "1px solid #a7f3d0"
-                : feedback.type === "error"
-                  ? "1px solid #fecaca"
-                  : "1px solid #bfdbfe",
-            color:
-              feedback.type === "success"
-                ? "#065f46"
-                : feedback.type === "error"
-                  ? "#b91c1c"
-                  : "#1d4ed8",
+            backgroundColor: "#eff6ff",
+            borderLeft: "4px solid #3b82f6",
             borderRadius: "12px",
-            padding: "14px 16px",
-            marginBottom: "18px",
-            fontWeight: 700,
+            padding: "18px",
+            marginBottom: "24px",
           }}
         >
-          {feedback.message}
+          <p
+            style={{
+              fontWeight: 700,
+              color: "#1d4ed8",
+              marginBottom: "6px",
+            }}
+          >
+            Perfil do paciente
+          </p>
+          <p style={{ color: "#1e40af", margin: 0 }}>
+            Consulte o histórico de atendimentos, acompanhe próximas consultas e
+            registre anotações clínicas internas.
+          </p>
         </div>
-      )}
 
-      <div
-        style={{
-          backgroundColor: "#eff6ff",
-          borderLeft: "4px solid #3b82f6",
-          borderRadius: "12px",
-          padding: "18px",
-          marginBottom: "28px",
-        }}
-      >
-        <p
+        <div
           style={{
-            fontWeight: 700,
-            color: "#1d4ed8",
-            marginBottom: "6px",
+            display: "flex",
+            gap: "10px",
+            marginBottom: "24px",
+            flexWrap: "wrap",
           }}
         >
-          Perfil do paciente
-        </p>
-        <p style={{ color: "#1e40af", margin: 0 }}>
-          Esta página reúne dados principais, consultas vinculadas e anotações
-          registradas pelo psicólogo.
-        </p>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: "20px",
-          marginBottom: "28px",
-        }}
-      >
-        <div style={smallCardStyle}>
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
-          >
-            E-mail
-          </p>
-          <p
-            style={{
-              color: "#111827",
-              fontSize: "16px",
-              fontWeight: 800,
-              margin: 0,
-              wordBreak: "break-word",
-            }}
-          >
-            {patient.email}
-          </p>
-        </div>
-
-        <div style={smallCardStyle}>
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
-          >
-            Total de consultas
-          </p>
-          <p
-            style={{
-              color: "#111827",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {patient.totalAppointments}
-          </p>
-        </div>
-
-        <div style={smallCardStyle}>
-          <p
-            style={{
-              color: "#065f46",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
-          >
-            Agendadas
-          </p>
-          <p
-            style={{
-              color: "#065f46",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {patient.scheduledAppointments}
-          </p>
-        </div>
-
-        <div style={smallCardStyle}>
-          <p
-            style={{
-              color: "#b91c1c",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
-          >
-            Canceladas
-          </p>
-          <p
-            style={{
-              color: "#b91c1c",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {patient.cancelledAppointments}
-          </p>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.4fr",
-          gap: "20px",
-          marginBottom: "20px",
-        }}
-      >
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "14px",
-            }}
-          >
-            Próxima consulta
-          </h2>
-
-          {patient.nextAppointment ? (
-            <div
+          {[
+            { label: "Resumo", value: "SUMMARY" },
+            { label: "Consultas", value: "APPOINTMENTS" },
+            { label: "Anotações", value: "NOTES" },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveTab(tab.value as PatientTab)}
               style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "14px",
-                padding: "16px",
-                backgroundColor: "#f8fafc",
+                border:
+                  activeTab === tab.value
+                    ? "1px solid #2563eb"
+                    : "1px solid #d1d5db",
+                backgroundColor: activeTab === tab.value ? "#eff6ff" : "#fff",
+                color: activeTab === tab.value ? "#1d4ed8" : "#374151",
+                borderRadius: "999px",
+                padding: "10px 16px",
+                fontWeight: 800,
+                cursor: "pointer",
+                fontSize: "14px",
               }}
             >
-              <p
-                style={{
-                  fontWeight: 800,
-                  color: "#111827",
-                  marginBottom: "8px",
-                }}
-              >
-                {patient.nextAppointment.title}
-              </p>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                <strong>Início:</strong>{" "}
-                {formatDate(patient.nextAppointment.dateTime)}
-              </p>
-
-              {patient.nextAppointment.endDateTime && (
-                <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                  <strong>Fim:</strong>{" "}
-                  {formatDate(patient.nextAppointment.endDateTime)}
-                </p>
-              )}
-
-              {patient.nextAppointment.location && (
-                <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                  <strong>Local:</strong> {patient.nextAppointment.location}
-                </p>
-              )}
-
-              {patient.nextAppointment.googleEventLink && (
-                <a
-                  href={patient.nextAppointment.googleEventLink}
-                  target="_blank"
-                  rel="noreferrer"
+        {activeTab === "SUMMARY" && (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gap: "20px",
+                marginBottom: "28px",
+              }}
+            >
+              <div style={smallCardStyle}>
+                <p
                   style={{
-                    color: "#2563eb",
-                    fontWeight: 700,
-                    textDecoration: "none",
+                    color: "#6b7280",
+                    fontSize: "14px",
+                    marginBottom: "8px",
                   }}
                 >
-                  Abrir no Google Calendar
-                </a>
-              )}
+                  E-mail
+                </p>
+                <p
+                  style={{
+                    color: "#111827",
+                    fontSize: "16px",
+                    fontWeight: 800,
+                    margin: 0,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {patient.email}
+                </p>
+              </div>
+
+              <div style={smallCardStyle}>
+                <p
+                  style={{
+                    color: "#6b7280",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Total de consultas
+                </p>
+                <p
+                  style={{
+                    color: "#111827",
+                    fontSize: "34px",
+                    fontWeight: 800,
+                    margin: 0,
+                  }}
+                >
+                  {patient.totalAppointments}
+                </p>
+              </div>
+
+              <div style={smallCardStyle}>
+                <p
+                  style={{
+                    color: "#065f46",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Agendadas
+                </p>
+                <p
+                  style={{
+                    color: "#065f46",
+                    fontSize: "34px",
+                    fontWeight: 800,
+                    margin: 0,
+                  }}
+                >
+                  {patient.scheduledAppointments}
+                </p>
+              </div>
+
+              <div style={smallCardStyle}>
+                <p
+                  style={{
+                    color: "#b91c1c",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Canceladas
+                </p>
+                <p
+                  style={{
+                    color: "#b91c1c",
+                    fontSize: "34px",
+                    fontWeight: 800,
+                    margin: 0,
+                  }}
+                >
+                  {patient.cancelledAppointments}
+                </p>
+              </div>
             </div>
-          ) : (
-            <p style={{ color: "#6b7280", margin: 0 }}>
-              Este paciente não possui consulta futura agendada.
-            </p>
-          )}
-        </section>
 
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "14px",
-            }}
-          >
-            Histórico de consultas
-          </h2>
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "14px",
+                }}
+              >
+                Próxima consulta
+              </h2>
 
-          {patient.appointments.length === 0 ? (
-            <p style={{ color: "#6b7280", margin: 0 }}>
-              Nenhuma consulta vinculada a este paciente.
-            </p>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "14px",
-              }}
-            >
-              {patient.appointments.map((appointment) => (
+              {patient.nextAppointment ? (
                 <div
-                  key={appointment.id}
                   style={{
                     border: "1px solid #e5e7eb",
                     borderRadius: "14px",
@@ -589,77 +659,37 @@ export default function PatientDetailsPage() {
                     backgroundColor: "#f8fafc",
                   }}
                 >
-                  <div
+                  <p
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
+                      fontWeight: 800,
+                      color: "#111827",
                       marginBottom: "8px",
                     }}
                   >
-                    <p
-                      style={{
-                        fontWeight: 800,
-                        color: "#111827",
-                        margin: 0,
-                      }}
-                    >
-                      {appointment.title}
-                    </p>
-
-                    <span
-                      style={{
-                        backgroundColor:
-                          appointment.status === "CANCELLED"
-                            ? "#fef2f2"
-                            : "#ecfdf5",
-                        color:
-                          appointment.status === "CANCELLED"
-                            ? "#b91c1c"
-                            : "#065f46",
-                        border:
-                          appointment.status === "CANCELLED"
-                            ? "1px solid #fecaca"
-                            : "1px solid #a7f3d0",
-                        borderRadius: "999px",
-                        padding: "4px 10px",
-                        fontSize: "12px",
-                        fontWeight: 800,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {appointment.status === "CANCELLED"
-                        ? "Cancelada"
-                        : "Agendada"}
-                    </span>
-                  </div>
-
-                  <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                    <strong>Início:</strong> {formatDate(appointment.dateTime)}
+                    {patient.nextAppointment.title}
                   </p>
 
-                  {appointment.endDateTime && (
+                  <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                    <strong>Início:</strong>{" "}
+                    {formatDate(patient.nextAppointment.dateTime)}
+                  </p>
+
+                  {patient.nextAppointment.endDateTime && (
                     <p style={{ color: "#4b5563", marginBottom: "6px" }}>
                       <strong>Fim:</strong>{" "}
-                      {formatDate(appointment.endDateTime)}
+                      {formatDate(patient.nextAppointment.endDateTime)}
                     </p>
                   )}
 
-                  {appointment.location && (
+                  {patient.nextAppointment.location && (
                     <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                      <strong>Local:</strong> {appointment.location}
+                      <strong>Local:</strong> {patient.nextAppointment.location}
                     </p>
                   )}
 
-                  {appointment.description && (
-                    <p style={{ color: "#4b5563", marginBottom: "8px" }}>
-                      <strong>Descrição:</strong> {appointment.description}
-                    </p>
-                  )}
-
-                  {appointment.googleEventLink && (
+                  {patient.nextAppointment.googleEventLink && (
                     <a
-                      href={appointment.googleEventLink}
+                      href={patient.nextAppointment.googleEventLink}
                       target="_blank"
                       rel="noreferrer"
                       style={{
@@ -672,224 +702,366 @@ export default function PatientDetailsPage() {
                     </a>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+              ) : (
+                <p style={{ color: "#6b7280", margin: 0 }}>
+                  Este paciente não possui consulta futura agendada.
+                </p>
+              )}
+            </section>
+          </>
+        )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.4fr",
-          gap: "20px",
-        }}
-      >
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "8px",
-            }}
-          >
-            Nova anotação
-          </h2>
-
-          <p style={{ color: "#6b7280", marginBottom: "18px" }}>
-            Registre observações clínicas, evolução do atendimento ou pontos
-            importantes para acompanhamento.
-          </p>
-
-          {noteError && (
-            <div
+        {activeTab === "APPOINTMENTS" && (
+          <section style={cardStyle}>
+            <h2
               style={{
-                backgroundColor: "#fef2f2",
-                border: "1px solid #fecaca",
-                color: "#b91c1c",
-                borderRadius: "12px",
-                padding: "12px 14px",
-                marginBottom: "16px",
-                fontWeight: 700,
+                fontSize: "26px",
+                fontWeight: 800,
+                color: "#111827",
+                marginBottom: "14px",
               }}
             >
-              {noteError}
-            </div>
-          )}
+              Histórico de consultas
+            </h2>
 
-          <form noValidate onSubmit={handleCreateNote}>
-            <div style={{ marginBottom: "14px" }}>
-              <label
+            {patient.appointments.length === 0 ? (
+              <p style={{ color: "#6b7280", margin: 0 }}>
+                Nenhuma consulta vinculada a este paciente.
+              </p>
+            ) : (
+              <div
                 style={{
-                  display: "block",
-                  fontWeight: 700,
-                  color: "#111827",
-                  marginBottom: "8px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
                 }}
               >
-                Título
-              </label>
+                {patient.appointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "14px",
+                      padding: "16px",
+                      backgroundColor: "#f8fafc",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontWeight: 800,
+                          color: "#111827",
+                          margin: 0,
+                        }}
+                      >
+                        {appointment.title}
+                      </p>
 
-              <input
-                type="text"
-                value={noteTitle}
-                onChange={(e) => setNoteTitle(e.target.value)}
-                placeholder="Ex.: Registro da sessão"
-                style={{
-                  width: "100%",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "12px",
-                  padding: "12px 14px",
-                  fontSize: "14px",
-                  outline: "none",
-                }}
-              />
-            </div>
+                      <span
+                        style={{
+                          backgroundColor:
+                            appointment.status === "CANCELLED"
+                              ? "#fef2f2"
+                              : "#ecfdf5",
+                          color:
+                            appointment.status === "CANCELLED"
+                              ? "#b91c1c"
+                              : "#065f46",
+                          border:
+                            appointment.status === "CANCELLED"
+                              ? "1px solid #fecaca"
+                              : "1px solid #a7f3d0",
+                          borderRadius: "999px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {appointment.status === "CANCELLED"
+                          ? "Cancelada"
+                          : "Agendada"}
+                      </span>
+                    </div>
 
-            <div style={{ marginBottom: "14px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  color: "#111827",
-                  marginBottom: "8px",
-                }}
-              >
-                Consulta relacionada
-              </label>
+                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                      <strong>Início:</strong>{" "}
+                      {formatDate(appointment.dateTime)}
+                    </p>
 
-              <select
-                value={selectedAppointmentId}
-                onChange={(e) => setSelectedAppointmentId(e.target.value)}
-                style={{
-                  width: "100%",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "12px",
-                  padding: "12px 14px",
-                  fontSize: "14px",
-                  outline: "none",
-                  backgroundColor: "#fff",
-                }}
-              >
-                <option value="">Sem vínculo com consulta específica</option>
+                    {appointment.endDateTime && (
+                      <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                        <strong>Fim:</strong>{" "}
+                        {formatDate(appointment.endDateTime)}
+                      </p>
+                    )}
 
-                {appointmentOptions.map((appointment) => (
-                  <option key={appointment.id} value={appointment.id}>
-                    {appointment.title} — {formatDate(appointment.dateTime)}
-                  </option>
+                    {appointment.location && (
+                      <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                        <strong>Local:</strong> {appointment.location}
+                      </p>
+                    )}
+
+                    {appointment.description && (
+                      <p style={{ color: "#4b5563", marginBottom: "8px" }}>
+                        <strong>Descrição:</strong> {appointment.description}
+                      </p>
+                    )}
+
+                    {appointment.googleEventLink && (
+                      <a
+                        href={appointment.googleEventLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          color: "#2563eb",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                        }}
+                      >
+                        Abrir no Google Calendar
+                      </a>
+                    )}
+                  </div>
                 ))}
-              </select>
-            </div>
+              </div>
+            )}
+          </section>
+        )}
 
-            <div style={{ marginBottom: "18px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  color: "#111827",
-                  marginBottom: "8px",
-                }}
-              >
-                Anotação
-              </label>
-
-              <textarea
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                placeholder="Escreva aqui as observações do atendimento..."
-                rows={8}
-                style={{
-                  width: "100%",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "12px",
-                  padding: "12px 14px",
-                  fontSize: "14px",
-                  outline: "none",
-                  resize: "vertical",
-                }}
-              />
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <button
-                type="submit"
-                style={{
-                  ...buttonPrimaryStyle,
-                  opacity: savingNote ? 0.7 : 1,
-                  cursor: savingNote ? "not-allowed" : "pointer",
-                }}
-                disabled={savingNote}
-              >
-                {savingNote ? "Salvando..." : "Salvar anotação"}
-              </button>
-
-              <button
-                type="button"
-                style={buttonSecondaryStyle}
-                onClick={resetNoteForm}
-                disabled={savingNote}
-              >
-                Limpar
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section style={cardStyle}>
-          <h2
+        {activeTab === "NOTES" && (
+          <div
             style={{
-              fontSize: "26px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "8px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1.4fr",
+              gap: "20px",
             }}
           >
-            Anotações do paciente
-          </h2>
-
-          <p style={{ color: "#6b7280", marginBottom: "18px" }}>
-            Histórico de registros criados pelo psicólogo para este paciente.
-          </p>
-
-          {loadingNotes ? (
-            <p style={{ color: "#6b7280", margin: 0 }}>
-              Carregando anotações...
-            </p>
-          ) : notes.length === 0 ? (
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "14px",
-                padding: "16px",
-                backgroundColor: "#f8fafc",
-              }}
-            >
-              <p
+            <section id="note-form" style={cardStyle}>
+              <h2
                 style={{
+                  fontSize: "26px",
                   fontWeight: 800,
                   color: "#111827",
-                  marginBottom: "6px",
+                  marginBottom: "8px",
                 }}
               >
-                Nenhuma anotação registrada
+                {editingNoteId ? "Editar anotação" : "Nova anotação"}
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Estas anotações são internas e não ficam visíveis para o
+                paciente.
               </p>
 
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                As anotações criadas para este paciente aparecerão aqui.
-              </p>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "14px",
-              }}
-            >
-              {notes.map((note) => (
+              {noteError && (
                 <div
-                  key={note.id}
+                  style={{
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    marginBottom: "16px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {noteError}
+                </div>
+              )}
+
+              <form noValidate onSubmit={handleCreateOrUpdateNote}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Título
+                  </label>
+
+                  <input
+                    type="text"
+                    value={noteTitle}
+                    onChange={(e) => setNoteTitle(e.target.value)}
+                    placeholder="Ex.: Registro da sessão"
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Consulta relacionada
+                  </label>
+
+                  <select
+                    value={selectedAppointmentId}
+                    onChange={(e) => setSelectedAppointmentId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <option value="">
+                      Sem vínculo com consulta específica
+                    </option>
+
+                    {appointmentOptions.map((appointment) => (
+                      <option key={appointment.id} value={appointment.id}>
+                        {appointment.title} — {formatDate(appointment.dateTime)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: "18px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Anotação
+                  </label>
+
+                  <textarea
+                    value={noteContent}
+                    onChange={(e) => setNoteContent(e.target.value)}
+                    placeholder="Escreva aqui as observações do atendimento..."
+                    rows={8}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                  <button
+                    type="submit"
+                    style={{
+                      ...buttonPrimaryStyle,
+                      opacity: savingNote ? 0.7 : 1,
+                      cursor: savingNote ? "not-allowed" : "pointer",
+                    }}
+                    disabled={savingNote}
+                  >
+                    {savingNote
+                      ? "Salvando..."
+                      : editingNoteId
+                        ? "Atualizar anotação"
+                        : "Salvar anotação"}
+                  </button>
+
+                  <button
+                    type="button"
+                    style={buttonSecondaryStyle}
+                    onClick={resetNoteForm}
+                    disabled={savingNote}
+                  >
+                    {editingNoteId ? "Cancelar edição" : "Limpar"}
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                {currentNoteFilterInfo.title}
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Histórico de registros criados pelo psicólogo para este
+                paciente.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  marginBottom: "18px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {[
+                  { label: "Ativas", value: "ACTIVE" },
+                  { label: "Arquivadas", value: "ARCHIVED" },
+                  { label: "Todas", value: "ALL" },
+                ].map((filter) => (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    onClick={() => setNoteFilter(filter.value as NoteFilter)}
+                    style={{
+                      border:
+                        noteFilter === filter.value
+                          ? "1px solid #2563eb"
+                          : "1px solid #d1d5db",
+                      backgroundColor:
+                        noteFilter === filter.value ? "#eff6ff" : "#fff",
+                      color:
+                        noteFilter === filter.value ? "#1d4ed8" : "#374151",
+                      borderRadius: "999px",
+                      padding: "8px 14px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+
+              {loadingNotes ? (
+                <p style={{ color: "#6b7280", margin: 0 }}>
+                  Carregando anotações...
+                </p>
+              ) : notes.length === 0 ? (
+                <div
                   style={{
                     border: "1px solid #e5e7eb",
                     borderRadius: "14px",
@@ -904,54 +1076,273 @@ export default function PatientDetailsPage() {
                       marginBottom: "6px",
                     }}
                   >
-                    {note.title || "Anotação sem título"}
+                    {currentNoteFilterInfo.emptyTitle}
                   </p>
 
-                  <p
-                    style={{
-                      color: "#6b7280",
-                      fontSize: "13px",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    Criada em {formatDate(note.createdAt)}
-                  </p>
-
-                  {note.appointment && (
-                    <div
-                      style={{
-                        backgroundColor: "#eff6ff",
-                        color: "#1d4ed8",
-                        border: "1px solid #bfdbfe",
-                        borderRadius: "999px",
-                        padding: "6px 10px",
-                        fontSize: "12px",
-                        fontWeight: 800,
-                        display: "inline-block",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Consulta: {note.appointment.title} —{" "}
-                      {formatDate(note.appointment.dateTime)}
-                    </div>
-                  )}
-
-                  <p
-                    style={{
-                      color: "#374151",
-                      whiteSpace: "pre-wrap",
-                      lineHeight: 1.6,
-                      margin: 0,
-                    }}
-                  >
-                    {note.content}
+                  <p style={{ color: "#6b7280", margin: 0 }}>
+                    {currentNoteFilterInfo.emptyDescription}
                   </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                  }}
+                >
+                  {notes.map((note) => (
+                    <div
+                      key={note.id}
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "16px",
+                        backgroundColor: note.archived ? "#f9fafb" : "#f8fafc",
+                        opacity: note.archived ? 0.85 : 1,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontWeight: 800,
+                            color: "#111827",
+                            margin: 0,
+                          }}
+                        >
+                          {note.title || "Anotação sem título"}
+                        </p>
+
+                        <span
+                          style={{
+                            backgroundColor: note.archived
+                              ? "#f3f4f6"
+                              : "#ecfdf5",
+                            color: note.archived ? "#374151" : "#065f46",
+                            border: note.archived
+                              ? "1px solid #d1d5db"
+                              : "1px solid #a7f3d0",
+                            borderRadius: "999px",
+                            padding: "4px 10px",
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {note.archived ? "Arquivada" : "Ativa"}
+                        </span>
+                      </div>
+
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: "13px",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        Criada em {formatDate(note.createdAt)}
+                        {note.updatedAt !== note.createdAt
+                          ? ` · Atualizada em ${formatDate(note.updatedAt)}`
+                          : ""}
+                      </p>
+
+                      {note.archived && note.archivedAt && (
+                        <p
+                          style={{
+                            color: "#6b7280",
+                            fontSize: "13px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Arquivada em {formatDate(note.archivedAt)}
+                        </p>
+                      )}
+
+                      {note.appointment && (
+                        <div
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            color: "#1d4ed8",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "999px",
+                            padding: "6px 10px",
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            display: "inline-block",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Consulta: {note.appointment.title} —{" "}
+                          {formatDate(note.appointment.dateTime)}
+                        </div>
+                      )}
+
+                      <p
+                        style={{
+                          color: "#374151",
+                          whiteSpace: "pre-wrap",
+                          lineHeight: 1.6,
+                          marginBottom: "14px",
+                        }}
+                      >
+                        {note.content}
+                      </p>
+
+                      {!note.archived && (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleEditNote(note)}
+                            style={{
+                              backgroundColor: "#eff6ff",
+                              color: "#1d4ed8",
+                              border: "1px solid #bfdbfe",
+                              borderRadius: "10px",
+                              padding: "9px 12px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              fontSize: "14px",
+                            }}
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNoteToArchive({
+                                id: note.id,
+                                title: note.title || "Anotação sem título",
+                              })
+                            }
+                            style={{
+                              backgroundColor: "#fef2f2",
+                              color: "#b91c1c",
+                              border: "1px solid #fecaca",
+                              borderRadius: "10px",
+                              padding: "9px 12px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              fontSize: "14px",
+                            }}
+                          >
+                            Arquivar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </div>
-    </div>
+
+      {noteToArchive && (
+        <div
+          onClick={() => setNoteToArchive(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            zIndex: 1001,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "480px",
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              padding: "28px",
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "26px",
+                fontWeight: 800,
+                color: "#111827",
+                marginBottom: "10px",
+              }}
+            >
+              Arquivar anotação?
+            </h2>
+
+            <p
+              style={{
+                color: "#4b5563",
+                marginBottom: "18px",
+                lineHeight: 1.5,
+              }}
+            >
+              A anotação <strong>{noteToArchive.title}</strong> será arquivada e
+              deixará de aparecer na lista principal. Ela não será apagada do
+              banco.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setNoteToArchive(null)}
+                style={buttonSecondaryStyle}
+                disabled={archivingNoteId === noteToArchive.id}
+              >
+                Voltar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmArchiveNote}
+                disabled={archivingNoteId === noteToArchive.id}
+                style={{
+                  backgroundColor: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  cursor:
+                    archivingNoteId === noteToArchive.id
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity: archivingNoteId === noteToArchive.id ? 0.7 : 1,
+                }}
+              >
+                {archivingNoteId === noteToArchive.id
+                  ? "Arquivando..."
+                  : "Confirmar arquivamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

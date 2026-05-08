@@ -45,23 +45,12 @@ async function checkPatientAccess(patientId: string, psychologistId: string) {
   const patientAccess = await prisma.patient.findFirst({
     where: {
       id: patientId,
-      OR: [
-        {
-          psychologistLinks: {
-            some: {
-              psychologistId,
-              active: true,
-            },
-          },
+      psychologistLinks: {
+        some: {
+          psychologistId,
+          active: true,
         },
-        {
-          appointments: {
-            some: {
-              psychologistId,
-            },
-          },
-        },
-      ],
+      },
     },
   });
 
@@ -74,6 +63,9 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
+
+    const { searchParams } = new URL(req.url);
+    const statusParam = searchParams.get("status") || "ACTIVE";
 
     const { error, psychologist } = await getPsychologistFromToken(req);
 
@@ -103,10 +95,18 @@ export async function GET(
       );
     }
 
+    const archivedFilter =
+      statusParam === "ALL"
+        ? {}
+        : statusParam === "ARCHIVED"
+          ? { archived: true }
+          : { archived: false };
+
     const notes = await prisma.sessionNote.findMany({
       where: {
         patientId: id,
         psychologistId: psychologist.id,
+        ...archivedFilter,
       },
       include: {
         appointment: {
@@ -128,6 +128,8 @@ export async function GET(
         id: note.id,
         title: note.title || "",
         content: note.content,
+        archived: note.archived,
+        archivedAt: note.archivedAt?.toISOString() || null,
         patientId: note.patientId,
         appointmentId: note.appointmentId,
         appointment: note.appointment
@@ -233,6 +235,8 @@ export async function POST(
         patientId: patient.id,
         psychologistId: psychologist.id,
         appointmentId: appointmentId || null,
+        archived: false,
+        archivedAt: null,
       },
     });
 
@@ -242,6 +246,8 @@ export async function POST(
         id: note.id,
         title: note.title || "",
         content: note.content,
+        archived: note.archived,
+        archivedAt: note.archivedAt?.toISOString() || null,
         patientId: note.patientId,
         appointmentId: note.appointmentId,
         createdAt: note.createdAt.toISOString(),

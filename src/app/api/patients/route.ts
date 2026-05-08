@@ -34,23 +34,12 @@ export async function GET(req: NextRequest) {
 
     const patients = await prisma.patient.findMany({
       where: {
-        OR: [
-          {
-            psychologistLinks: {
-              some: {
-                psychologistId: psychologist.id,
-                active: true,
-              },
-            },
+        psychologistLinks: {
+          some: {
+            psychologistId: psychologist.id,
+            active: true,
           },
-          {
-            appointments: {
-              some: {
-                psychologistId: psychologist.id,
-              },
-            },
-          },
-        ],
+        },
       },
       include: {
         user: {

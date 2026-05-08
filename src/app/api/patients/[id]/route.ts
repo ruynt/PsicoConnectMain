@@ -38,23 +38,12 @@ export async function GET(
     const patientAccess = await prisma.patient.findFirst({
       where: {
         id,
-        OR: [
-          {
-            psychologistLinks: {
-              some: {
-                psychologistId: psychologist.id,
-                active: true,
-              },
-            },
+        psychologistLinks: {
+          some: {
+            psychologistId: psychologist.id,
+            active: true,
           },
-          {
-            appointments: {
-              some: {
-                psychologistId: psychologist.id,
-              },
-            },
-          },
-        ],
+        },
       },
     });
 

@@ -2,6 +2,7 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type CalendarEvent = {
   id: string;
@@ -33,7 +34,10 @@ type Feedback = {
 };
 
 export default function AgendaPage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const patientIdFromUrl = searchParams.get("patientId");
 
   const googleConnected = Boolean((session?.user as any)?.googleAccessToken);
 
@@ -61,6 +65,8 @@ export default function AgendaPage() {
 
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [formError, setFormError] = useState("");
+
+  const [handledPatientFromUrl, setHandledPatientFromUrl] = useState(false);
 
   const [appointmentToCancel, setAppointmentToCancel] = useState<{
     id: string;
@@ -127,6 +133,29 @@ export default function AgendaPage() {
   useEffect(() => {
     loadPatients();
   }, []);
+
+  useEffect(() => {
+    if (!patientIdFromUrl || handledPatientFromUrl || patients.length === 0) {
+      return;
+    }
+
+    const patientExists = patients.some(
+      (patient) => patient.id === patientIdFromUrl,
+    );
+
+    if (!patientExists) {
+      showFeedback(
+        "error",
+        "Paciente não encontrado na sua lista de vínculos.",
+      );
+      setHandledPatientFromUrl(true);
+      return;
+    }
+
+    setSelectedPatientId(patientIdFromUrl);
+    setIsModalOpen(true);
+    setHandledPatientFromUrl(true);
+  }, [patientIdFromUrl, handledPatientFromUrl, patients]);
 
   const nextEvent = useMemo(() => {
     const scheduledEvents = events.filter(
@@ -821,6 +850,29 @@ export default function AgendaPage() {
                       >
                         Abrir no Google Calendar
                       </a>
+                    )}
+
+                    {event.patientId && (
+                      <div style={{ marginTop: "12px" }}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/pacientes/${event.patientId}`)
+                          }
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            color: "#1d4ed8",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Ver paciente
+                        </button>
+                      </div>
                     )}
 
                     {event.status !== "CANCELLED" && (
