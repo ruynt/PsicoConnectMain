@@ -48,13 +48,35 @@ type PatientNote = {
   updatedAt: string;
 };
 
+type PatientCheckin = {
+  id: string;
+  appointmentId: string;
+  patientId: string;
+  moodLevel: number | null;
+  anxietyLevel: number | null;
+  sleepLevel: number | null;
+  mainConcern: string;
+  importantEvents: string;
+  topicsToDiscuss: string;
+  createdAt: string;
+  updatedAt: string;
+  appointment: {
+    id: string;
+    title: string;
+    dateTime: string;
+    endDateTime: string | null;
+    status: "SCHEDULED" | "CANCELLED";
+    location: string;
+  };
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
 };
 
 type NoteFilter = "ACTIVE" | "ARCHIVED" | "ALL";
-type PatientTab = "SUMMARY" | "APPOINTMENTS" | "NOTES";
+type PatientTab = "SUMMARY" | "APPOINTMENTS" | "NOTES" | "CHECKINS";
 
 export default function PatientDetailsPage() {
   const params = useParams();
@@ -62,14 +84,17 @@ export default function PatientDetailsPage() {
 
   const [patient, setPatient] = useState<PatientDetails | null>(null);
   const [notes, setNotes] = useState<PatientNote[]>([]);
+  const [checkins, setCheckins] = useState<PatientCheckin[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(false);
+  const [loadingCheckins, setLoadingCheckins] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [archivingNoteId, setArchivingNoteId] = useState("");
 
   const [error, setError] = useState("");
   const [noteError, setNoteError] = useState("");
+  const [checkinError, setCheckinError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [noteTitle, setNoteTitle] = useState("");
@@ -134,6 +159,29 @@ export default function PatientDetailsPage() {
     }
   }
 
+  async function loadCheckins() {
+    try {
+      setLoadingCheckins(true);
+      setCheckinError("");
+
+      const response = await fetch(`/api/patients/${patientId}/checkins`, {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar checklists.");
+      }
+
+      setCheckins(data.checkins || []);
+    } catch (error: any) {
+      setCheckinError(error.message || "Erro ao carregar checklists.");
+    } finally {
+      setLoadingCheckins(false);
+    }
+  }
+
   useEffect(() => {
     if (patientId) {
       loadPatient();
@@ -145,6 +193,12 @@ export default function PatientDetailsPage() {
       loadNotes(noteFilter);
     }
   }, [patientId, noteFilter]);
+
+  useEffect(() => {
+    if (patientId) {
+      loadCheckins();
+    }
+  }, [patientId]);
 
   const appointmentOptions = useMemo(() => {
     if (!patient) return [];
@@ -516,6 +570,7 @@ export default function PatientDetailsPage() {
             { label: "Resumo", value: "SUMMARY" },
             { label: "Consultas", value: "APPOINTMENTS" },
             { label: "Anotações", value: "NOTES" },
+            { label: "Checklists", value: "CHECKINS" },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -841,6 +896,265 @@ export default function PatientDetailsPage() {
                         Abrir no Google Calendar
                       </a>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === "CHECKINS" && (
+          <section style={cardStyle}>
+            <h2
+              style={{
+                fontSize: "26px",
+                fontWeight: 800,
+                color: "#111827",
+                marginBottom: "8px",
+              }}
+            >
+              Checklists pré-sessão
+            </h2>
+
+            <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+              Respostas enviadas pelo paciente antes dos atendimentos. Use estas
+              informações para se preparar para a sessão.
+            </p>
+
+            {checkinError && (
+              <div
+                style={{
+                  backgroundColor: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#b91c1c",
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                  marginBottom: "16px",
+                  fontWeight: 700,
+                }}
+              >
+                {checkinError}
+              </div>
+            )}
+
+            {loadingCheckins ? (
+              <p style={{ color: "#6b7280", margin: 0 }}>
+                Carregando checklists...
+              </p>
+            ) : checkins.length === 0 ? (
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "14px",
+                  padding: "16px",
+                  backgroundColor: "#f8fafc",
+                }}
+              >
+                <p
+                  style={{
+                    fontWeight: 800,
+                    color: "#111827",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Nenhum checklist respondido
+                </p>
+
+                <p style={{ color: "#6b7280", margin: 0 }}>
+                  Quando o paciente responder um checklist pré-sessão, as
+                  informações aparecerão aqui.
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                {checkins.map((checkin) => (
+                  <div
+                    key={checkin.id}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "14px",
+                      padding: "18px",
+                      backgroundColor: "#f8fafc",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        alignItems: "flex-start",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontWeight: 800,
+                            fontSize: "18px",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          {checkin.appointment.title}
+                        </p>
+
+                        <p style={{ color: "#6b7280", margin: 0 }}>
+                          Consulta em {formatDate(checkin.appointment.dateTime)}
+                        </p>
+                      </div>
+
+                      <span
+                        style={{
+                          backgroundColor: "#ecfdf5",
+                          color: "#065f46",
+                          border: "1px solid #a7f3d0",
+                          borderRadius: "999px",
+                          padding: "5px 10px",
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Respondido
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                        gap: "10px",
+                        marginBottom: "14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          padding: "12px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            color: "#6b7280",
+                            fontSize: "12px",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Humor
+                        </p>
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontSize: "22px",
+                            fontWeight: 800,
+                            margin: 0,
+                          }}
+                        >
+                          {checkin.moodLevel ?? "--"}/10
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          padding: "12px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            color: "#6b7280",
+                            fontSize: "12px",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Ansiedade
+                        </p>
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontSize: "22px",
+                            fontWeight: 800,
+                            margin: 0,
+                          }}
+                        >
+                          {checkin.anxietyLevel ?? "--"}/10
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          padding: "12px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            color: "#6b7280",
+                            fontSize: "12px",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Sono
+                        </p>
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontSize: "22px",
+                            fontWeight: 800,
+                            margin: 0,
+                          }}
+                        >
+                          {checkin.sleepLevel ?? "--"}/10
+                        </p>
+                      </div>
+                    </div>
+
+                    {checkin.mainConcern && (
+                      <p style={{ color: "#4b5563", marginBottom: "8px" }}>
+                        <strong>Principal preocupação:</strong>{" "}
+                        {checkin.mainConcern}
+                      </p>
+                    )}
+
+                    {checkin.importantEvents && (
+                      <p style={{ color: "#4b5563", marginBottom: "8px" }}>
+                        <strong>Acontecimentos importantes:</strong>{" "}
+                        {checkin.importantEvents}
+                      </p>
+                    )}
+
+                    {checkin.topicsToDiscuss && (
+                      <p style={{ color: "#4b5563", marginBottom: "8px" }}>
+                        <strong>Temas que deseja abordar:</strong>{" "}
+                        {checkin.topicsToDiscuss}
+                      </p>
+                    )}
+
+                    <p
+                      style={{
+                        color: "#6b7280",
+                        fontSize: "13px",
+                        marginTop: "12px",
+                        marginBottom: 0,
+                      }}
+                    >
+                      Enviado em {formatDate(checkin.createdAt)}
+                      {checkin.updatedAt !== checkin.createdAt
+                        ? ` · Atualizado em ${formatDate(checkin.updatedAt)}`
+                        : ""}
+                    </p>
                   </div>
                 ))}
               </div>

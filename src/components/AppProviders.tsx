@@ -19,6 +19,9 @@ function AuthGuard({ children }: PropsWithChildren) {
 
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isPsychologist = userRole === "PSYCHOLOGIST";
+  const isPatient = userRole === "PATIENT";
+
+  const homePath = isPsychologist ? "/dashboard" : "/patient";
 
   useEffect(() => {
     if (status === "loading") return;
@@ -29,9 +32,12 @@ function AuthGuard({ children }: PropsWithChildren) {
     }
 
     if (status === "authenticated" && (isAuthPage || isLandingPage)) {
-      router.push("/dashboard");
+      const redirectPath =
+        userRole === "PSYCHOLOGIST" ? "/dashboard" : "/patient";
+
+      router.push(redirectPath);
     }
-  }, [status, isPublicPage, isAuthPage, isLandingPage, router]);
+  }, [status, isPublicPage, isAuthPage, isLandingPage, userRole, router]);
 
   if (status === "loading") {
     return (
@@ -74,8 +80,8 @@ function AuthGuard({ children }: PropsWithChildren) {
 
             <div className="sidebar-nav">
               <Link
-                href="/dashboard"
-                className={isActive("/dashboard") ? "active" : ""}
+                href={homePath}
+                className={isActive(homePath) ? "active" : ""}
               >
                 <i className="fa-solid fa-home"></i> Início
               </Link>
@@ -88,6 +94,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   <i className="fa-solid fa-calendar-days"></i> Agenda
                 </Link>
               )}
+
               {isPsychologist && (
                 <Link
                   href="/pacientes"
@@ -97,9 +104,14 @@ function AuthGuard({ children }: PropsWithChildren) {
                 </Link>
               )}
 
-              <Link href="#" className={isActive("/consultas") ? "active" : ""}>
-                <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
-              </Link>
+              {isPatient && (
+                <Link
+                  href="/minhas-consultas"
+                  className={isActive("/minhas-consultas") ? "active" : ""}
+                >
+                  <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
+                </Link>
+              )}
 
               <Link href="#" className={isActive("/conteudos") ? "active" : ""}>
                 <i className="fa-solid fa-book-open"></i> Conteúdos

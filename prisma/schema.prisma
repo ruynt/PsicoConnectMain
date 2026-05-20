@@ -39,6 +39,7 @@ model Patient {
   notes        SessionNote[]
 
   psychologistLinks PsychologistPatient[]
+  preSessionCheckins PreSessionCheckin[]
 }
 
 model PsychologistPatient {
@@ -84,6 +85,8 @@ model Appointment {
 
   cancellationReason String?
 cancelledAt         DateTime?
+
+preSessionCheckins PreSessionCheckin[]
 
   @@index([dateTime])
   @@index([psychologistId, dateTime])
@@ -133,4 +136,29 @@ enum Role {
 enum AppointmentStatus {
   SCHEDULED
   CANCELLED
+}
+
+model PreSessionCheckin {
+  id              String      @id @default(uuid())
+
+  appointmentId   String
+  appointment     Appointment @relation(fields: [appointmentId], references: [id])
+
+  patientId        String
+  patient          Patient     @relation(fields: [patientId], references: [id])
+
+  moodLevel        Int?
+  anxietyLevel     Int?
+  sleepLevel       Int?
+
+  mainConcern      String?
+  importantEvents  String?
+  topicsToDiscuss  String?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@unique([appointmentId, patientId])
+  @@index([appointmentId])
+  @@index([patientId])
 }
