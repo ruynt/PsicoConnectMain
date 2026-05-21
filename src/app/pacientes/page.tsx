@@ -23,6 +23,47 @@ type Feedback = {
   message: string;
 };
 
+type MetricCardProps = {
+  label: string;
+  value: number;
+  description: string;
+  icon: string;
+  tone: "blue" | "green" | "amber" | "purple" | "red" | "slate";
+};
+
+const tones = {
+  blue: {
+    bg: "#eff6ff",
+    text: "#1d4ed8",
+    border: "#bfdbfe",
+  },
+  green: {
+    bg: "#ecfdf5",
+    text: "#047857",
+    border: "#a7f3d0",
+  },
+  amber: {
+    bg: "#fffbeb",
+    text: "#b45309",
+    border: "#fde68a",
+  },
+  purple: {
+    bg: "#f5f3ff",
+    text: "#6d28d9",
+    border: "#ddd6fe",
+  },
+  red: {
+    bg: "#fef2f2",
+    text: "#b91c1c",
+    border: "#fecaca",
+  },
+  slate: {
+    bg: "#f8fafc",
+    text: "#334155",
+    border: "#e2e8f0",
+  },
+};
+
 export default function PatientsPage() {
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +127,24 @@ export default function PatientsPage() {
       );
     });
   }, [patients, searchTerm]);
+
+  const patientsWithFutureAppointment = useMemo(() => {
+    return patients.filter((patient) => patient.nextAppointment).length;
+  }, [patients]);
+
+  const totalScheduledAppointments = useMemo(() => {
+    return patients.reduce(
+      (total, patient) => total + patient.scheduledAppointments,
+      0,
+    );
+  }, [patients]);
+
+  const totalCancelledAppointments = useMemo(() => {
+    return patients.reduce(
+      (total, patient) => total + patient.cancelledAppointments,
+      0,
+    );
+  }, [patients]);
 
   function showFeedback(type: "success" | "error" | "info", message: string) {
     setFeedback({ type, message });
@@ -188,80 +247,270 @@ export default function PatientsPage() {
     }
   }
 
+  const pageStyle = {
+    padding: "36px",
+    minHeight: "calc(100vh - 48px)",
+    background:
+      "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
+    borderRadius: "32px", 
+    overflow: "visible",
+  };
+
   const cardStyle = {
-    backgroundColor: "#ffffff",
-    borderRadius: "18px",
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: "22px",
     padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-    border: "1px solid #e5e7eb",
+    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
+    border: "1px solid rgba(226, 232, 240, 0.9)",
   };
 
   const buttonPrimaryStyle = {
     background: "linear-gradient(135deg, #2563eb, #4f8cff)",
     color: "#fff",
     border: "none",
-    borderRadius: "12px",
-    padding: "10px 14px",
-    fontWeight: 700,
+    borderRadius: "14px",
+    padding: "12px 16px",
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
+    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.24)",
   } as const;
 
   const buttonSecondaryStyle = {
-    backgroundColor: "#fff",
-    color: "#1f2937",
-    border: "1px solid #d1d5db",
-    borderRadius: "12px",
-    padding: "10px 14px",
-    fontWeight: 700,
+    backgroundColor: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+    borderRadius: "14px",
+    padding: "12px 16px",
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
   } as const;
 
-  return (
-    <>
-      <div style={{ padding: "32px" }}>
+  const buttonDangerStyle = {
+    backgroundColor: "#fef2f2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+    borderRadius: "14px",
+    padding: "12px 16px",
+    fontWeight: 900,
+    cursor: "pointer",
+    fontSize: "14px",
+  } as const;
+
+  const inputStyle = {
+    width: "100%",
+    border: "1px solid #cbd5e1",
+    borderRadius: "14px",
+    padding: "13px 14px",
+    fontSize: "14px",
+    outline: "none",
+    backgroundColor: "#ffffff",
+  } as const;
+
+  function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
+    const selectedTone = tones[tone];
+
+    return (
+      <div
+        style={{
+          ...cardStyle,
+          minHeight: "132px",
+          padding: "20px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            right: "-24px",
+            top: "-24px",
+            width: "94px",
+            height: "94px",
+            borderRadius: "999px",
+            backgroundColor: selectedTone.bg,
+          }}
+        />
+
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
+            gap: "12px",
             alignItems: "flex-start",
-            gap: "16px",
-            marginBottom: "28px",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           <div>
-            <h1
+            <p
               style={{
-                fontSize: "40px",
+                color: "#64748b",
+                fontSize: "13px",
                 fontWeight: 800,
-                color: "#111827",
                 marginBottom: "8px",
               }}
             >
-              Pacientes
-            </h1>
+              {label}
+            </p>
 
             <p
               style={{
-                fontSize: "18px",
-                color: "#4f46e5",
+                color: selectedTone.text,
+                fontSize: "36px",
+                fontWeight: 900,
+                lineHeight: 1,
                 margin: 0,
               }}
             >
-              Gerencie seus pacientes vinculados, acompanhe consultas e registre
-              informações relevantes para o atendimento.
+              {value}
             </p>
           </div>
 
-          <button
-            type="button"
-            style={buttonPrimaryStyle}
-            onClick={() => setIsLinkModalOpen(true)}
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "14px",
+              backgroundColor: selectedTone.bg,
+              border: `1px solid ${selectedTone.border}`,
+              color: selectedTone.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "20px",
+              flexShrink: 0,
+            }}
           >
-            Vincular paciente
-          </button>
+            <i className={icon}></i>
+          </div>
         </div>
+
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "13px",
+            marginTop: "12px",
+            marginBottom: 0,
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {description}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={pageStyle}>
+        <section
+          style={{
+            background:
+              "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
+            borderRadius: "28px",
+            padding: "30px",
+            color: "#ffffff",
+            marginBottom: "24px",
+            boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: "-80px",
+              top: "-90px",
+              width: "240px",
+              height: "240px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.16)",
+            }}
+          />
+
+          <div
+            style={{
+              position: "absolute",
+              right: "90px",
+              bottom: "-110px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.10)",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "20px",
+              alignItems: "flex-start",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "rgba(255, 255, 255, 0.16)",
+                  border: "1px solid rgba(255, 255, 255, 0.22)",
+                  borderRadius: "999px",
+                  padding: "7px 12px",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  marginBottom: "14px",
+                }}
+              >
+                <i className="fa-solid fa-users"></i>
+                Gestão de pacientes
+              </span>
+
+              <h1
+                style={{
+                  fontSize: "44px",
+                  fontWeight: 900,
+                  lineHeight: 1.05,
+                  marginBottom: "10px",
+                }}
+              >
+                Pacientes
+              </h1>
+
+              <p
+                style={{
+                  fontSize: "18px",
+                  color: "#dbeafe",
+                  maxWidth: "780px",
+                  margin: 0,
+                }}
+              >
+                Gerencie vínculos, acompanhe próximas consultas e acesse
+                registros clínicos, tarefas, checklists e materiais de cada
+                paciente.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              style={{
+                ...buttonPrimaryStyle,
+                background: "#ffffff",
+                color: "#1d4ed8",
+                boxShadow: "0 10px 24px rgba(15, 23, 42, 0.16)",
+              }}
+              onClick={() => setIsLinkModalOpen(true)}
+            >
+              Vincular paciente
+            </button>
+          </div>
+        </section>
 
         {feedback && (
           <div
@@ -284,10 +533,10 @@ export default function PatientsPage() {
                   : feedback.type === "error"
                     ? "#b91c1c"
                     : "#1d4ed8",
-              borderRadius: "12px",
+              borderRadius: "16px",
               padding: "14px 16px",
               marginBottom: "18px",
-              fontWeight: 700,
+              fontWeight: 800,
             }}
           >
             {feedback.message}
@@ -296,69 +545,91 @@ export default function PatientsPage() {
 
         <div
           style={{
-            backgroundColor: "#eff6ff",
-            borderLeft: "4px solid #3b82f6",
-            borderRadius: "12px",
-            padding: "18px",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: "18px",
             marginBottom: "24px",
           }}
         >
-          <p
-            style={{
-              fontWeight: 700,
-              color: "#1d4ed8",
-              marginBottom: "6px",
-            }}
-          >
-            Histórico do paciente
-          </p>
-          <p style={{ color: "#1e40af", margin: 0 }}>
-            Acesse pacientes vinculados, acompanhe consultas e organize
-            anotações clínicas internas.
-          </p>
+          <MetricCard
+            label="Pacientes vinculados"
+            value={patients.length}
+            description="Pacientes ativos na sua lista."
+            icon="fa-solid fa-user-group"
+            tone="slate"
+          />
+
+          <MetricCard
+            label="Com próxima consulta"
+            value={patientsWithFutureAppointment}
+            description="Pacientes com atendimento futuro."
+            icon="fa-solid fa-calendar-check"
+            tone="blue"
+          />
+
+          <MetricCard
+            label="Consultas ativas"
+            value={totalScheduledAppointments}
+            description="Total de consultas agendadas."
+            icon="fa-solid fa-clock"
+            tone="green"
+          />
+
+          <MetricCard
+            label="Cancelamentos"
+            value={totalCancelledAppointments}
+            description="Consultas canceladas no histórico."
+            icon="fa-solid fa-calendar-xmark"
+            tone="red"
+          />
         </div>
 
-        <div
-          style={{
-            ...cardStyle,
-            marginBottom: "24px",
-            padding: "18px",
-          }}
-        >
-          <label
-            style={{
-              display: "block",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "8px",
-            }}
-          >
-            Buscar paciente
-          </label>
-
+        <section style={{ ...cardStyle, marginBottom: "24px" }}>
           <div
             style={{
               display: "flex",
-              gap: "12px",
-              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "16px",
+              alignItems: "flex-end",
               flexWrap: "wrap",
             }}
           >
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Digite nome ou e-mail do paciente"
-              style={{
-                flex: "1",
-                minWidth: "240px",
-                border: "1px solid #d1d5db",
-                borderRadius: "12px",
-                padding: "12px 14px",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
+            <div style={{ flex: 1, minWidth: "260px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "8px",
+                }}
+              >
+                Buscar paciente
+              </label>
+
+              <div style={{ position: "relative" }}>
+                <i
+                  className="fa-solid fa-magnifying-glass"
+                  style={{
+                    position: "absolute",
+                    left: "14px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#94a3b8",
+                  }}
+                ></i>
+
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Digite nome ou e-mail do paciente"
+                  style={{
+                    ...inputStyle,
+                    paddingLeft: "42px",
+                  }}
+                />
+              </div>
+            </div>
 
             {searchTerm && (
               <button
@@ -373,9 +644,9 @@ export default function PatientsPage() {
 
           <p
             style={{
-              color: "#6b7280",
+              color: "#64748b",
               fontSize: "14px",
-              marginTop: "10px",
+              marginTop: "12px",
               marginBottom: 0,
             }}
           >
@@ -385,11 +656,11 @@ export default function PatientsPage() {
                 ? `${filteredPatients.length} de ${patients.length} paciente(s) encontrado(s).`
                 : `${patients.length} paciente(s) vinculado(s).`}
           </p>
-        </div>
+        </section>
 
         {loading ? (
           <div style={cardStyle}>
-            <p style={{ color: "#6b7280", margin: 0 }}>
+            <p style={{ color: "#64748b", margin: 0 }}>
               Carregando pacientes...
             </p>
           </div>
@@ -401,7 +672,7 @@ export default function PatientsPage() {
               border: "1px solid #fecaca",
             }}
           >
-            <p style={{ color: "#b91c1c", fontWeight: 700, margin: 0 }}>
+            <p style={{ color: "#b91c1c", fontWeight: 800, margin: 0 }}>
               {error}
             </p>
           </div>
@@ -409,30 +680,38 @@ export default function PatientsPage() {
           <div style={cardStyle}>
             <p
               style={{
-                color: "#111827",
-                fontWeight: 700,
+                color: "#0f172a",
+                fontWeight: 900,
                 marginBottom: "6px",
               }}
             >
               Nenhum paciente vinculado
             </p>
-            <p style={{ color: "#6b7280", margin: 0 }}>
+            <p style={{ color: "#64748b", marginBottom: "16px" }}>
               Vincule um paciente pelo e-mail para começar a acompanhar
-              consultas e anotações.
+              consultas, anotações, tarefas e materiais.
             </p>
+
+            <button
+              type="button"
+              style={buttonPrimaryStyle}
+              onClick={() => setIsLinkModalOpen(true)}
+            >
+              Vincular primeiro paciente
+            </button>
           </div>
         ) : filteredPatients.length === 0 ? (
           <div style={cardStyle}>
             <p
               style={{
-                color: "#111827",
-                fontWeight: 700,
+                color: "#0f172a",
+                fontWeight: 900,
                 marginBottom: "6px",
               }}
             >
               Nenhum resultado encontrado
             </p>
-            <p style={{ color: "#6b7280", margin: 0 }}>
+            <p style={{ color: "#64748b", margin: 0 }}>
               Não encontramos paciente vinculado com esse nome ou e-mail.
             </p>
           </div>
@@ -440,25 +719,122 @@ export default function PatientsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
               gap: "20px",
             }}
           >
             {filteredPatients.map((patient) => (
-              <div key={patient.id} style={cardStyle}>
-                <div style={{ marginBottom: "16px" }}>
-                  <h2
+              <div
+                key={patient.id}
+                style={{
+                  ...cardStyle,
+                  padding: "22px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "14px",
+                    alignItems: "flex-start",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "16px",
+                        backgroundColor: "#eff6ff",
+                        color: "#1d4ed8",
+                        border: "1px solid #bfdbfe",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "20px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <i className="fa-solid fa-user"></i>
+                    </div>
+
+                    <h2
+                      style={{
+                        fontSize: "22px",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {patient.name}
+                    </h2>
+
+                    <p style={{ color: "#64748b", margin: 0 }}>
+                      {patient.email}
+                    </p>
+                  </div>
+
+                  <span
                     style={{
-                      fontSize: "22px",
-                      fontWeight: 800,
-                      color: "#111827",
-                      marginBottom: "6px",
+                      backgroundColor: patient.nextAppointment
+                        ? "#ecfdf5"
+                        : "#f8fafc",
+                      color: patient.nextAppointment ? "#047857" : "#64748b",
+                      border: patient.nextAppointment
+                        ? "1px solid #a7f3d0"
+                        : "1px solid #e2e8f0",
+                      borderRadius: "999px",
+                      padding: "6px 11px",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {patient.name}
-                  </h2>
+                    {patient.nextAppointment ? "Com consulta" : "Sem consulta"}
+                  </span>
+                </div>
 
-                  <p style={{ color: "#6b7280", margin: 0 }}>{patient.email}</p>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={buttonPrimaryStyle}
+                    onClick={() => {
+                      window.location.href = `/pacientes/${patient.id}`;
+                    }}
+                  >
+                    Ver detalhes
+                  </button>
+
+                  <button
+                    type="button"
+                    style={buttonSecondaryStyle}
+                    onClick={() => {
+                      window.location.href = `/agenda?patientId=${patient.id}`;
+                    }}
+                  >
+                    Agendar
+                  </button>
+
+                  <button
+                    type="button"
+                    style={buttonDangerStyle}
+                    onClick={() =>
+                      setPatientToUnlink({
+                        id: patient.id,
+                        name: patient.name,
+                      })
+                    }
+                  >
+                    Desvincular
+                  </button>
                 </div>
 
                 <div
@@ -472,25 +848,26 @@ export default function PatientsPage() {
                   <div
                     style={{
                       backgroundColor: "#f8fafc",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "14px",
                       padding: "12px",
                     }}
                   >
                     <p
                       style={{
-                        color: "#6b7280",
+                        color: "#64748b",
                         fontSize: "12px",
                         marginBottom: "4px",
+                        fontWeight: 800,
                       }}
                     >
                       Total
                     </p>
                     <p
                       style={{
-                        color: "#111827",
-                        fontSize: "22px",
-                        fontWeight: 800,
+                        color: "#0f172a",
+                        fontSize: "24px",
+                        fontWeight: 900,
                         margin: 0,
                       }}
                     >
@@ -502,7 +879,7 @@ export default function PatientsPage() {
                     style={{
                       backgroundColor: "#ecfdf5",
                       border: "1px solid #a7f3d0",
-                      borderRadius: "12px",
+                      borderRadius: "14px",
                       padding: "12px",
                     }}
                   >
@@ -511,6 +888,7 @@ export default function PatientsPage() {
                         color: "#065f46",
                         fontSize: "12px",
                         marginBottom: "4px",
+                        fontWeight: 800,
                       }}
                     >
                       Ativas
@@ -518,8 +896,8 @@ export default function PatientsPage() {
                     <p
                       style={{
                         color: "#065f46",
-                        fontSize: "22px",
-                        fontWeight: 800,
+                        fontSize: "24px",
+                        fontWeight: 900,
                         margin: 0,
                       }}
                     >
@@ -531,7 +909,7 @@ export default function PatientsPage() {
                     style={{
                       backgroundColor: "#fef2f2",
                       border: "1px solid #fecaca",
-                      borderRadius: "12px",
+                      borderRadius: "14px",
                       padding: "12px",
                     }}
                   >
@@ -540,6 +918,7 @@ export default function PatientsPage() {
                         color: "#b91c1c",
                         fontSize: "12px",
                         marginBottom: "4px",
+                        fontWeight: 800,
                       }}
                     >
                       Canceladas
@@ -547,8 +926,8 @@ export default function PatientsPage() {
                     <p
                       style={{
                         color: "#b91c1c",
-                        fontSize: "22px",
-                        fontWeight: 800,
+                        fontSize: "24px",
+                        fontWeight: 900,
                         margin: 0,
                       }}
                     >
@@ -560,16 +939,16 @@ export default function PatientsPage() {
                 <div
                   style={{
                     backgroundColor: "#f8fafc",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
                     padding: "14px",
                     marginBottom: "16px",
                   }}
                 >
                   <p
                     style={{
-                      fontWeight: 700,
-                      color: "#111827",
+                      fontWeight: 900,
+                      color: "#0f172a",
                       marginBottom: "6px",
                     }}
                   >
@@ -578,72 +957,21 @@ export default function PatientsPage() {
 
                   {patient.nextAppointment ? (
                     <>
-                      <p style={{ color: "#4b5563", marginBottom: "4px" }}>
+                      <p style={{ color: "#475569", marginBottom: "4px" }}>
                         {patient.nextAppointment.title}
                       </p>
-                      <p style={{ color: "#6b7280", margin: 0 }}>
+                      <p style={{ color: "#64748b", margin: 0 }}>
                         {formatDate(patient.nextAppointment.dateTime)}
                       </p>
                     </>
                   ) : (
-                    <p style={{ color: "#6b7280", margin: 0 }}>
+                    <p style={{ color: "#64748b", margin: 0 }}>
                       Sem consulta futura agendada.
                     </p>
                   )}
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    style={buttonPrimaryStyle}
-                    onClick={() => {
-                      window.location.href = `/pacientes/${patient.id}`;
-                    }}
-                  >
-                    Ver detalhes
-                  </button>
 
-                  <button
-                    type="button"
-                    style={{
-                      backgroundColor: "#eff6ff",
-                      color: "#1d4ed8",
-                      border: "1px solid #bfdbfe",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontSize: "14px",
-                    }}
-                    onClick={() => {
-                      window.location.href = `/agenda?patientId=${patient.id}`;
-                    }}
-                  >
-                    Agendar
-                  </button>
-
-                  <button
-                    type="button"
-                    style={{
-                      backgroundColor: "#fef2f2",
-                      color: "#b91c1c",
-                      border: "1px solid #fecaca",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontSize: "14px",
-                    }}
-                    onClick={() =>
-                      setPatientToUnlink({
-                        id: patient.id,
-                        name: patient.name,
-                      })
-                    }
-                  >
-                    Desvincular
-                  </button>
-                </div>
               </div>
             ))}
           </div>
@@ -656,39 +984,59 @@ export default function PatientsPage() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
             zIndex: 1000,
+            backdropFilter: "blur(6px)",
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%",
-              maxWidth: "520px",
+              maxWidth: "540px",
               backgroundColor: "#ffffff",
-              borderRadius: "20px",
-              padding: "28px",
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
-              border: "1px solid #e5e7eb",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+              border: "1px solid #e2e8f0",
             }}
           >
             <div style={{ marginBottom: "22px" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#eff6ff",
+                  color: "#1d4ed8",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "999px",
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: 900,
+                  marginBottom: "12px",
+                }}
+              >
+                <i className="fa-solid fa-link"></i>
+                Novo vínculo
+              </span>
+
               <h2
                 style={{
-                  fontSize: "28px",
-                  fontWeight: 800,
-                  color: "#111827",
+                  fontSize: "30px",
+                  fontWeight: 900,
+                  color: "#0f172a",
                   marginBottom: "8px",
                 }}
               >
                 Vincular paciente
               </h2>
 
-              <p style={{ color: "#6b7280", margin: 0 }}>
+              <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
                 Informe o e-mail de um paciente já cadastrado para vinculá-lo ao
                 seu acompanhamento.
               </p>
@@ -700,10 +1048,10 @@ export default function PatientsPage() {
                   backgroundColor: "#fef2f2",
                   border: "1px solid #fecaca",
                   color: "#b91c1c",
-                  borderRadius: "12px",
+                  borderRadius: "14px",
                   padding: "12px 14px",
                   marginBottom: "16px",
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 {linkError}
@@ -715,8 +1063,8 @@ export default function PatientsPage() {
                 <label
                   style={{
                     display: "block",
-                    fontWeight: 700,
-                    color: "#111827",
+                    fontWeight: 900,
+                    color: "#0f172a",
                     marginBottom: "8px",
                   }}
                 >
@@ -728,14 +1076,7 @@ export default function PatientsPage() {
                   value={patientEmailToLink}
                   onChange={(e) => setPatientEmailToLink(e.target.value)}
                   placeholder="exemplo@email.com"
-                  style={{
-                    width: "100%",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "12px",
-                    padding: "12px 14px",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
+                  style={inputStyle}
                 />
               </div>
 
@@ -744,6 +1085,7 @@ export default function PatientsPage() {
                   display: "flex",
                   justifyContent: "flex-end",
                   gap: "12px",
+                  flexWrap: "wrap",
                 }}
               >
                 <button
@@ -778,31 +1120,51 @@ export default function PatientsPage() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
             zIndex: 1001,
+            backdropFilter: "blur(6px)",
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%",
-              maxWidth: "480px",
+              maxWidth: "500px",
               backgroundColor: "#ffffff",
-              borderRadius: "20px",
-              padding: "28px",
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
-              border: "1px solid #e5e7eb",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+              border: "1px solid #e2e8f0",
             }}
           >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#fef2f2",
+                color: "#b91c1c",
+                border: "1px solid #fecaca",
+                borderRadius: "999px",
+                padding: "6px 12px",
+                fontSize: "13px",
+                fontWeight: 900,
+                marginBottom: "12px",
+              }}
+            >
+              <i className="fa-solid fa-triangle-exclamation"></i>
+              Confirmação
+            </span>
+
             <h2
               style={{
-                fontSize: "26px",
-                fontWeight: 800,
-                color: "#111827",
+                fontSize: "28px",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "10px",
               }}
             >
@@ -811,7 +1173,7 @@ export default function PatientsPage() {
 
             <p
               style={{
-                color: "#4b5563",
+                color: "#475569",
                 marginBottom: "18px",
                 lineHeight: 1.5,
               }}
@@ -826,6 +1188,7 @@ export default function PatientsPage() {
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: "12px",
+                flexWrap: "wrap",
               }}
             >
               <button
@@ -842,12 +1205,10 @@ export default function PatientsPage() {
                 onClick={confirmUnlinkPatient}
                 disabled={unlinkingPatientId === patientToUnlink.id}
                 style={{
+                  ...buttonDangerStyle,
                   backgroundColor: "#dc2626",
                   color: "#fff",
                   border: "none",
-                  borderRadius: "12px",
-                  padding: "10px 14px",
-                  fontWeight: 700,
                   cursor:
                     unlinkingPatientId === patientToUnlink.id
                       ? "not-allowed"

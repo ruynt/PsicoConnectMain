@@ -558,18 +558,15 @@ export default function PatientDetailsPage() {
     try {
       setUpdatingTaskId(taskId);
 
-      const response = await fetch(
-        `/api/patients/${patientId}/tasks/${taskId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status,
-          }),
+      const response = await fetch(`/api/patients/${patientId}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          status,
+        }),
+      });
 
       const data = await response.json();
 
@@ -675,62 +672,89 @@ export default function PatientDetailsPage() {
 
   const currentNoteFilterInfo = noteFilterInfo[noteFilter];
 
+  const pageStyle = {
+    padding: "36px",
+    paddingBottom: "72px",
+    minHeight: "calc(100vh - 48px)",
+    background:
+      "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
+    borderRadius: "32px",
+    overflow: "visible",
+  };
+
   const cardStyle = {
-    backgroundColor: "#ffffff",
-    borderRadius: "18px",
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: "22px",
     padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-    border: "1px solid #e5e7eb",
+    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
+    border: "1px solid rgba(226, 232, 240, 0.9)",
   };
 
   const smallCardStyle = {
     ...cardStyle,
-    minHeight: "130px",
-  };
+    minHeight: "132px",
+    position: "relative",
+    overflow: "hidden",
+  } as const;
 
   const buttonPrimaryStyle = {
     background: "linear-gradient(135deg, #2563eb, #4f8cff)",
     color: "#fff",
     border: "none",
-    borderRadius: "12px",
+    borderRadius: "14px",
     padding: "12px 18px",
-    fontWeight: 700,
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
     textDecoration: "none",
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.24)",
   } as const;
 
   const buttonSecondaryStyle = {
-    backgroundColor: "#fff",
-    color: "#1f2937",
-    border: "1px solid #d1d5db",
-    borderRadius: "12px",
+    backgroundColor: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+    borderRadius: "14px",
     padding: "12px 18px",
-    fontWeight: 700,
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
   } as const;
 
   if (loading) {
     return (
-      <div style={{ padding: "32px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#111827" }}>
-          Carregando paciente...
-        </h1>
+      <div
+        style={{
+          minHeight: "calc(100vh - 48px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "32px",
+          background: "#f8fbff",
+          overflow: "visible",
+        }}
+      >
+        <div className="psico-simple-loader">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
     );
   }
 
   if (error || !patient) {
     return (
-      <div style={{ padding: "32px" }}>
+      <div style={pageStyle}>
         <Link
           href="/pacientes"
           style={{
             display: "inline-block",
             color: "#2563eb",
-            fontWeight: 700,
+            fontWeight: 800,
             textDecoration: "none",
             marginBottom: "20px",
           }}
@@ -745,7 +769,7 @@ export default function PatientDetailsPage() {
             border: "1px solid #fecaca",
           }}
         >
-          <p style={{ color: "#b91c1c", fontWeight: 700, margin: 0 }}>
+          <p style={{ color: "#b91c1c", fontWeight: 800, margin: 0 }}>
             {error || "Paciente não encontrado."}
           </p>
         </div>
@@ -755,58 +779,148 @@ export default function PatientDetailsPage() {
 
   return (
     <>
-      <div style={{ padding: "32px" }}>
-        <div style={{ marginBottom: "24px" }}>
+      <div style={pageStyle}>
+        <section
+          style={{
+            background:
+              "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
+            borderRadius: "28px",
+            padding: "30px",
+            color: "#ffffff",
+            marginBottom: "24px",
+            boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: "-80px",
+              top: "-90px",
+              width: "240px",
+              height: "240px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.16)",
+            }}
+          />
+
+          <div
+            style={{
+              position: "absolute",
+              right: "90px",
+              bottom: "-110px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.10)",
+            }}
+          />
+
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
+              gap: "20px",
               alignItems: "flex-start",
-              gap: "16px",
-              marginBottom: "18px",
+              position: "relative",
+              zIndex: 1,
             }}
           >
-            <Link
-              href="/pacientes"
-              style={{
-                display: "inline-block",
-                color: "#2563eb",
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
-              ← Voltar para pacientes
-            </Link>
+            <div>
+              <Link
+                href="/pacientes"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: "#dbeafe",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  marginBottom: "14px",
+                }}
+              >
+                <i className="fa-solid fa-arrow-left"></i>
+                Voltar para pacientes
+              </Link>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "52px",
+                    height: "52px",
+                    borderRadius: "18px",
+                    backgroundColor: "rgba(255, 255, 255, 0.18)",
+                    border: "1px solid rgba(255, 255, 255, 0.24)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "22px",
+                  }}
+                >
+                  <i className="fa-solid fa-user"></i>
+                </div>
+
+                <div>
+                  <p
+                    style={{
+                      color: "#dbeafe",
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Perfil do paciente
+                  </p>
+
+                  <h1
+                    style={{
+                      fontSize: "42px",
+                      fontWeight: 900,
+                      lineHeight: 1.05,
+                      margin: 0,
+                    }}
+                  >
+                    {patient.name}
+                  </h1>
+                </div>
+              </div>
+
+              <p
+                style={{
+                  fontSize: "18px",
+                  color: "#dbeafe",
+                  maxWidth: "820px",
+                  margin: 0,
+                }}
+              >
+                Acompanhe consultas, checklists pré-sessão, tarefas terapêuticas,
+                materiais psicoeducativos e anotações clínicas internas.
+              </p>
+            </div>
 
             <Link
               href={`/agenda?patientId=${patient.id}`}
-              style={buttonPrimaryStyle}
+              style={{
+                ...buttonPrimaryStyle,
+                background: "#ffffff",
+                color: "#1d4ed8",
+                boxShadow: "0 10px 24px rgba(15, 23, 42, 0.16)",
+                position: "relative",
+                zIndex: 1,
+              }}
             >
               Agendar consulta
             </Link>
           </div>
-
-          <h1
-            style={{
-              fontSize: "40px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "8px",
-            }}
-          >
-            {patient.name}
-          </h1>
-
-          <p
-            style={{
-              fontSize: "18px",
-              color: "#4f46e5",
-              margin: 0,
-            }}
-          >
-            Acompanhe consultas, histórico e anotações internas do paciente.
-          </p>
-        </div>
+        </section>
 
         {feedback && (
           <div
@@ -832,36 +946,13 @@ export default function PatientDetailsPage() {
               borderRadius: "12px",
               padding: "14px 16px",
               marginBottom: "18px",
-              fontWeight: 700,
+              fontWeight: 800,
             }}
           >
             {feedback.message}
           </div>
         )}
 
-        <div
-          style={{
-            backgroundColor: "#eff6ff",
-            borderLeft: "4px solid #3b82f6",
-            borderRadius: "12px",
-            padding: "18px",
-            marginBottom: "24px",
-          }}
-        >
-          <p
-            style={{
-              fontWeight: 700,
-              color: "#1d4ed8",
-              marginBottom: "6px",
-            }}
-          >
-            Perfil do paciente
-          </p>
-          <p style={{ color: "#1e40af", margin: 0 }}>
-            Consulte o histórico de atendimentos, acompanhe próximas consultas e
-            registre anotações clínicas internas.
-          </p>
-        </div>
 
         <div
           style={{
@@ -872,12 +963,12 @@ export default function PatientDetailsPage() {
           }}
         >
           {[
-            { label: "Resumo", value: "SUMMARY" },
-            { label: "Consultas", value: "APPOINTMENTS" },
-            { label: "Anotações", value: "NOTES" },
-            { label: "Checklists", value: "CHECKINS" },
-            { label: "Tarefas", value: "TASKS" },
-            { label: "Materiais", value: "MATERIALS" },
+            { label: "Resumo", value: "SUMMARY", icon: "fa-solid fa-chart-simple" },
+            { label: "Consultas", value: "APPOINTMENTS", icon: "fa-solid fa-calendar-days" },
+            { label: "Anotações", value: "NOTES", icon: "fa-solid fa-pen-to-square" },
+            { label: "Checklists", value: "CHECKINS", icon: "fa-solid fa-clipboard-check" },
+            { label: "Tarefas", value: "TASKS", icon: "fa-solid fa-list-check" },
+            { label: "Materiais", value: "MATERIALS", icon: "fa-solid fa-book-open" },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -891,12 +982,16 @@ export default function PatientDetailsPage() {
                 backgroundColor: activeTab === tab.value ? "#eff6ff" : "#fff",
                 color: activeTab === tab.value ? "#1d4ed8" : "#374151",
                 borderRadius: "999px",
-                padding: "10px 16px",
-                fontWeight: 800,
+                padding: "11px 17px",
+                fontWeight: 900,
                 cursor: "pointer",
                 fontSize: "14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
+              <i className={tab.icon}></i>
               {tab.label}
             </button>
           ))}
@@ -926,7 +1021,7 @@ export default function PatientDetailsPage() {
                   style={{
                     color: "#111827",
                     fontSize: "16px",
-                    fontWeight: 800,
+                    fontWeight: 900,
                     margin: 0,
                     wordBreak: "break-word",
                   }}
@@ -949,7 +1044,7 @@ export default function PatientDetailsPage() {
                   style={{
                     color: "#111827",
                     fontSize: "34px",
-                    fontWeight: 800,
+                    fontWeight: 900,
                     margin: 0,
                   }}
                 >
@@ -971,7 +1066,7 @@ export default function PatientDetailsPage() {
                   style={{
                     color: "#065f46",
                     fontSize: "34px",
-                    fontWeight: 800,
+                    fontWeight: 900,
                     margin: 0,
                   }}
                 >
@@ -993,7 +1088,7 @@ export default function PatientDetailsPage() {
                   style={{
                     color: "#b91c1c",
                     fontSize: "34px",
-                    fontWeight: 800,
+                    fontWeight: 900,
                     margin: 0,
                   }}
                 >
@@ -1058,7 +1153,7 @@ export default function PatientDetailsPage() {
                       rel="noreferrer"
                       style={{
                         color: "#2563eb",
-                        fontWeight: 700,
+                        fontWeight: 800,
                         textDecoration: "none",
                       }}
                     >
@@ -1196,7 +1291,7 @@ export default function PatientDetailsPage() {
                         rel="noreferrer"
                         style={{
                           color: "#2563eb",
-                          fontWeight: 700,
+                          fontWeight: 800,
                           textDecoration: "none",
                         }}
                       >
@@ -1237,7 +1332,7 @@ export default function PatientDetailsPage() {
                   borderRadius: "12px",
                   padding: "12px 14px",
                   marginBottom: "16px",
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 {checkinError}
@@ -1469,6 +1564,7 @@ export default function PatientDetailsPage() {
           </section>
         )}
 
+
         {activeTab === "TASKS" && (
           <div
             style={{
@@ -1503,7 +1599,7 @@ export default function PatientDetailsPage() {
                     borderRadius: "12px",
                     padding: "12px 14px",
                     marginBottom: "16px",
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   {taskError}
@@ -1515,7 +1611,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1543,7 +1639,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1572,7 +1668,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1599,7 +1695,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1867,6 +1963,7 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+
         {activeTab === "MATERIALS" && (
           <div
             style={{
@@ -1901,7 +1998,7 @@ export default function PatientDetailsPage() {
                     borderRadius: "12px",
                     padding: "12px 14px",
                     marginBottom: "16px",
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   {materialError}
@@ -1913,7 +2010,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1941,7 +2038,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1969,7 +2066,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -1998,7 +2095,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -2026,7 +2123,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -2237,6 +2334,7 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+
         {activeTab === "NOTES" && (
           <div
             style={{
@@ -2271,7 +2369,7 @@ export default function PatientDetailsPage() {
                     borderRadius: "12px",
                     padding: "12px 14px",
                     marginBottom: "16px",
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   {noteError}
@@ -2283,7 +2381,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}
@@ -2311,7 +2409,7 @@ export default function PatientDetailsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: "#111827",
                       marginBottom: "8px",
                     }}

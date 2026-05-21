@@ -5,9 +5,44 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
 
+function PsicoLoadingScreen() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        background: "#f8fbff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div className="psico-simple-loader">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  );
+}
+
+function PsicoNavigationLoading() {
+  return (
+    <div className="psico-navigation-loading">
+      <div className="psico-simple-loader">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  );
+}
+
 function AuthGuard({ children }: PropsWithChildren) {
   const { data: session, status } = useSession();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const pathname = usePathname();
   const router = useRouter();
 
@@ -35,16 +70,24 @@ function AuthGuard({ children }: PropsWithChildren) {
       const redirectPath =
         userRole === "PSYCHOLOGIST" ? "/dashboard" : "/patient";
 
+      setIsNavigating(true);
       router.push(redirectPath);
     }
   }, [status, isPublicPage, isAuthPage, isLandingPage, userRole, router]);
 
+  useEffect(() => {
+    setIsNavigating(false);
+    setIsSidebarVisible(false);
+  }, [pathname]);
+
+  function handleMenuNavigation(path: string) {
+    if (pathname !== path) {
+      setIsNavigating(true);
+    }
+  }
+
   if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-lg font-semibold text-blue-800">Carregando...</div>
-      </div>
-    );
+    return <PsicoLoadingScreen />;
   }
 
   if (isPublicPage && status === "unauthenticated") {
@@ -56,6 +99,8 @@ function AuthGuard({ children }: PropsWithChildren) {
 
     return (
       <>
+        {isNavigating && <PsicoNavigationLoading />}
+
         {isSidebarVisible && (
           <div
             className="overlay"
@@ -81,6 +126,7 @@ function AuthGuard({ children }: PropsWithChildren) {
             <div className="sidebar-nav">
               <Link
                 href={homePath}
+                onClick={() => handleMenuNavigation(homePath)}
                 className={isActive(homePath) ? "active" : ""}
               >
                 <i className="fa-solid fa-home"></i> Início
@@ -89,6 +135,7 @@ function AuthGuard({ children }: PropsWithChildren) {
               {isPsychologist && (
                 <Link
                   href="/agenda"
+                  onClick={() => handleMenuNavigation("/agenda")}
                   className={isActive("/agenda") ? "active" : ""}
                 >
                   <i className="fa-solid fa-calendar-days"></i> Agenda
@@ -98,6 +145,7 @@ function AuthGuard({ children }: PropsWithChildren) {
               {isPsychologist && (
                 <Link
                   href="/pacientes"
+                  onClick={() => handleMenuNavigation("/pacientes")}
                   className={isActive("/pacientes") ? "active" : ""}
                 >
                   <i className="fa-solid fa-users"></i> Pacientes
@@ -107,17 +155,25 @@ function AuthGuard({ children }: PropsWithChildren) {
               {isPatient && (
                 <Link
                   href="/minhas-consultas"
+                  onClick={() => handleMenuNavigation("/minhas-consultas")}
                   className={isActive("/minhas-consultas") ? "active" : ""}
                 >
                   <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
                 </Link>
               )}
 
-              <Link href="#" className={isActive("/conteudos") ? "active" : ""}>
+              <Link
+                href="#"
+                className={isActive("/conteudos") ? "active" : ""}
+              >
                 <i className="fa-solid fa-book-open"></i> Conteúdos
               </Link>
 
-              <Link href="/chat" className={isActive("/chat") ? "active" : ""}>
+              <Link
+                href="/chat"
+                onClick={() => handleMenuNavigation("/chat")}
+                className={isActive("/chat") ? "active" : ""}
+              >
                 <i className="fa-solid fa-comments"></i> Chat
               </Link>
             </div>
@@ -144,11 +200,7 @@ function AuthGuard({ children }: PropsWithChildren) {
     );
   }
 
-  return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <div className="text-lg font-semibold text-blue-800">Carregando...</div>
-    </div>
-  );
+  return <PsicoLoadingScreen />;
 }
 
 export default function AppProviders({ children }: PropsWithChildren) {

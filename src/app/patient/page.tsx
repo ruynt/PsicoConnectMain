@@ -79,6 +79,47 @@ type Feedback = {
   message: string;
 };
 
+type MetricCardProps = {
+  label: string;
+  value: number;
+  description: string;
+  icon: string;
+  tone: "blue" | "green" | "amber" | "purple" | "red" | "slate";
+};
+
+const tones = {
+  blue: {
+    bg: "#eff6ff",
+    text: "#1d4ed8",
+    border: "#bfdbfe",
+  },
+  green: {
+    bg: "#ecfdf5",
+    text: "#047857",
+    border: "#a7f3d0",
+  },
+  amber: {
+    bg: "#fffbeb",
+    text: "#b45309",
+    border: "#fde68a",
+  },
+  purple: {
+    bg: "#f5f3ff",
+    text: "#6d28d9",
+    border: "#ddd6fe",
+  },
+  red: {
+    bg: "#fef2f2",
+    text: "#b91c1c",
+    border: "#fecaca",
+  },
+  slate: {
+    bg: "#f8fafc",
+    text: "#334155",
+    border: "#e2e8f0",
+  },
+};
+
 export default function PatientHomePage() {
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
   const [tasks, setTasks] = useState<PatientTask[]>([]);
@@ -94,6 +135,7 @@ export default function PatientHomePage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [completingTaskId, setCompletingTaskId] = useState("");
+  const [viewingMaterialId, setViewingMaterialId] = useState("");
 
   async function loadAppointments() {
     try {
@@ -215,6 +257,10 @@ export default function PatientHomePage() {
     return tasks.filter((task) => task.status === "COMPLETED");
   }, [tasks]);
 
+  const unviewedMaterials = useMemo(() => {
+    return materials.filter((material) => !material.viewedAt);
+  }, [materials]);
+
   const recentTasks = useMemo(() => {
     return [...tasks]
       .filter((task) => task.status !== "CANCELLED")
@@ -288,49 +334,183 @@ export default function PatientHomePage() {
     }
   }
 
-  const cardStyle = {
-    backgroundColor: "#ffffff",
-    borderRadius: "18px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-    border: "1px solid #e5e7eb",
+  async function markMaterialAsViewed(materialId: string) {
+    try {
+      setViewingMaterialId(materialId);
+
+      const response = await fetch(`/api/patient/materials/${materialId}/view`, {
+        method: "PATCH",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Erro ao marcar material como visualizado.",
+        );
+      }
+
+      await loadMaterials();
+
+      showFeedback("success", "Material marcado como visualizado.");
+    } catch (error: any) {
+      showFeedback(
+        "error",
+        error?.message || "Erro ao marcar material como visualizado.",
+      );
+    } finally {
+      setViewingMaterialId("");
+    }
+  }
+
+  const pageStyle = {
+    padding: "36px",
+    minHeight: "calc(100vh - 48px)",
+    background:
+      "radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 32%), #f8fafc",
+    borderRadius: "32px",
+    overflow: "hidden",
+
   };
 
-  const smallCardStyle = {
-    ...cardStyle,
-    minHeight: "130px",
+  const cardStyle = {
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: "22px",
+    padding: "24px",
+    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
+    border: "1px solid rgba(226, 232, 240, 0.9)",
   };
 
   const primaryButtonStyle = {
     background: "linear-gradient(135deg, #2563eb, #4f8cff)",
     color: "#fff",
     border: "none",
-    borderRadius: "12px",
-    padding: "12px 16px",
-    fontWeight: 700,
+    borderRadius: "14px",
+    padding: "12px 18px",
+    fontWeight: 800,
     cursor: "pointer",
     fontSize: "14px",
     textDecoration: "none",
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.28)",
   } as const;
 
   const secondaryButtonStyle = {
     backgroundColor: "#eff6ff",
     color: "#1d4ed8",
     border: "1px solid #bfdbfe",
-    borderRadius: "12px",
-    padding: "10px 14px",
-    fontWeight: 700,
+    borderRadius: "14px",
+    padding: "11px 16px",
+    fontWeight: 800,
     cursor: "pointer",
     fontSize: "14px",
     textDecoration: "none",
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   } as const;
+
+  function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
+    const selectedTone = tones[tone];
+
+    return (
+      <div
+        style={{
+          ...cardStyle,
+          minHeight: "132px",
+          padding: "20px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            right: "-24px",
+            top: "-24px",
+            width: "94px",
+            height: "94px",
+            borderRadius: "999px",
+            backgroundColor: selectedTone.bg,
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            alignItems: "flex-start",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <div>
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "13px",
+                fontWeight: 800,
+                marginBottom: "8px",
+              }}
+            >
+              {label}
+            </p>
+
+            <p
+              style={{
+                color: selectedTone.text,
+                fontSize: "36px",
+                fontWeight: 900,
+                lineHeight: 1,
+                margin: 0,
+              }}
+            >
+              {value}
+            </p>
+          </div>
+
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "14px",
+              backgroundColor: selectedTone.bg,
+              border: `1px solid ${selectedTone.border}`,
+              color: selectedTone.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "20px",
+              flexShrink: 0,
+            }}
+          >
+            <i className={icon}></i>
+          </div>
+        </div>
+
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "13px",
+            marginTop: "12px",
+            marginBottom: 0,
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {description}
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div style={{ padding: "32px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#111827" }}>
+      <div style={pageStyle}>
+        <h1 style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a" }}>
           Carregando início...
         </h1>
       </div>
@@ -338,30 +518,112 @@ export default function PatientHomePage() {
   }
 
   return (
-    <div style={{ padding: "32px" }}>
-      <div style={{ marginBottom: "28px" }}>
-        <h1
+    <div style={pageStyle}>
+      <section
+        style={{
+          background: "linear-gradient(135deg, #4338ca, #2563eb 55%, #60a5fa)",
+          borderRadius: "28px",
+          padding: "30px",
+          color: "#ffffff",
+          marginBottom: "24px",
+          boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
           style={{
-            fontSize: "40px",
-            fontWeight: 800,
-            color: "#111827",
-            marginBottom: "8px",
+            position: "absolute",
+            right: "-80px",
+            top: "-90px",
+            width: "240px",
+            height: "240px",
+            borderRadius: "999px",
+            backgroundColor: "rgba(255, 255, 255, 0.16)",
           }}
-        >
-          Início
-        </h1>
+        />
 
-        <p
+        <div
           style={{
-            fontSize: "18px",
-            color: "#4f46e5",
-            margin: 0,
+            position: "absolute",
+            right: "90px",
+            bottom: "-110px",
+            width: "220px",
+            height: "220px",
+            borderRadius: "999px",
+            backgroundColor: "rgba(255, 255, 255, 0.10)",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "20px",
+            alignItems: "flex-start",
+            position: "relative",
+            zIndex: 1,
           }}
         >
-          Acompanhe seus atendimentos, checklists, tarefas e materiais do seu
-          acompanhamento.
-        </p>
-      </div>
+          <div>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.22)",
+                borderRadius: "999px",
+                padding: "7px 12px",
+                fontSize: "13px",
+                fontWeight: 800,
+                marginBottom: "14px",
+              }}
+            >
+              <i className="fa-solid fa-user"></i>
+              Área do paciente
+            </span>
+
+            <h1
+              style={{
+                fontSize: "44px",
+                fontWeight: 900,
+                lineHeight: 1.05,
+                marginBottom: "10px",
+              }}
+            >
+              Início do acompanhamento
+            </h1>
+
+            <p
+              style={{
+                fontSize: "18px",
+                color: "#dbeafe",
+                maxWidth: "780px",
+                margin: 0,
+              }}
+            >
+              Visualize sua próxima consulta, responda checklists pré-sessão,
+              acompanhe tarefas terapêuticas e acesse materiais enviados pelo
+              profissional.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <Link
+              href="/minhas-consultas"
+              style={{
+                ...primaryButtonStyle,
+                background: "#ffffff",
+                color: "#1d4ed8",
+                boxShadow: "0 10px 24px rgba(15, 23, 42, 0.16)",
+              }}
+            >
+              Minhas consultas
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {feedback && (
         <div
@@ -384,10 +646,10 @@ export default function PatientHomePage() {
                 : feedback.type === "error"
                   ? "#b91c1c"
                   : "#1d4ed8",
-            borderRadius: "12px",
+            borderRadius: "16px",
             padding: "14px 16px",
             marginBottom: "18px",
-            fontWeight: 700,
+            fontWeight: 800,
           }}
         >
           {feedback.message}
@@ -403,7 +665,7 @@ export default function PatientHomePage() {
             marginBottom: "24px",
           }}
         >
-          <p style={{ color: "#b91c1c", fontWeight: 700, margin: 0 }}>
+          <p style={{ color: "#b91c1c", fontWeight: 800, margin: 0 }}>
             {error}
           </p>
         </div>
@@ -411,151 +673,57 @@ export default function PatientHomePage() {
 
       <div
         style={{
-          backgroundColor: "#eff6ff",
-          borderLeft: "4px solid #3b82f6",
-          borderRadius: "12px",
-          padding: "18px",
-          marginBottom: "28px",
-        }}
-      >
-        <p
-          style={{
-            fontWeight: 700,
-            color: "#1d4ed8",
-            marginBottom: "6px",
-          }}
-        >
-          Área do paciente
-        </p>
-
-        <p style={{ color: "#1e40af", margin: 0 }}>
-          Use esta página para visualizar sua próxima consulta, responder
-          checklists, acompanhar tarefas e acessar materiais enviados pelo
-          profissional.
-        </p>
-      </div>
-
-      <div
-        style={{
           display: "grid",
-          gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-          gap: "20px",
+          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+          gap: "18px",
           marginBottom: "24px",
         }}
       >
-        <div style={smallCardStyle}>
-          <p
-            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Próximas consultas
-          </p>
-          <p
-            style={{
-              color: "#111827",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {upcomingAppointments.length}
-          </p>
-        </div>
+        <MetricCard
+          label="Próximas consultas"
+          value={upcomingAppointments.length}
+          description="Atendimentos futuros agendados."
+          icon="fa-solid fa-calendar-check"
+          tone="blue"
+        />
 
-        <div style={smallCardStyle}>
-          <p
-            style={{ color: "#b45309", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Checklists pendentes
-          </p>
-          <p
-            style={{
-              color: "#b45309",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {pendingCheckins.length}
-          </p>
-        </div>
+        <MetricCard
+          label="Checklists pendentes"
+          value={pendingCheckins.length}
+          description="Formulários para responder antes da sessão."
+          icon="fa-solid fa-clipboard-question"
+          tone="amber"
+        />
 
-        <div style={smallCardStyle}>
-          <p
-            style={{ color: "#065f46", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Checklists respondidos
-          </p>
-          <p
-            style={{
-              color: "#065f46",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {answeredCheckins.length}
-          </p>
-        </div>
+        <MetricCard
+          label="Tarefas pendentes"
+          value={pendingTasks.length}
+          description="Atividades combinadas com o profissional."
+          icon="fa-solid fa-list-check"
+          tone="purple"
+        />
 
-        <div style={smallCardStyle}>
-          <p
-            style={{ color: "#7c3aed", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Tarefas pendentes
-          </p>
-          <p
-            style={{
-              color: "#7c3aed",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {pendingTasks.length}
-          </p>
-        </div>
+        <MetricCard
+          label="Materiais novos"
+          value={unviewedMaterials.length}
+          description="Conteúdos ainda não visualizados."
+          icon="fa-solid fa-book-open"
+          tone="red"
+        />
 
-        <div style={smallCardStyle}>
-          <p
-            style={{ color: "#2563eb", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Materiais
-          </p>
-          <p
-            style={{
-              color: "#2563eb",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {materials.length}
-          </p>
-        </div>
-
-        <div style={smallCardStyle}>
-          <p
-            style={{ color: "#b91c1c", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Canceladas
-          </p>
-          <p
-            style={{
-              color: "#b91c1c",
-              fontSize: "34px",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {cancelledAppointments.length}
-          </p>
-        </div>
+        <MetricCard
+          label="Consultas canceladas"
+          value={cancelledAppointments.length}
+          description="Atendimentos cancelados no histórico."
+          icon="fa-solid fa-calendar-xmark"
+          tone="slate"
+        />
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.1fr 1fr",
+          gridTemplateColumns: "1.05fr 1fr",
           gap: "20px",
           marginBottom: "20px",
         }}
@@ -564,52 +732,54 @@ export default function PatientHomePage() {
           <h2
             style={{
               fontSize: "28px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "14px",
+              fontWeight: 900,
+              color: "#0f172a",
+              marginBottom: "6px",
             }}
           >
             Próxima consulta
           </h2>
+          <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
+            Informações principais do próximo atendimento agendado.
+          </p>
 
           {nextAppointment ? (
             <div
               style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "14px",
+                border: "1px solid #dbeafe",
+                borderRadius: "18px",
                 padding: "18px",
-                backgroundColor: "#f8fafc",
+                background:
+                  "linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(248, 250, 252, 0.95))",
               }}
             >
               <p
                 style={{
-                  color: "#111827",
-                  fontWeight: 800,
-                  fontSize: "18px",
-                  marginBottom: "8px",
+                  color: "#0f172a",
+                  fontWeight: 900,
+                  fontSize: "20px",
+                  marginBottom: "10px",
                 }}
               >
                 {nextAppointment.title}
               </p>
 
-              <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                <strong>Profissional:</strong>{" "}
-                {nextAppointment.psychologist.name}
+              <p style={{ color: "#475569", marginBottom: "6px" }}>
+                <strong>Profissional:</strong> {nextAppointment.psychologist.name}
               </p>
 
-              <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+              <p style={{ color: "#475569", marginBottom: "6px" }}>
                 <strong>Início:</strong> {formatDate(nextAppointment.dateTime)}
               </p>
 
               {nextAppointment.endDateTime && (
-                <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                  <strong>Fim:</strong>{" "}
-                  {formatDate(nextAppointment.endDateTime)}
+                <p style={{ color: "#475569", marginBottom: "6px" }}>
+                  <strong>Fim:</strong> {formatDate(nextAppointment.endDateTime)}
                 </p>
               )}
 
               {nextAppointment.location && (
-                <p style={{ color: "#4b5563", marginBottom: "12px" }}>
+                <p style={{ color: "#475569", marginBottom: "14px" }}>
                   <strong>Local:</strong> {nextAppointment.location}
                 </p>
               )}
@@ -620,10 +790,10 @@ export default function PatientHomePage() {
                     backgroundColor: "#ecfdf5",
                     border: "1px solid #a7f3d0",
                     color: "#065f46",
-                    borderRadius: "12px",
+                    borderRadius: "14px",
                     padding: "12px",
                     marginBottom: "14px",
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   Checklist pré-sessão respondido.
@@ -634,10 +804,10 @@ export default function PatientHomePage() {
                     backgroundColor: "#fffbeb",
                     border: "1px solid #fde68a",
                     color: "#92400e",
-                    borderRadius: "12px",
+                    borderRadius: "14px",
                     padding: "12px",
                     marginBottom: "14px",
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   Você ainda possui um checklist pré-sessão pendente.
@@ -651,23 +821,17 @@ export default function PatientHomePage() {
           ) : (
             <div
               style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                borderRadius: "18px",
                 padding: "18px",
                 backgroundColor: "#f8fafc",
               }}
             >
-              <p
-                style={{
-                  color: "#111827",
-                  fontWeight: 800,
-                  marginBottom: "6px",
-                }}
-              >
+              <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "6px" }}>
                 Nenhuma consulta futura
               </p>
 
-              <p style={{ color: "#6b7280", margin: 0 }}>
+              <p style={{ color: "#64748b", margin: 0 }}>
                 Quando o profissional agendar uma nova consulta, ela aparecerá
                 aqui.
               </p>
@@ -679,13 +843,16 @@ export default function PatientHomePage() {
           <h2
             style={{
               fontSize: "28px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "14px",
+              fontWeight: 900,
+              color: "#0f172a",
+              marginBottom: "6px",
             }}
           >
             Tarefas terapêuticas
           </h2>
+          <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
+            Atividades combinadas para apoiar o processo terapêutico.
+          </p>
 
           {taskError && (
             <div
@@ -693,10 +860,10 @@ export default function PatientHomePage() {
                 backgroundColor: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#b91c1c",
-                borderRadius: "12px",
+                borderRadius: "14px",
                 padding: "12px",
                 marginBottom: "12px",
-                fontWeight: 700,
+                fontWeight: 800,
               }}
             >
               {taskError}
@@ -704,71 +871,43 @@ export default function PatientHomePage() {
           )}
 
           {loadingTasks ? (
-            <p style={{ color: "#6b7280", margin: 0 }}>Carregando tarefas...</p>
+            <p style={{ color: "#64748b", margin: 0 }}>Carregando tarefas...</p>
           ) : recentTasks.length === 0 ? (
             <div
               style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                borderRadius: "18px",
                 padding: "18px",
                 backgroundColor: "#f8fafc",
               }}
             >
-              <p
-                style={{
-                  color: "#111827",
-                  fontWeight: 800,
-                  marginBottom: "6px",
-                }}
-              >
+              <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "6px" }}>
                 Nenhuma tarefa registrada
               </p>
-              <p style={{ color: "#6b7280", margin: 0 }}>
+              <p style={{ color: "#64748b", margin: 0 }}>
                 Quando o profissional adicionar tarefas, elas aparecerão aqui.
               </p>
             </div>
           ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {recentTasks.map((task) => (
                 <div
                   key={task.id}
                   style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "14px",
-                    padding: "14px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "18px",
+                    padding: "16px",
                     backgroundColor:
                       task.status === "COMPLETED" ? "#ecfdf5" : "#f8fafc",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "10px",
-                      alignItems: "flex-start",
-                      marginBottom: "8px",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start", marginBottom: "8px" }}>
                     <div>
-                      <p
-                        style={{
-                          color: "#111827",
-                          fontWeight: 800,
-                          marginBottom: "4px",
-                        }}
-                      >
+                      <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "4px" }}>
                         {task.title}
                       </p>
 
-                      <p
-                        style={{
-                          color: "#6b7280",
-                          margin: 0,
-                          fontSize: "14px",
-                        }}
-                      >
+                      <p style={{ color: "#64748b", margin: 0, fontSize: "14px" }}>
                         Profissional: {task.psychologist.name}
                       </p>
                     </div>
@@ -786,7 +925,7 @@ export default function PatientHomePage() {
                         borderRadius: "999px",
                         padding: "5px 10px",
                         fontSize: "12px",
-                        fontWeight: 800,
+                        fontWeight: 900,
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -795,29 +934,14 @@ export default function PatientHomePage() {
                   </div>
 
                   {task.dueDate && (
-                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                    <p style={{ color: "#475569", marginBottom: "6px" }}>
                       <strong>Prazo:</strong> {formatDateOnly(task.dueDate)}
                     </p>
                   )}
 
                   {task.description && (
-                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                    <p style={{ color: "#475569", marginBottom: "8px" }}>
                       {task.description}
-                    </p>
-                  )}
-
-                  {task.appointment && (
-                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                      <strong>Consulta relacionada:</strong>{" "}
-                      {task.appointment.title} —{" "}
-                      {formatDate(task.appointment.dateTime)}
-                    </p>
-                  )}
-
-                  {task.completedAt && (
-                    <p style={{ color: "#047857", marginBottom: "8px" }}>
-                      <strong>Concluída em:</strong>{" "}
-                      {formatDate(task.completedAt)}
                     </p>
                   )}
 
@@ -830,9 +954,9 @@ export default function PatientHomePage() {
                         backgroundColor: "#ecfdf5",
                         color: "#065f46",
                         border: "1px solid #a7f3d0",
-                        borderRadius: "10px",
+                        borderRadius: "12px",
                         padding: "10px 12px",
-                        fontWeight: 800,
+                        fontWeight: 900,
                         cursor:
                           completingTaskId === task.id
                             ? "not-allowed"
@@ -857,13 +981,16 @@ export default function PatientHomePage() {
         <h2
           style={{
             fontSize: "28px",
-            fontWeight: 800,
-            color: "#111827",
-            marginBottom: "14px",
+            fontWeight: 900,
+            color: "#0f172a",
+            marginBottom: "6px",
           }}
         >
           Materiais psicoeducativos
         </h2>
+        <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
+          Conteúdos enviados pelo profissional para apoiar seu acompanhamento.
+        </p>
 
         {materialError && (
           <div
@@ -871,10 +998,10 @@ export default function PatientHomePage() {
               backgroundColor: "#fef2f2",
               border: "1px solid #fecaca",
               color: "#b91c1c",
-              borderRadius: "12px",
+              borderRadius: "14px",
               padding: "12px",
               marginBottom: "12px",
-              fontWeight: 700,
+              fontWeight: 800,
             }}
           >
             {materialError}
@@ -882,184 +1009,146 @@ export default function PatientHomePage() {
         )}
 
         {loadingMaterials ? (
-          <p style={{ color: "#6b7280", margin: 0 }}>Carregando materiais...</p>
+          <p style={{ color: "#64748b", margin: 0 }}>Carregando materiais...</p>
         ) : recentMaterials.length === 0 ? (
           <div
             style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "14px",
+              border: "1px solid #e2e8f0",
+              borderRadius: "18px",
               padding: "18px",
               backgroundColor: "#f8fafc",
             }}
           >
-            <p
-              style={{ color: "#111827", fontWeight: 800, marginBottom: "6px" }}
-            >
+            <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "6px" }}>
               Nenhum material enviado
             </p>
-            <p style={{ color: "#6b7280", margin: 0 }}>
+            <p style={{ color: "#64748b", margin: 0 }}>
               Quando o profissional enviar materiais, eles aparecerão aqui.
             </p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "14px",
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
             {recentMaterials.map((material) => (
               <div
                 key={material.id}
                 style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "14px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "18px",
                   padding: "16px",
                   backgroundColor: "#f8fafc",
                 }}
               >
-                {material.category && (
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div>
+                    {material.category && (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          backgroundColor: "#eff6ff",
+                          color: "#1d4ed8",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: "999px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          marginBottom: "8px",
+                        }}
+                      >
+                        {material.category}
+                      </span>
+                    )}
+
+                    <p style={{ color: "#0f172a", fontWeight: 900, fontSize: "17px", marginBottom: "6px" }}>
+                      {material.title}
+                    </p>
+                  </div>
+
                   <span
                     style={{
-                      display: "inline-block",
-                      backgroundColor: "#eff6ff",
-                      color: "#1d4ed8",
-                      border: "1px solid #bfdbfe",
+                      backgroundColor: material.viewedAt ? "#ecfdf5" : "#fef2f2",
+                      color: material.viewedAt ? "#065f46" : "#b91c1c",
+                      border: material.viewedAt ? "1px solid #a7f3d0" : "1px solid #fecaca",
                       borderRadius: "999px",
-                      padding: "4px 10px",
+                      padding: "5px 10px",
                       fontSize: "12px",
-                      fontWeight: 800,
-                      marginBottom: "10px",
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {material.category}
+                    {material.viewedAt ? "Visualizado" : "Novo"}
                   </span>
-                )}
+                </div>
 
-                <p
-                  style={{
-                    color: "#111827",
-                    fontWeight: 800,
-                    fontSize: "17px",
-                    marginBottom: "6px",
-                  }}
-                >
-                  {material.title}
-                </p>
-
-                <p
-                  style={{
-                    color: "#6b7280",
-                    marginBottom: "6px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Enviado por {material.psychologist.name} em{" "}
-                  {formatDate(material.createdAt)}
+                <p style={{ color: "#64748b", marginBottom: "8px", fontSize: "14px" }}>
+                  Enviado por {material.psychologist.name} em {formatDate(material.createdAt)}
                 </p>
 
                 {material.viewedAt && (
-                  <p
-                    style={{
-                      color: "#047857",
-                      marginBottom: "8px",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                    }}
-                  >
+                  <p style={{ color: "#047857", marginBottom: "8px", fontSize: "14px", fontWeight: 800 }}>
                     Visualizado em {formatDate(material.viewedAt)}
                   </p>
                 )}
 
                 {material.description && (
-                  <p style={{ color: "#4b5563", marginBottom: "10px" }}>
+                  <p style={{ color: "#475569", marginBottom: "10px" }}>
                     {material.description}
                   </p>
                 )}
 
-                {material.content && !material.viewedAt && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(
-                          `/api/patient/materials/${material.id}/view`,
-                          {
-                            method: "PATCH",
-                          },
-                        );
-
-                        const data = await response.json();
-
-                        if (!response.ok) {
-                          throw new Error(
-                            data?.error ||
-                              "Erro ao marcar material como visualizado.",
-                          );
-                        }
-
-                        await loadMaterials();
-
-                        showFeedback(
-                          "success",
-                          "Material marcado como visualizado.",
-                        );
-                      } catch (error: any) {
-                        console.error(
-                          "Erro ao marcar material como visualizado:",
-                          error,
-                        );
-
-                        showFeedback(
-                          "error",
-                          error?.message ||
-                            "Erro ao marcar material como visualizado.",
-                        );
-                      }
-                    }}
+                {material.content && (
+                  <div
                     style={{
-                      backgroundColor: "#ecfdf5",
-                      color: "#065f46",
-                      border: "1px solid #a7f3d0",
-                      borderRadius: "10px",
-                      padding: "10px 12px",
-                      fontWeight: 800,
-                      cursor: "pointer",
+                      backgroundColor: "#fff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "14px",
+                      padding: "12px",
+                      color: "#374151",
                       marginBottom: "10px",
+                      whiteSpace: "pre-wrap",
                     }}
                   >
-                    Marcar como visualizado
-                  </button>
+                    {material.content}
+                  </div>
                 )}
 
-                {material.url && (
-                  <a
-                    href={material.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={secondaryButtonStyle}
-                    onClick={async () => {
-                      try {
-                        await fetch(
-                          `/api/patient/materials/${material.id}/view`,
-                          {
-                            method: "PATCH",
-                          },
-                        );
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  {material.url && (
+                    <a
+                      href={material.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={secondaryButtonStyle}
+                      onClick={() => markMaterialAsViewed(material.id)}
+                    >
+                      Abrir material
+                    </a>
+                  )}
 
-                        await loadMaterials();
-                      } catch (error) {
-                        console.error(
-                          "Erro ao marcar material como visualizado:",
-                          error,
-                        );
-                      }
-                    }}
-                  >
-                    Abrir material
-                  </a>
-                )}
+                  {!material.viewedAt && (
+                    <button
+                      type="button"
+                      onClick={() => markMaterialAsViewed(material.id)}
+                      disabled={viewingMaterialId === material.id}
+                      style={{
+                        backgroundColor: "#ecfdf5",
+                        color: "#065f46",
+                        border: "1px solid #a7f3d0",
+                        borderRadius: "12px",
+                        padding: "10px 12px",
+                        fontWeight: 900,
+                        cursor:
+                          viewingMaterialId === material.id
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity: viewingMaterialId === material.id ? 0.7 : 1,
+                      }}
+                    >
+                      {viewingMaterialId === material.id
+                        ? "Marcando..."
+                        : "Marcar como visualizado"}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -1070,136 +1159,49 @@ export default function PatientHomePage() {
         <h2
           style={{
             fontSize: "28px",
-            fontWeight: 800,
-            color: "#111827",
-            marginBottom: "14px",
+            fontWeight: 900,
+            color: "#0f172a",
+            marginBottom: "6px",
           }}
         >
           Resumo do acompanhamento
         </h2>
+        <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
+          Visão geral dos principais registros disponíveis na sua área.
+        </p>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gap: "16px",
-          }}
-        >
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "14px",
-              padding: "16px",
-              backgroundColor: "#f8fafc",
-            }}
-          >
-            <p
-              style={{
-                color: "#7c3aed",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Tarefas pendentes
-            </p>
-            <p
-              style={{
-                color: "#7c3aed",
-                fontSize: "28px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {pendingTasks.length}
-            </p>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
+          <MetricCard
+            label="Tarefas pendentes"
+            value={pendingTasks.length}
+            description="Atividades ainda em aberto."
+            icon="fa-solid fa-list-check"
+            tone="purple"
+          />
 
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "14px",
-              padding: "16px",
-              backgroundColor: "#f8fafc",
-            }}
-          >
-            <p
-              style={{
-                color: "#065f46",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Tarefas concluídas
-            </p>
-            <p
-              style={{
-                color: "#065f46",
-                fontSize: "28px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {completedTasks.length}
-            </p>
-          </div>
+          <MetricCard
+            label="Tarefas concluídas"
+            value={completedTasks.length}
+            description="Atividades finalizadas."
+            icon="fa-solid fa-circle-check"
+            tone="green"
+          />
 
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "14px",
-              padding: "16px",
-              backgroundColor: "#f8fafc",
-            }}
-          >
-            <p
-              style={{
-                color: "#2563eb",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Materiais recebidos
-            </p>
-            <p
-              style={{
-                color: "#2563eb",
-                fontSize: "28px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {materials.length}
-            </p>
-          </div>
+          <MetricCard
+            label="Materiais recebidos"
+            value={materials.length}
+            description="Conteúdos enviados pelo profissional."
+            icon="fa-solid fa-book-open"
+            tone="blue"
+          />
 
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "14px",
-              padding: "16px",
-              backgroundColor: "#f8fafc",
-            }}
-          >
-            <p
-              style={{
-                color: "#6b7280",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Consultas no histórico
-            </p>
-            <p
-              style={{
-                color: "#111827",
-                fontSize: "28px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {appointments.length}
-            </p>
-          </div>
+          <MetricCard
+            label="Checklists respondidos"
+            value={answeredCheckins.length}
+            description="Respostas pré-sessão registradas."
+            icon="fa-solid fa-clipboard-check"
+            tone="amber"
+          />
         </div>
       </section>
     </div>

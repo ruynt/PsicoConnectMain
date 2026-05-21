@@ -22,6 +22,13 @@ function startOfMonth() {
   return date;
 }
 
+function sevenDaysFromNow() {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  date.setHours(23, 59, 59, 999);
+  return date;
+}
+
 export async function GET(req: NextRequest) {
   const token = await getToken({
     req,
@@ -68,6 +75,14 @@ export async function GET(req: NextRequest) {
       recentCancelledAppointments,
       recentCheckins,
       recentNotes,
+      pendingTasksCount,
+      completedTasksCount,
+      dueSoonTasks,
+      recentTasks,
+      materialsCount,
+      viewedMaterialsCount,
+      unviewedMaterialsCount,
+      recentMaterials,
     ] = await Promise.all([
       prisma.psychologistPatient.count({
         where: {
@@ -224,6 +239,113 @@ export async function GET(req: NextRequest) {
         },
         take: 5,
       }),
+
+      prisma.therapeuticTask.count({
+        where: {
+          psychologistId: psychologist.id,
+          status: "PENDING",
+        },
+      }),
+
+      prisma.therapeuticTask.count({
+        where: {
+          psychologistId: psychologist.id,
+          status: "COMPLETED",
+        },
+      }),
+
+      prisma.therapeuticTask.findMany({
+        where: {
+          psychologistId: psychologist.id,
+          status: "PENDING",
+          dueDate: {
+            gte: startOfToday(),
+            lte: sevenDaysFromNow(),
+          },
+        },
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          dueDate: "asc",
+        },
+        take: 5,
+      }),
+
+      prisma.therapeuticTask.findMany({
+        where: {
+          psychologistId: psychologist.id,
+        },
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 5,
+      }),
+
+      prisma.patientMaterial.count({
+        where: {
+          psychologistId: psychologist.id,
+        },
+      }),
+
+      prisma.patientMaterial.count({
+        where: {
+          psychologistId: psychologist.id,
+          viewedAt: {
+            not: null,
+          },
+        },
+      }),
+
+      prisma.patientMaterial.count({
+        where: {
+          psychologistId: psychologist.id,
+          viewedAt: null,
+        },
+      }),
+
+      prisma.patientMaterial.findMany({
+        where: {
+          psychologistId: psychologist.id,
+        },
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 5,
+      }),
     ]);
 
     const recommendations: string[] = [];
@@ -237,6 +359,24 @@ export async function GET(req: NextRequest) {
     if (recentCheckins.length > 0) {
       recommendations.push(
         `Há ${recentCheckins.length} checklist(s) pré-sessão recente(s) para revisar.`,
+      );
+    }
+
+    if (pendingTasksCount > 0) {
+      recommendations.push(
+        `Há ${pendingTasksCount} tarefa(s) terapêutica(s) pendente(s) entre seus pacientes.`,
+      );
+    }
+
+    if (dueSoonTasks.length > 0) {
+      recommendations.push(
+        `${dueSoonTasks.length} tarefa(s) possuem prazo nos próximos 7 dias.`,
+      );
+    }
+
+    if (unviewedMaterialsCount > 0) {
+      recommendations.push(
+        `${unviewedMaterialsCount} material(is) psicoeducativo(s) ainda não foram visualizados pelos pacientes.`,
       );
     }
 
@@ -263,6 +403,12 @@ export async function GET(req: NextRequest) {
         cancelledAppointmentsThisMonthCount,
         recentCheckinsCount: recentCheckins.length,
         recentNotesCount: recentNotes.length,
+        pendingTasksCount,
+        completedTasksCount,
+        dueSoonTasksCount: dueSoonTasks.length,
+        materialsCount,
+        viewedMaterialsCount,
+        unviewedMaterialsCount,
       },
       nextAppointment: nextAppointment
         ? {
@@ -318,6 +464,39 @@ export async function GET(req: NextRequest) {
         patientName: note.patient.user.name,
         title: note.title || "Anotação sem título",
         updatedAt: note.updatedAt.toISOString(),
+      })),
+      dueSoonTasks: dueSoonTasks.map((task) => ({
+        id: task.id,
+        patientId: task.patientId,
+        patientName: task.patient.user.name,
+        title: task.title,
+        description: task.description || "",
+        dueDate: task.dueDate?.toISOString() || null,
+        status: task.status,
+        updatedAt: task.updatedAt.toISOString(),
+      })),
+      recentTasks: recentTasks.map((task) => ({
+        id: task.id,
+        patientId: task.patientId,
+        patientName: task.patient.user.name,
+        title: task.title,
+        description: task.description || "",
+        dueDate: task.dueDate?.toISOString() || null,
+        status: task.status,
+        completedAt: task.completedAt?.toISOString() || null,
+        cancelledAt: task.cancelledAt?.toISOString() || null,
+        updatedAt: task.updatedAt.toISOString(),
+      })),
+      recentMaterials: recentMaterials.map((material) => ({
+        id: material.id,
+        patientId: material.patientId,
+        patientName: material.patient.user.name,
+        title: material.title,
+        description: material.description || "",
+        category: material.category || "",
+        url: material.url || "",
+        viewedAt: material.viewedAt?.toISOString() || null,
+        createdAt: material.createdAt.toISOString(),
       })),
       recommendations,
     });

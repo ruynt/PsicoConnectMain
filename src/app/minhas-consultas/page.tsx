@@ -41,6 +41,47 @@ type Feedback = {
   message: string;
 };
 
+type MetricCardProps = {
+  label: string;
+  value: number;
+  description: string;
+  icon: string;
+  tone: "blue" | "green" | "amber" | "purple" | "red" | "slate";
+};
+
+const tones = {
+  blue: {
+    bg: "#eff6ff",
+    text: "#1d4ed8",
+    border: "#bfdbfe",
+  },
+  green: {
+    bg: "#ecfdf5",
+    text: "#047857",
+    border: "#a7f3d0",
+  },
+  amber: {
+    bg: "#fffbeb",
+    text: "#b45309",
+    border: "#fde68a",
+  },
+  purple: {
+    bg: "#f5f3ff",
+    text: "#6d28d9",
+    border: "#ddd6fe",
+  },
+  red: {
+    bg: "#fef2f2",
+    text: "#b91c1c",
+    border: "#fecaca",
+  },
+  slate: {
+    bg: "#f8fafc",
+    text: "#334155",
+    border: "#e2e8f0",
+  },
+};
+
 export default function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,6 +168,17 @@ export default function MyAppointmentsPage() {
       );
   }, [appointments]);
 
+  const answeredCheckinsCount = useMemo(() => {
+    return appointments.filter((appointment) => appointment.preSessionCheckin)
+      .length;
+  }, [appointments]);
+
+  const pendingCheckinsCount = useMemo(() => {
+    return upcomingAppointments.filter(
+      (appointment) => !appointment.preSessionCheckin,
+    ).length;
+  }, [upcomingAppointments]);
+
   const appointmentsByTab = {
     UPCOMING: upcomingAppointments,
     CANCELLED: cancelledAppointments,
@@ -137,23 +189,29 @@ export default function MyAppointmentsPage() {
     UPCOMING: {
       label: "Próximas",
       title: "Próximas consultas",
+      description: "Atendimentos futuros agendados pelo profissional.",
       emptyTitle: "Nenhuma consulta futura",
       emptyDescription:
         "Quando seu psicólogo agendar uma nova consulta, ela aparecerá aqui.",
+      icon: "fa-solid fa-calendar-check",
     },
     CANCELLED: {
       label: "Canceladas",
       title: "Consultas canceladas",
+      description: "Registros de atendimentos cancelados e seus motivos.",
       emptyTitle: "Nenhuma consulta cancelada",
       emptyDescription:
         "As consultas canceladas aparecerão aqui para acompanhamento.",
+      icon: "fa-solid fa-calendar-xmark",
     },
     HISTORY: {
       label: "Histórico",
       title: "Histórico de consultas",
+      description: "Consultas anteriores e cancelamentos reunidos em um só lugar.",
       emptyTitle: "Nenhum histórico disponível",
       emptyDescription:
         "Consultas anteriores e canceladas aparecerão neste espaço.",
+      icon: "fa-solid fa-clock-rotate-left",
     },
   };
 
@@ -284,45 +342,163 @@ export default function MyAppointmentsPage() {
     }
   }
 
-  const cardStyle = {
-    backgroundColor: "#ffffff",
-    borderRadius: "18px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-    border: "1px solid #e5e7eb",
+  const pageStyle = {
+    padding: "36px",
+    minHeight: "calc(100vh - 48px)",
+    background:
+      "radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 32%), #f8fafc",
+    borderRadius: "32px",
+    overflow: "visible",
   };
 
-  const smallCardStyle = {
-    ...cardStyle,
-    minHeight: "130px",
+  const cardStyle = {
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: "22px",
+    padding: "24px",
+    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
+    border: "1px solid rgba(226, 232, 240, 0.9)",
   };
 
   const primaryButtonStyle = {
     background: "linear-gradient(135deg, #2563eb, #4f8cff)",
     color: "#fff",
     border: "none",
-    borderRadius: "12px",
-    padding: "10px 14px",
-    fontWeight: 700,
+    borderRadius: "14px",
+    padding: "12px 16px",
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.24)",
   } as const;
 
   const secondaryButtonStyle = {
-    backgroundColor: "#fff",
-    color: "#1f2937",
-    border: "1px solid #d1d5db",
-    borderRadius: "12px",
-    padding: "10px 14px",
-    fontWeight: 700,
+    backgroundColor: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+    borderRadius: "14px",
+    padding: "11px 16px",
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   } as const;
+
+  const inputStyle = {
+    width: "100%",
+    border: "1px solid #cbd5e1",
+    borderRadius: "14px",
+    padding: "13px 14px",
+    fontSize: "14px",
+    outline: "none",
+    backgroundColor: "#ffffff",
+  } as const;
+
+  function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
+    const selectedTone = tones[tone];
+
+    return (
+      <div
+        style={{
+          ...cardStyle,
+          minHeight: "132px",
+          padding: "20px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            right: "-24px",
+            top: "-24px",
+            width: "94px",
+            height: "94px",
+            borderRadius: "999px",
+            backgroundColor: selectedTone.bg,
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            alignItems: "flex-start",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <div>
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "13px",
+                fontWeight: 800,
+                marginBottom: "8px",
+              }}
+            >
+              {label}
+            </p>
+
+            <p
+              style={{
+                color: selectedTone.text,
+                fontSize: "36px",
+                fontWeight: 900,
+                lineHeight: 1,
+                margin: 0,
+              }}
+            >
+              {value}
+            </p>
+          </div>
+
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "14px",
+              backgroundColor: selectedTone.bg,
+              border: `1px solid ${selectedTone.border}`,
+              color: selectedTone.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "20px",
+              flexShrink: 0,
+            }}
+          >
+            <i className={icon}></i>
+          </div>
+        </div>
+
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "13px",
+            marginTop: "12px",
+            marginBottom: 0,
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {description}
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div style={{ padding: "32px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#111827" }}>
+      <div style={pageStyle}>
+        <h1 style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a" }}>
           Carregando suas consultas...
         </h1>
       </div>
@@ -331,30 +507,98 @@ export default function MyAppointmentsPage() {
 
   return (
     <>
-      <div style={{ padding: "32px" }}>
-        <div style={{ marginBottom: "28px" }}>
-          <h1
+      <div style={pageStyle}>
+        <section
+          style={{
+            background:
+              "linear-gradient(135deg, #4338ca, #2563eb 55%, #60a5fa)",
+            borderRadius: "28px",
+            padding: "30px",
+            color: "#ffffff",
+            marginBottom: "24px",
+            boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
             style={{
-              fontSize: "40px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "8px",
+              position: "absolute",
+              right: "-80px",
+              top: "-90px",
+              width: "240px",
+              height: "240px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.16)",
             }}
-          >
-            Minhas consultas
-          </h1>
+          />
 
-          <p
+          <div
             style={{
-              fontSize: "18px",
-              color: "#4f46e5",
-              margin: 0,
+              position: "absolute",
+              right: "90px",
+              bottom: "-110px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.10)",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "20px",
+              alignItems: "flex-start",
+              position: "relative",
+              zIndex: 1,
             }}
           >
-            Acompanhe seus atendimentos agendados, cancelamentos e histórico de
-            consultas.
-          </p>
-        </div>
+            <div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "rgba(255, 255, 255, 0.16)",
+                  border: "1px solid rgba(255, 255, 255, 0.22)",
+                  borderRadius: "999px",
+                  padding: "7px 12px",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  marginBottom: "14px",
+                }}
+              >
+                <i className="fa-solid fa-calendar-days"></i>
+                Área do paciente
+              </span>
+
+              <h1
+                style={{
+                  fontSize: "44px",
+                  fontWeight: 900,
+                  lineHeight: 1.05,
+                  marginBottom: "10px",
+                }}
+              >
+                Minhas consultas
+              </h1>
+
+              <p
+                style={{
+                  fontSize: "18px",
+                  color: "#dbeafe",
+                  maxWidth: "760px",
+                  margin: 0,
+                }}
+              >
+                Acompanhe seus atendimentos, consulte cancelamentos, visualize o
+                histórico e responda checklists pré-sessão.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {feedback && (
           <div
@@ -377,10 +621,10 @@ export default function MyAppointmentsPage() {
                   : feedback.type === "error"
                     ? "#b91c1c"
                     : "#1d4ed8",
-              borderRadius: "12px",
+              borderRadius: "16px",
               padding: "14px 16px",
               marginBottom: "18px",
-              fontWeight: 700,
+              fontWeight: 800,
             }}
           >
             {feedback.message}
@@ -396,7 +640,7 @@ export default function MyAppointmentsPage() {
               marginBottom: "24px",
             }}
           >
-            <p style={{ color: "#b91c1c", fontWeight: 700, margin: 0 }}>
+            <p style={{ color: "#b91c1c", fontWeight: 800, margin: 0 }}>
               {error}
             </p>
           </div>
@@ -404,101 +648,43 @@ export default function MyAppointmentsPage() {
 
         <div
           style={{
-            backgroundColor: "#eff6ff",
-            borderLeft: "4px solid #3b82f6",
-            borderRadius: "12px",
-            padding: "18px",
-            marginBottom: "28px",
-          }}
-        >
-          <p
-            style={{
-              fontWeight: 700,
-              color: "#1d4ed8",
-              marginBottom: "6px",
-            }}
-          >
-            Área do paciente
-          </p>
-          <p style={{ color: "#1e40af", margin: 0 }}>
-            Aqui você pode consultar seus horários, acompanhar cancelamentos e
-            responder checklists pré-sessão.
-          </p>
-        </div>
-
-        <div
-          style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: "20px",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: "18px",
             marginBottom: "24px",
           }}
         >
-          <div style={smallCardStyle}>
-            <p
-              style={{
-                color: "#6b7280",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Próximas consultas
-            </p>
-            <p
-              style={{
-                color: "#111827",
-                fontSize: "34px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {upcomingAppointments.length}
-            </p>
-          </div>
+          <MetricCard
+            label="Próximas consultas"
+            value={upcomingAppointments.length}
+            description="Atendimentos futuros agendados."
+            icon="fa-solid fa-calendar-check"
+            tone="blue"
+          />
 
-          <div style={smallCardStyle}>
-            <p
-              style={{
-                color: "#b91c1c",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Canceladas
-            </p>
-            <p
-              style={{
-                color: "#b91c1c",
-                fontSize: "34px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {cancelledAppointments.length}
-            </p>
-          </div>
+          <MetricCard
+            label="Checklists pendentes"
+            value={pendingCheckinsCount}
+            description="Formulários pré-sessão ainda não respondidos."
+            icon="fa-solid fa-clipboard-question"
+            tone="amber"
+          />
 
-          <div style={smallCardStyle}>
-            <p
-              style={{
-                color: "#6b7280",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Total no histórico
-            </p>
-            <p
-              style={{
-                color: "#111827",
-                fontSize: "34px",
-                fontWeight: 800,
-                margin: 0,
-              }}
-            >
-              {appointments.length}
-            </p>
-          </div>
+          <MetricCard
+            label="Checklists respondidos"
+            value={answeredCheckinsCount}
+            description="Respostas enviadas ao profissional."
+            icon="fa-solid fa-clipboard-check"
+            tone="green"
+          />
+
+          <MetricCard
+            label="Canceladas"
+            value={cancelledAppointments.length}
+            description="Consultas canceladas no histórico."
+            icon="fa-solid fa-calendar-xmark"
+            tone="red"
+          />
         </div>
 
         <section style={cardStyle}>
@@ -509,23 +695,41 @@ export default function MyAppointmentsPage() {
               gap: "16px",
               alignItems: "flex-start",
               marginBottom: "18px",
+              flexWrap: "wrap",
             }}
           >
             <div>
               <h2
                 style={{
                   fontSize: "28px",
-                  fontWeight: 800,
-                  color: "#111827",
+                  fontWeight: 900,
+                  color: "#0f172a",
                   marginBottom: "6px",
                 }}
               >
                 {currentTabInfo.title}
               </h2>
 
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                Consulte os detalhes dos seus atendimentos.
+              <p style={{ color: "#64748b", margin: 0 }}>
+                {currentTabInfo.description}
               </p>
+            </div>
+
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "16px",
+                backgroundColor: "#eff6ff",
+                color: "#1d4ed8",
+                border: "1px solid #bfdbfe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "22px",
+              }}
+            >
+              <i className={currentTabInfo.icon}></i>
             </div>
           </div>
 
@@ -538,9 +742,21 @@ export default function MyAppointmentsPage() {
             }}
           >
             {[
-              { label: "Próximas", value: "UPCOMING" },
-              { label: "Canceladas", value: "CANCELLED" },
-              { label: "Histórico", value: "HISTORY" },
+              {
+                label: "Próximas",
+                value: "UPCOMING",
+                count: upcomingAppointments.length,
+              },
+              {
+                label: "Canceladas",
+                value: "CANCELLED",
+                count: cancelledAppointments.length,
+              },
+              {
+                label: "Histórico",
+                value: "HISTORY",
+                count: historyAppointments.length,
+              },
             ].map((tab) => (
               <button
                 key={tab.value}
@@ -550,17 +766,32 @@ export default function MyAppointmentsPage() {
                   border:
                     activeTab === tab.value
                       ? "1px solid #2563eb"
-                      : "1px solid #d1d5db",
+                      : "1px solid #cbd5e1",
                   backgroundColor: activeTab === tab.value ? "#eff6ff" : "#fff",
-                  color: activeTab === tab.value ? "#1d4ed8" : "#374151",
+                  color: activeTab === tab.value ? "#1d4ed8" : "#334155",
                   borderRadius: "999px",
                   padding: "10px 16px",
-                  fontWeight: 800,
+                  fontWeight: 900,
                   cursor: "pointer",
                   fontSize: "14px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
               >
                 {tab.label}
+                <span
+                  style={{
+                    backgroundColor:
+                      activeTab === tab.value ? "#dbeafe" : "#f1f5f9",
+                    color: activeTab === tab.value ? "#1d4ed8" : "#64748b",
+                    borderRadius: "999px",
+                    padding: "2px 8px",
+                    fontSize: "12px",
+                  }}
+                >
+                  {tab.count}
+                </span>
               </button>
             ))}
           </div>
@@ -568,22 +799,22 @@ export default function MyAppointmentsPage() {
           {currentAppointments.length === 0 ? (
             <div
               style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                borderRadius: "18px",
                 padding: "18px",
                 backgroundColor: "#f8fafc",
               }}
             >
               <p
                 style={{
-                  color: "#111827",
-                  fontWeight: 800,
+                  color: "#0f172a",
+                  fontWeight: 900,
                   marginBottom: "6px",
                 }}
               >
                 {currentTabInfo.emptyTitle}
               </p>
-              <p style={{ color: "#6b7280", margin: 0 }}>
+              <p style={{ color: "#64748b", margin: 0 }}>
                 {currentTabInfo.emptyDescription}
               </p>
             </div>
@@ -599,10 +830,13 @@ export default function MyAppointmentsPage() {
                 <div
                   key={appointment.id}
                   style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "14px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "18px",
                     padding: "18px",
-                    backgroundColor: "#f8fafc",
+                    backgroundColor:
+                      appointment.status === "CANCELLED"
+                        ? "#fff7f7"
+                        : "#f8fafc",
                   }}
                 >
                   <div
@@ -611,22 +845,22 @@ export default function MyAppointmentsPage() {
                       justifyContent: "space-between",
                       gap: "12px",
                       alignItems: "flex-start",
-                      marginBottom: "10px",
+                      marginBottom: "12px",
                     }}
                   >
                     <div>
                       <p
                         style={{
-                          color: "#111827",
-                          fontWeight: 800,
-                          fontSize: "18px",
+                          color: "#0f172a",
+                          fontWeight: 900,
+                          fontSize: "19px",
                           marginBottom: "6px",
                         }}
                       >
                         {appointment.title}
                       </p>
 
-                      <p style={{ color: "#6b7280", margin: 0 }}>
+                      <p style={{ color: "#64748b", margin: 0 }}>
                         Profissional: {appointment.psychologist.name}
                       </p>
                     </div>
@@ -636,65 +870,92 @@ export default function MyAppointmentsPage() {
                         backgroundColor:
                           appointment.status === "CANCELLED"
                             ? "#fef2f2"
-                            : "#ecfdf5",
+                            : appointment.preSessionCheckin
+                              ? "#ecfdf5"
+                              : "#fffbeb",
                         color:
                           appointment.status === "CANCELLED"
                             ? "#b91c1c"
-                            : "#065f46",
+                            : appointment.preSessionCheckin
+                              ? "#065f46"
+                              : "#92400e",
                         border:
                           appointment.status === "CANCELLED"
                             ? "1px solid #fecaca"
-                            : "1px solid #a7f3d0",
+                            : appointment.preSessionCheckin
+                              ? "1px solid #a7f3d0"
+                              : "1px solid #fde68a",
                         borderRadius: "999px",
-                        padding: "5px 10px",
+                        padding: "6px 11px",
                         fontSize: "12px",
-                        fontWeight: 800,
+                        fontWeight: 900,
                         whiteSpace: "nowrap",
                       }}
                     >
                       {appointment.status === "CANCELLED"
                         ? "Cancelada"
-                        : "Agendada"}
+                        : appointment.preSessionCheckin
+                          ? "Checklist respondido"
+                          : "Agendada"}
                     </span>
                   </div>
 
-                  <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                    <strong>Início:</strong> {formatDate(appointment.dateTime)}
-                  </p>
-
-                  {appointment.endDateTime && (
-                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                      <strong>Fim:</strong>{" "}
-                      {formatDate(appointment.endDateTime)}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: "8px 18px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <p style={{ color: "#475569", margin: 0 }}>
+                      <strong>Início:</strong> {formatDate(appointment.dateTime)}
                     </p>
-                  )}
 
-                  {appointment.location && (
-                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                      <strong>Local:</strong> {appointment.location}
-                    </p>
-                  )}
+                    {appointment.endDateTime && (
+                      <p style={{ color: "#475569", margin: 0 }}>
+                        <strong>Fim:</strong>{" "}
+                        {formatDate(appointment.endDateTime)}
+                      </p>
+                    )}
+
+                    {appointment.location && (
+                      <p style={{ color: "#475569", margin: 0 }}>
+                        <strong>Local:</strong> {appointment.location}
+                      </p>
+                    )}
+
+                    {appointment.status === "CANCELLED" &&
+                      appointment.cancelledAt && (
+                        <p style={{ color: "#475569", margin: 0 }}>
+                          <strong>Cancelada em:</strong>{" "}
+                          {formatDate(appointment.cancelledAt)}
+                        </p>
+                      )}
+                  </div>
 
                   {appointment.description && (
-                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                    <p style={{ color: "#475569", marginBottom: "8px" }}>
                       <strong>Descrição:</strong> {appointment.description}
                     </p>
                   )}
 
                   {appointment.status === "CANCELLED" &&
-                    appointment.cancelledAt && (
-                      <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                        <strong>Cancelada em:</strong>{" "}
-                        {formatDate(appointment.cancelledAt)}
-                      </p>
-                    )}
-
-                  {appointment.status === "CANCELLED" &&
                     appointment.cancellationReason && (
-                      <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                      <div
+                        style={{
+                          backgroundColor: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          color: "#991b1b",
+                          borderRadius: "14px",
+                          padding: "12px",
+                          marginTop: "12px",
+                          marginBottom: "12px",
+                        }}
+                      >
                         <strong>Motivo do cancelamento:</strong>{" "}
                         {appointment.cancellationReason}
-                      </p>
+                      </div>
                     )}
 
                   {appointment.preSessionCheckin && (
@@ -702,7 +963,7 @@ export default function MyAppointmentsPage() {
                       style={{
                         backgroundColor: "#ecfdf5",
                         border: "1px solid #a7f3d0",
-                        borderRadius: "12px",
+                        borderRadius: "14px",
                         padding: "12px",
                         marginTop: "12px",
                         marginBottom: "12px",
@@ -711,7 +972,7 @@ export default function MyAppointmentsPage() {
                       <p
                         style={{
                           color: "#065f46",
-                          fontWeight: 800,
+                          fontWeight: 900,
                           marginBottom: "6px",
                         }}
                       >
@@ -731,45 +992,39 @@ export default function MyAppointmentsPage() {
                     </div>
                   )}
 
-                  {appointment.googleEventLink &&
-                    appointment.status !== "CANCELLED" && (
-                      <a
-                        href={appointment.googleEventLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          color: "#2563eb",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                          display: "inline-block",
-                          marginTop: "8px",
-                        }}
-                      >
-                        Abrir no Google Calendar
-                      </a>
-                    )}
-
-                  {appointment.status === "SCHEDULED" &&
-                    new Date(appointment.dateTime) >= now && (
-                      <div
-                        style={{
-                          marginTop: "14px",
-                          display: "flex",
-                          gap: "10px",
-                          flexWrap: "wrap",
-                        }}
-                      >
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {appointment.status === "SCHEDULED" &&
+                      new Date(appointment.dateTime) >= now && (
                         <button
                           type="button"
                           onClick={() => openCheckinModal(appointment)}
                           style={primaryButtonStyle}
                         >
                           {appointment.preSessionCheckin
-                            ? "Editar checklist pré-sessão"
-                            : "Responder checklist pré-sessão"}
+                            ? "Editar checklist"
+                            : "Responder checklist"}
                         </button>
-                      </div>
-                    )}
+                      )}
+
+                    {appointment.googleEventLink &&
+                      appointment.status !== "CANCELLED" && (
+                        <a
+                          href={appointment.googleEventLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={secondaryButtonStyle}
+                        >
+                          Abrir no Google Calendar
+                        </a>
+                      )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -783,41 +1038,61 @@ export default function MyAppointmentsPage() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
             zIndex: 1000,
+            backdropFilter: "blur(6px)",
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%",
-              maxWidth: "720px",
+              maxWidth: "760px",
               maxHeight: "90vh",
               overflowY: "auto",
               backgroundColor: "#ffffff",
-              borderRadius: "20px",
-              padding: "28px",
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
-              border: "1px solid #e5e7eb",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+              border: "1px solid #e2e8f0",
             }}
           >
             <div style={{ marginBottom: "22px" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#eff6ff",
+                  color: "#1d4ed8",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "999px",
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: 900,
+                  marginBottom: "12px",
+                }}
+              >
+                <i className="fa-solid fa-clipboard-check"></i>
+                Preparação para sessão
+              </span>
+
               <h2
                 style={{
-                  fontSize: "28px",
-                  fontWeight: 800,
-                  color: "#111827",
+                  fontSize: "30px",
+                  fontWeight: 900,
+                  color: "#0f172a",
                   marginBottom: "8px",
                 }}
               >
                 Checklist pré-sessão
               </h2>
 
-              <p style={{ color: "#6b7280", margin: 0, lineHeight: 1.5 }}>
+              <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
                 Responda algumas perguntas rápidas para ajudar o profissional a
                 se preparar melhor para o atendimento.
               </p>
@@ -827,7 +1102,7 @@ export default function MyAppointmentsPage() {
               style={{
                 backgroundColor: "#eff6ff",
                 border: "1px solid #bfdbfe",
-                borderRadius: "14px",
+                borderRadius: "16px",
                 padding: "14px",
                 marginBottom: "18px",
               }}
@@ -835,7 +1110,7 @@ export default function MyAppointmentsPage() {
               <p
                 style={{
                   color: "#1d4ed8",
-                  fontWeight: 800,
+                  fontWeight: 900,
                   marginBottom: "6px",
                 }}
               >
@@ -854,10 +1129,10 @@ export default function MyAppointmentsPage() {
                   backgroundColor: "#fef2f2",
                   border: "1px solid #fecaca",
                   color: "#b91c1c",
-                  borderRadius: "12px",
+                  borderRadius: "14px",
                   padding: "12px 14px",
                   marginBottom: "16px",
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 {checkinError}
@@ -877,8 +1152,8 @@ export default function MyAppointmentsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
-                      color: "#111827",
+                      fontWeight: 800,
+                      color: "#0f172a",
                       marginBottom: "8px",
                     }}
                   >
@@ -892,14 +1167,7 @@ export default function MyAppointmentsPage() {
                     value={moodLevel}
                     onChange={(e) => setMoodLevel(e.target.value)}
                     placeholder="Ex.: 7"
-                    style={{
-                      width: "100%",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "12px",
-                      padding: "12px 14px",
-                      fontSize: "14px",
-                      outline: "none",
-                    }}
+                    style={inputStyle}
                   />
                 </div>
 
@@ -907,8 +1175,8 @@ export default function MyAppointmentsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
-                      color: "#111827",
+                      fontWeight: 800,
+                      color: "#0f172a",
                       marginBottom: "8px",
                     }}
                   >
@@ -922,14 +1190,7 @@ export default function MyAppointmentsPage() {
                     value={anxietyLevel}
                     onChange={(e) => setAnxietyLevel(e.target.value)}
                     placeholder="Ex.: 5"
-                    style={{
-                      width: "100%",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "12px",
-                      padding: "12px 14px",
-                      fontSize: "14px",
-                      outline: "none",
-                    }}
+                    style={inputStyle}
                   />
                 </div>
 
@@ -937,8 +1198,8 @@ export default function MyAppointmentsPage() {
                   <label
                     style={{
                       display: "block",
-                      fontWeight: 700,
-                      color: "#111827",
+                      fontWeight: 800,
+                      color: "#0f172a",
                       marginBottom: "8px",
                     }}
                   >
@@ -952,14 +1213,7 @@ export default function MyAppointmentsPage() {
                     value={sleepLevel}
                     onChange={(e) => setSleepLevel(e.target.value)}
                     placeholder="Ex.: 6"
-                    style={{
-                      width: "100%",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "12px",
-                      padding: "12px 14px",
-                      fontSize: "14px",
-                      outline: "none",
-                    }}
+                    style={inputStyle}
                   />
                 </div>
               </div>
@@ -968,8 +1222,8 @@ export default function MyAppointmentsPage() {
                 <label
                   style={{
                     display: "block",
-                    fontWeight: 700,
-                    color: "#111827",
+                    fontWeight: 800,
+                    color: "#0f172a",
                     marginBottom: "8px",
                   }}
                 >
@@ -982,12 +1236,7 @@ export default function MyAppointmentsPage() {
                   rows={3}
                   placeholder="Escreva brevemente o que mais tem preocupado você..."
                   style={{
-                    width: "100%",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "12px",
-                    padding: "12px 14px",
-                    fontSize: "14px",
-                    outline: "none",
+                    ...inputStyle,
                     resize: "vertical",
                   }}
                 />
@@ -997,8 +1246,8 @@ export default function MyAppointmentsPage() {
                 <label
                   style={{
                     display: "block",
-                    fontWeight: 700,
-                    color: "#111827",
+                    fontWeight: 800,
+                    color: "#0f172a",
                     marginBottom: "8px",
                   }}
                 >
@@ -1011,12 +1260,7 @@ export default function MyAppointmentsPage() {
                   rows={3}
                   placeholder="Ex.: acontecimentos, mudanças, dificuldades ou avanços recentes..."
                   style={{
-                    width: "100%",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "12px",
-                    padding: "12px 14px",
-                    fontSize: "14px",
-                    outline: "none",
+                    ...inputStyle,
                     resize: "vertical",
                   }}
                 />
@@ -1026,8 +1270,8 @@ export default function MyAppointmentsPage() {
                 <label
                   style={{
                     display: "block",
-                    fontWeight: 700,
-                    color: "#111827",
+                    fontWeight: 800,
+                    color: "#0f172a",
                     marginBottom: "8px",
                   }}
                 >
@@ -1040,12 +1284,7 @@ export default function MyAppointmentsPage() {
                   rows={3}
                   placeholder="Ex.: assuntos que você gostaria de priorizar no atendimento..."
                   style={{
-                    width: "100%",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "12px",
-                    padding: "12px 14px",
-                    fontSize: "14px",
-                    outline: "none",
+                    ...inputStyle,
                     resize: "vertical",
                   }}
                 />

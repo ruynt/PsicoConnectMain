@@ -387,37 +387,54 @@ export default function AgendaPage() {
     }
   }
 
+  const pageStyle = {
+    padding: "36px",
+    minHeight: "calc(100vh - 48px)",
+    background:
+      "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
+    borderRadius: "32px",
+    overflow: "visible",
+
+  };
+
   const cardStyle = {
-    backgroundColor: "#ffffff",
-    borderRadius: "18px",
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: "22px",
     padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-    border: "1px solid #e5e7eb",
+    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
+    border: "1px solid rgba(226, 232, 240, 0.9)",
   };
 
   const infoCardStyle = {
     ...cardStyle,
-    minHeight: "160px",
-  };
+    minHeight: "150px",
+    position: "relative",
+    overflow: "hidden",
+  } as const;
 
   const buttonPrimaryStyle = {
     background: "linear-gradient(135deg, #2563eb, #4f8cff)",
     color: "#fff",
     border: "none",
-    borderRadius: "12px",
+    borderRadius: "14px",
     padding: "12px 18px",
-    fontWeight: 600,
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.24)",
   } as const;
 
   const buttonSecondaryStyle = {
-    backgroundColor: "#fff",
-    color: "#1f2937",
-    border: "1px solid #d1d5db",
-    borderRadius: "12px",
+    backgroundColor: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+    borderRadius: "14px",
     padding: "12px 18px",
-    fontWeight: 600,
+    fontWeight: 900,
     cursor: "pointer",
     fontSize: "14px",
     width: "100%",
@@ -427,17 +444,18 @@ export default function AgendaPage() {
     backgroundColor: "#ecfdf5",
     color: "#065f46",
     border: "1px solid #a7f3d0",
-    borderRadius: "12px",
+    borderRadius: "14px",
     padding: "12px 18px",
-    fontWeight: 700,
+    fontWeight: 900,
     fontSize: "14px",
     width: "100%",
+    textAlign: "center",
   } as const;
 
   if (status === "loading") {
     return (
-      <div style={{ padding: "32px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#111827" }}>
+      <div style={pageStyle}>
+        <h1 style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a" }}>
           Carregando agenda...
         </h1>
       </div>
@@ -446,30 +464,115 @@ export default function AgendaPage() {
 
   return (
     <>
-      <div style={{ padding: "32px" }}>
-        <div style={{ marginBottom: "28px" }}>
-          <h1
+      <div style={pageStyle}>
+        <section
+          style={{
+            background:
+              "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
+            borderRadius: "28px",
+            padding: "30px",
+            color: "#ffffff",
+            marginBottom: "24px",
+            boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
             style={{
-              fontSize: "40px",
-              fontWeight: 800,
-              color: "#111827",
-              marginBottom: "8px",
+              position: "absolute",
+              right: "-80px",
+              top: "-90px",
+              width: "240px",
+              height: "240px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.16)",
             }}
-          >
-            Agenda do Psicólogo
-          </h1>
+          />
 
-          <p
+          <div
             style={{
-              fontSize: "18px",
-              color: "#4f46e5",
-              margin: 0,
+              position: "absolute",
+              right: "90px",
+              bottom: "-110px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.10)",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "20px",
+              alignItems: "flex-start",
+              position: "relative",
+              zIndex: 1,
             }}
           >
-            Organize atendimentos, acompanhe horários e conecte sua agenda ao
-            Google Calendar.
-          </p>
-        </div>
+            <div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "rgba(255, 255, 255, 0.16)",
+                  border: "1px solid rgba(255, 255, 255, 0.22)",
+                  borderRadius: "999px",
+                  padding: "7px 12px",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  marginBottom: "14px",
+                }}
+              >
+                <i className="fa-solid fa-calendar-days"></i>
+                Agenda integrada
+              </span>
+
+              <h1
+                style={{
+                  fontSize: "44px",
+                  fontWeight: 900,
+                  lineHeight: 1.05,
+                  marginBottom: "10px",
+                }}
+              >
+                Agenda do Psicólogo
+              </h1>
+
+              <p
+                style={{
+                  fontSize: "18px",
+                  color: "#dbeafe",
+                  maxWidth: "780px",
+                  margin: 0,
+                }}
+              >
+                Organize atendimentos, acompanhe horários, notifique pacientes
+                por e-mail e mantenha sua agenda sincronizada com o Google
+                Calendar.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              style={{
+                ...buttonPrimaryStyle,
+                background: "#ffffff",
+                color: "#1d4ed8",
+                boxShadow: "0 10px 24px rgba(15, 23, 42, 0.16)",
+                opacity: googleConnected ? 1 : 0.7,
+                cursor: googleConnected ? "pointer" : "not-allowed",
+              }}
+              disabled={!googleConnected}
+              onClick={handleOpenModal}
+            >
+              Novo horário
+            </button>
+          </div>
+        </section>
 
         {feedback && (
           <div
@@ -492,39 +595,16 @@ export default function AgendaPage() {
                   : feedback.type === "error"
                     ? "#b91c1c"
                     : "#1d4ed8",
-              borderRadius: "12px",
+              borderRadius: "16px",
               padding: "14px 16px",
               marginBottom: "18px",
-              fontWeight: 700,
+              fontWeight: 800,
             }}
           >
             {feedback.message}
           </div>
         )}
 
-        <div
-          style={{
-            backgroundColor: "#eff6ff",
-            borderLeft: "4px solid #3b82f6",
-            borderRadius: "12px",
-            padding: "18px",
-            marginBottom: "28px",
-          }}
-        >
-          <p
-            style={{
-              fontWeight: 700,
-              color: "#1d4ed8",
-              marginBottom: "6px",
-            }}
-          >
-            Agenda integrada
-          </p>
-          <p style={{ color: "#1e40af", margin: 0 }}>
-            Gerencie seus atendimentos, acompanhe pacientes e mantenha sua
-            agenda sincronizada.
-          </p>
-        </div>
 
         <div
           style={{
@@ -537,9 +617,20 @@ export default function AgendaPage() {
           <div style={infoCardStyle}>
             <div
               style={{
+                position: "absolute",
+                right: "-24px",
+                top: "-24px",
+                width: "94px",
+                height: "94px",
+                borderRadius: "999px",
+                backgroundColor: "#eff6ff",
+              }}
+            />
+            <div
+              style={{
                 fontSize: "18px",
-                fontWeight: 700,
-                color: "#111827",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "12px",
               }}
             >
@@ -549,8 +640,8 @@ export default function AgendaPage() {
             <div
               style={{
                 fontSize: "34px",
-                fontWeight: 800,
-                color: "#111827",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "8px",
               }}
             >
@@ -569,9 +660,20 @@ export default function AgendaPage() {
           <div style={infoCardStyle}>
             <div
               style={{
+                position: "absolute",
+                right: "-24px",
+                top: "-24px",
+                width: "94px",
+                height: "94px",
+                borderRadius: "999px",
+                backgroundColor: "#ecfdf5",
+              }}
+            />
+            <div
+              style={{
                 fontSize: "18px",
-                fontWeight: 700,
-                color: "#111827",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "12px",
               }}
             >
@@ -581,8 +683,8 @@ export default function AgendaPage() {
             <div
               style={{
                 fontSize: "24px",
-                fontWeight: 800,
-                color: "#111827",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "8px",
               }}
             >
@@ -599,9 +701,20 @@ export default function AgendaPage() {
           <div style={infoCardStyle}>
             <div
               style={{
+                position: "absolute",
+                right: "-24px",
+                top: "-24px",
+                width: "94px",
+                height: "94px",
+                borderRadius: "999px",
+                backgroundColor: "#f5f3ff",
+              }}
+            />
+            <div
+              style={{
                 fontSize: "18px",
-                fontWeight: 700,
-                color: "#111827",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "12px",
               }}
             >
@@ -661,18 +774,6 @@ export default function AgendaPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                style={{
-                  ...buttonPrimaryStyle,
-                  opacity: googleConnected ? 1 : 0.6,
-                  cursor: googleConnected ? "pointer" : "not-allowed",
-                }}
-                disabled={!googleConnected}
-                onClick={handleOpenModal}
-              >
-                Novo horário
-              </button>
             </div>
 
             <div
@@ -710,8 +811,8 @@ export default function AgendaPage() {
                         ? "#1d4ed8"
                         : "#374151",
                     borderRadius: "999px",
-                    padding: "8px 14px",
-                    fontWeight: 700,
+                    padding: "10px 16px",
+                    fontWeight: 900,
                     cursor: "pointer",
                     fontSize: "14px",
                   }}
@@ -783,9 +884,9 @@ export default function AgendaPage() {
                     key={event.id}
                     style={{
                       border: "1px solid #e5e7eb",
-                      borderRadius: "14px",
+                      borderRadius: "18px",
                       padding: "18px",
-                      backgroundColor: "#f8fafc",
+                      backgroundColor: event.status === "CANCELLED" ? "#fff7f7" : "#f8fafc",
                     }}
                   >
                     <div
@@ -961,8 +1062,8 @@ export default function AgendaPage() {
               <h2
                 style={{
                   fontSize: "28px",
-                  fontWeight: 700,
-                  color: "#111827",
+                  fontWeight: 900,
+                  color: "#0f172a",
                   marginBottom: "14px",
                 }}
               >
@@ -997,12 +1098,13 @@ export default function AgendaPage() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
             zIndex: 1001,
+            backdropFilter: "blur(6px)",
           }}
         >
           <div
@@ -1011,17 +1113,17 @@ export default function AgendaPage() {
               width: "100%",
               maxWidth: "520px",
               backgroundColor: "#ffffff",
-              borderRadius: "18px",
-              padding: "24px",
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
               border: "1px solid #e5e7eb",
             }}
           >
             <h2
               style={{
                 fontSize: "24px",
-                fontWeight: 800,
-                color: "#111827",
+                fontWeight: 900,
+                color: "#0f172a",
                 marginBottom: "10px",
               }}
             >
@@ -1043,8 +1145,8 @@ export default function AgendaPage() {
               <label
                 style={{
                   display: "block",
-                  fontWeight: 700,
-                  color: "#111827",
+                  fontWeight: 900,
+                  color: "#0f172a",
                   marginBottom: "8px",
                 }}
               >
@@ -1139,12 +1241,13 @@ export default function AgendaPage() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
             zIndex: 1000,
+            backdropFilter: "blur(6px)",
           }}
         >
           <div
@@ -1153,9 +1256,9 @@ export default function AgendaPage() {
               width: "100%",
               maxWidth: "720px",
               backgroundColor: "#ffffff",
-              borderRadius: "20px",
-              padding: "28px",
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
               border: "1px solid #e5e7eb",
             }}
           >

@@ -1311,3 +1311,127 @@ body {
     overflow: auto;
   }
 }
+
+/* ---------------- Refinamento visual global da área autenticada ---------------- */
+
+body {
+  background: #f8fbff;
+}
+
+.chat-container {
+  background: linear-gradient(135deg, #eef5ff 0%, #f8fbff 45%, #ffffff 100%);
+}
+
+/*
+  A borda cinza "pontuda" vinha do primeiro container renderizado dentro do
+  .chat-main-wrapper. Como o botão de menu é o primeiro filho real, não dava
+  para usar :first-child. Por isso aplicamos nos filhos diretos que não são
+  o botão mobile.
+*/
+.chat-main-wrapper {
+  background: #f8fbff;
+  border-top-left-radius: 32px;
+  border-bottom-left-radius: 32px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 100vh;
+  padding: 24px 32px;
+}
+
+.chat-main-wrapper > :not(.menu-toggle-button) {
+  border-radius: 32px !important;
+  overflow: hidden;
+}
+
+/* Páginas refinadas que usam um <div> raiz com background inline */
+.chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+  min-height: calc(100vh - 48px) !important;
+}
+
+/* Mantém o chat com seu próprio layout, mas sem cantos secos */
+.chat-page-shell {
+  border-radius: 32px;
+  overflow: visible;
+}
+
+/* Suaviza os grandes blocos internos com gradiente */
+.chat-main-wrapper section {
+  border-radius: 24px;
+}
+
+/* Loading simples com círculos no tom do PsicoConnect */
+.psico-simple-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.psico-simple-loader span {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background-color: #528cff;
+  animation: psicoSimpleBounce 0.9s infinite ease-in-out;
+}
+
+.psico-simple-loader span:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.psico-simple-loader span:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes psicoSimpleBounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+
+  40% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+.psico-navigation-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(248, 251, 255, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Transições suaves */
+button,
+a {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+button:hover:not(:disabled),
+a:hover {
+  transform: translateY(-1px);
+}
+
+/* Responsivo da área autenticada */
+@media (max-width: 768px) {
+  .chat-main-wrapper {
+    border-radius: 0;
+    padding: 16px;
+  }
+
+  .chat-main-wrapper > :not(.menu-toggle-button) {
+    border-radius: 22px !important;
+  }
+}
