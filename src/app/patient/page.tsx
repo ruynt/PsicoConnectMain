@@ -57,6 +57,23 @@ type PatientTask = {
   } | null;
 };
 
+type PatientMaterial = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  url: string;
+  content: string;
+  viewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  psychologist: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
@@ -65,12 +82,15 @@ type Feedback = {
 export default function PatientHomePage() {
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
   const [tasks, setTasks] = useState<PatientTask[]>([]);
+  const [materials, setMaterials] = useState<PatientMaterial[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [loadingMaterials, setLoadingMaterials] = useState(true);
 
   const [error, setError] = useState("");
   const [taskError, setTaskError] = useState("");
+  const [materialError, setMaterialError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [completingTaskId, setCompletingTaskId] = useState("");
@@ -118,10 +138,33 @@ export default function PatientHomePage() {
     }
   }
 
+  async function loadMaterials() {
+    try {
+      setLoadingMaterials(true);
+      setMaterialError("");
+
+      const response = await fetch("/api/patient/materials", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar materiais.");
+      }
+
+      setMaterials(data.materials || []);
+    } catch (error: any) {
+      setMaterialError(error.message || "Erro ao carregar materiais.");
+    } finally {
+      setLoadingMaterials(false);
+    }
+  }
+
   async function loadPageData() {
     try {
       setLoading(true);
-      await Promise.all([loadAppointments(), loadTasks()]);
+      await Promise.all([loadAppointments(), loadTasks(), loadMaterials()]);
     } finally {
       setLoading(false);
     }
@@ -186,6 +229,15 @@ export default function PatientHomePage() {
       })
       .slice(0, 5);
   }, [tasks]);
+
+  const recentMaterials = useMemo(() => {
+    return [...materials]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 5);
+  }, [materials]);
 
   function formatDate(dateString: string | null | undefined) {
     if (!dateString) return "--";
@@ -306,8 +358,8 @@ export default function PatientHomePage() {
             margin: 0,
           }}
         >
-          Acompanhe seus atendimentos, checklists, tarefas e informações
-          importantes do seu acompanhamento.
+          Acompanhe seus atendimentos, checklists, tarefas e materiais do seu
+          acompanhamento.
         </p>
       </div>
 
@@ -378,29 +430,25 @@ export default function PatientHomePage() {
 
         <p style={{ color: "#1e40af", margin: 0 }}>
           Use esta página para visualizar sua próxima consulta, responder
-          checklists e acompanhar tarefas combinadas com o profissional.
+          checklists, acompanhar tarefas e acessar materiais enviados pelo
+          profissional.
         </p>
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
           gap: "20px",
           marginBottom: "24px",
         }}
       >
         <div style={smallCardStyle}>
           <p
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
+            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
           >
             Próximas consultas
           </p>
-
           <p
             style={{
               color: "#111827",
@@ -415,15 +463,10 @@ export default function PatientHomePage() {
 
         <div style={smallCardStyle}>
           <p
-            style={{
-              color: "#b45309",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
+            style={{ color: "#b45309", fontSize: "14px", marginBottom: "8px" }}
           >
             Checklists pendentes
           </p>
-
           <p
             style={{
               color: "#b45309",
@@ -438,15 +481,10 @@ export default function PatientHomePage() {
 
         <div style={smallCardStyle}>
           <p
-            style={{
-              color: "#065f46",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
+            style={{ color: "#065f46", fontSize: "14px", marginBottom: "8px" }}
           >
             Checklists respondidos
           </p>
-
           <p
             style={{
               color: "#065f46",
@@ -461,15 +499,10 @@ export default function PatientHomePage() {
 
         <div style={smallCardStyle}>
           <p
-            style={{
-              color: "#7c3aed",
-              fontSize: "14px",
-              marginBottom: "8px",
-            }}
+            style={{ color: "#7c3aed", fontSize: "14px", marginBottom: "8px" }}
           >
             Tarefas pendentes
           </p>
-
           <p
             style={{
               color: "#7c3aed",
@@ -484,15 +517,28 @@ export default function PatientHomePage() {
 
         <div style={smallCardStyle}>
           <p
+            style={{ color: "#2563eb", fontSize: "14px", marginBottom: "8px" }}
+          >
+            Materiais
+          </p>
+          <p
             style={{
-              color: "#b91c1c",
-              fontSize: "14px",
-              marginBottom: "8px",
+              color: "#2563eb",
+              fontSize: "34px",
+              fontWeight: 800,
+              margin: 0,
             }}
           >
-            Consultas canceladas
+            {materials.length}
           </p>
+        </div>
 
+        <div style={smallCardStyle}>
+          <p
+            style={{ color: "#b91c1c", fontSize: "14px", marginBottom: "8px" }}
+          >
+            Canceladas
+          </p>
           <p
             style={{
               color: "#b91c1c",
@@ -557,7 +603,8 @@ export default function PatientHomePage() {
 
               {nextAppointment.endDateTime && (
                 <p style={{ color: "#4b5563", marginBottom: "6px" }}>
-                  <strong>Fim:</strong> {formatDate(nextAppointment.endDateTime)}
+                  <strong>Fim:</strong>{" "}
+                  {formatDate(nextAppointment.endDateTime)}
                 </p>
               )}
 
@@ -676,18 +723,13 @@ export default function PatientHomePage() {
               >
                 Nenhuma tarefa registrada
               </p>
-
               <p style={{ color: "#6b7280", margin: 0 }}>
                 Quando o profissional adicionar tarefas, elas aparecerão aqui.
               </p>
             </div>
           ) : (
             <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
               {recentTasks.map((task) => (
                 <div
@@ -811,6 +853,150 @@ export default function PatientHomePage() {
         </section>
       </div>
 
+      <section style={{ ...cardStyle, marginBottom: "20px" }}>
+        <h2
+          style={{
+            fontSize: "28px",
+            fontWeight: 800,
+            color: "#111827",
+            marginBottom: "14px",
+          }}
+        >
+          Materiais psicoeducativos
+        </h2>
+
+        {materialError && (
+          <div
+            style={{
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#b91c1c",
+              borderRadius: "12px",
+              padding: "12px",
+              marginBottom: "12px",
+              fontWeight: 700,
+            }}
+          >
+            {materialError}
+          </div>
+        )}
+
+        {loadingMaterials ? (
+          <p style={{ color: "#6b7280", margin: 0 }}>Carregando materiais...</p>
+        ) : recentMaterials.length === 0 ? (
+          <div
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "14px",
+              padding: "18px",
+              backgroundColor: "#f8fafc",
+            }}
+          >
+            <p
+              style={{ color: "#111827", fontWeight: 800, marginBottom: "6px" }}
+            >
+              Nenhum material enviado
+            </p>
+            <p style={{ color: "#6b7280", margin: 0 }}>
+              Quando o profissional enviar materiais, eles aparecerão aqui.
+            </p>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "14px",
+            }}
+          >
+            {recentMaterials.map((material) => (
+              <div
+                key={material.id}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "14px",
+                  padding: "16px",
+                  backgroundColor: "#f8fafc",
+                }}
+              >
+                {material.category && (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      backgroundColor: "#eff6ff",
+                      color: "#1d4ed8",
+                      border: "1px solid #bfdbfe",
+                      borderRadius: "999px",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      marginBottom: "10px",
+                    }}
+                  >
+                    {material.category}
+                  </span>
+                )}
+
+                <p
+                  style={{
+                    color: "#111827",
+                    fontWeight: 800,
+                    fontSize: "17px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {material.title}
+                </p>
+
+                <p
+                  style={{
+                    color: "#6b7280",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  Enviado por {material.psychologist.name} em{" "}
+                  {formatDate(material.createdAt)}
+                </p>
+
+                {material.description && (
+                  <p style={{ color: "#4b5563", marginBottom: "10px" }}>
+                    {material.description}
+                  </p>
+                )}
+
+                {material.content && (
+                  <div
+                    style={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "12px",
+                      color: "#374151",
+                      marginBottom: "10px",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {material.content}
+                  </div>
+                )}
+
+                {material.url && (
+                  <a
+                    href={material.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={secondaryButtonStyle}
+                  >
+                    Abrir material
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section style={cardStyle}>
         <h2
           style={{
@@ -820,13 +1006,13 @@ export default function PatientHomePage() {
             marginBottom: "14px",
           }}
         >
-          Resumo das tarefas
+          Resumo do acompanhamento
         </h2>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
             gap: "16px",
           }}
         >
@@ -845,9 +1031,8 @@ export default function PatientHomePage() {
                 marginBottom: "8px",
               }}
             >
-              Pendentes
+              Tarefas pendentes
             </p>
-
             <p
               style={{
                 color: "#7c3aed",
@@ -875,9 +1060,8 @@ export default function PatientHomePage() {
                 marginBottom: "8px",
               }}
             >
-              Concluídas
+              Tarefas concluídas
             </p>
-
             <p
               style={{
                 color: "#065f46",
@@ -900,14 +1084,42 @@ export default function PatientHomePage() {
           >
             <p
               style={{
+                color: "#2563eb",
+                fontSize: "14px",
+                marginBottom: "8px",
+              }}
+            >
+              Materiais recebidos
+            </p>
+            <p
+              style={{
+                color: "#2563eb",
+                fontSize: "28px",
+                fontWeight: 800,
+                margin: 0,
+              }}
+            >
+              {materials.length}
+            </p>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "14px",
+              padding: "16px",
+              backgroundColor: "#f8fafc",
+            }}
+          >
+            <p
+              style={{
                 color: "#6b7280",
                 fontSize: "14px",
                 marginBottom: "8px",
               }}
             >
-              Total
+              Consultas no histórico
             </p>
-
             <p
               style={{
                 color: "#111827",
@@ -916,7 +1128,7 @@ export default function PatientHomePage() {
                 margin: 0,
               }}
             >
-              {tasks.filter((task) => task.status !== "CANCELLED").length}
+              {appointments.length}
             </p>
           </div>
         </div>

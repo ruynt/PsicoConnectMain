@@ -89,13 +89,31 @@ type PatientTask = {
   } | null;
 };
 
+type PatientMaterial = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  url: string;
+  content: string;
+  viewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
 };
 
 type NoteFilter = "ACTIVE" | "ARCHIVED" | "ALL";
-type PatientTab = "SUMMARY" | "APPOINTMENTS" | "NOTES" | "CHECKINS" | "TASKS";
+type PatientTab =
+  | "SUMMARY"
+  | "APPOINTMENTS"
+  | "NOTES"
+  | "CHECKINS"
+  | "TASKS"
+  | "MATERIALS";
 
 export default function PatientDetailsPage() {
   const params = useParams();
@@ -105,13 +123,16 @@ export default function PatientDetailsPage() {
   const [notes, setNotes] = useState<PatientNote[]>([]);
   const [checkins, setCheckins] = useState<PatientCheckin[]>([]);
   const [tasks, setTasks] = useState<PatientTask[]>([]);
+  const [materials, setMaterials] = useState<PatientMaterial[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [loadingCheckins, setLoadingCheckins] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
+  const [savingMaterial, setSavingMaterial] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState("");
   const [archivingNoteId, setArchivingNoteId] = useState("");
 
@@ -119,6 +140,7 @@ export default function PatientDetailsPage() {
   const [noteError, setNoteError] = useState("");
   const [checkinError, setCheckinError] = useState("");
   const [taskError, setTaskError] = useState("");
+  const [materialError, setMaterialError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [noteTitle, setNoteTitle] = useState("");
@@ -129,6 +151,12 @@ export default function PatientDetailsPage() {
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskAppointmentId, setTaskAppointmentId] = useState("");
+
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialDescription, setMaterialDescription] = useState("");
+  const [materialCategory, setMaterialCategory] = useState("");
+  const [materialUrl, setMaterialUrl] = useState("");
+  const [materialContent, setMaterialContent] = useState("");
 
   const [editingNoteId, setEditingNoteId] = useState("");
   const [noteFilter, setNoteFilter] = useState<NoteFilter>("ACTIVE");
@@ -234,6 +262,29 @@ export default function PatientDetailsPage() {
     }
   }
 
+  async function loadMaterials() {
+    try {
+      setLoadingMaterials(true);
+      setMaterialError("");
+
+      const response = await fetch(`/api/patients/${patientId}/materials`, {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar materiais.");
+      }
+
+      setMaterials(data.materials || []);
+    } catch (error: any) {
+      setMaterialError(error.message || "Erro ao carregar materiais.");
+    } finally {
+      setLoadingMaterials(false);
+    }
+  }
+
   useEffect(() => {
     if (patientId) {
       loadPatient();
@@ -255,6 +306,12 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (patientId) {
       loadTasks();
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    if (patientId) {
+      loadMaterials();
     }
   }, [patientId]);
 
@@ -501,15 +558,18 @@ export default function PatientDetailsPage() {
     try {
       setUpdatingTaskId(taskId);
 
-      const response = await fetch(`/api/patients/${patientId}/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/patients/${patientId}/tasks/${taskId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+          }),
         },
-        body: JSON.stringify({
-          status,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -531,6 +591,64 @@ export default function PatientDetailsPage() {
       showFeedback("error", error.message || "Erro ao atualizar tarefa.");
     } finally {
       setUpdatingTaskId("");
+    }
+  }
+
+  function resetMaterialForm() {
+    setMaterialTitle("");
+    setMaterialDescription("");
+    setMaterialCategory("");
+    setMaterialUrl("");
+    setMaterialContent("");
+    setMaterialError("");
+  }
+
+  async function handleCreateMaterial(e: React.FormEvent) {
+    e.preventDefault();
+
+    setMaterialError("");
+
+    if (!materialTitle.trim()) {
+      setMaterialError("Informe um título para o material.");
+      return;
+    }
+
+    if (!materialUrl.trim() && !materialContent.trim()) {
+      setMaterialError("Informe pelo menos um link ou um conteúdo textual.");
+      return;
+    }
+
+    try {
+      setSavingMaterial(true);
+
+      const response = await fetch(`/api/patients/${patientId}/materials`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: materialTitle,
+          description: materialDescription,
+          category: materialCategory,
+          url: materialUrl,
+          content: materialContent,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao enviar material.");
+      }
+
+      await loadMaterials();
+      resetMaterialForm();
+
+      showFeedback("success", "Material psicoeducativo enviado com sucesso.");
+    } catch (error: any) {
+      setMaterialError(error.message || "Erro ao enviar material.");
+    } finally {
+      setSavingMaterial(false);
     }
   }
 
@@ -759,6 +877,7 @@ export default function PatientDetailsPage() {
             { label: "Anotações", value: "NOTES" },
             { label: "Checklists", value: "CHECKINS" },
             { label: "Tarefas", value: "TASKS" },
+            { label: "Materiais", value: "MATERIALS" },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -1350,7 +1469,6 @@ export default function PatientDetailsPage() {
           </section>
         )}
 
-
         {activeTab === "TASKS" && (
           <div
             style={{
@@ -1749,6 +1867,375 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+        {activeTab === "MATERIALS" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1.4fr",
+              gap: "20px",
+            }}
+          >
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                Novo material
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Envie um material psicoeducativo para o paciente acessar na
+                própria área.
+              </p>
+
+              {materialError && (
+                <div
+                  style={{
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    marginBottom: "16px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {materialError}
+                </div>
+              )}
+
+              <form noValidate onSubmit={handleCreateMaterial}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Título
+                  </label>
+
+                  <input
+                    type="text"
+                    value={materialTitle}
+                    onChange={(e) => setMaterialTitle(e.target.value)}
+                    placeholder="Ex.: Exercício de respiração diafragmática"
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Categoria
+                  </label>
+
+                  <input
+                    type="text"
+                    value={materialCategory}
+                    onChange={(e) => setMaterialCategory(e.target.value)}
+                    placeholder="Ex.: Ansiedade, sono, rotina, psicoeducação"
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Descrição
+                  </label>
+
+                  <textarea
+                    value={materialDescription}
+                    onChange={(e) => setMaterialDescription(e.target.value)}
+                    placeholder="Explique brevemente por que esse material foi enviado."
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Link externo
+                  </label>
+
+                  <input
+                    type="url"
+                    value={materialUrl}
+                    onChange={(e) => setMaterialUrl(e.target.value)}
+                    placeholder="Ex.: https://..."
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "18px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Conteúdo textual
+                  </label>
+
+                  <textarea
+                    value={materialContent}
+                    onChange={(e) => setMaterialContent(e.target.value)}
+                    placeholder="Cole aqui uma orientação, exercício ou conteúdo psicoeducativo."
+                    rows={6}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingMaterial}
+                  style={{
+                    ...buttonPrimaryStyle,
+                    width: "100%",
+                    opacity: savingMaterial ? 0.7 : 1,
+                    cursor: savingMaterial ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {savingMaterial ? "Enviando..." : "Enviar material"}
+                </button>
+              </form>
+            </section>
+
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                Materiais enviados
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Acompanhe os materiais psicoeducativos disponibilizados para o
+                paciente.
+              </p>
+
+              {loadingMaterials ? (
+                <p style={{ color: "#6b7280", margin: 0 }}>
+                  Carregando materiais...
+                </p>
+              ) : materials.length === 0 ? (
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    backgroundColor: "#f8fafc",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontWeight: 800,
+                      color: "#111827",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Nenhum material enviado
+                  </p>
+
+                  <p style={{ color: "#6b7280", margin: 0 }}>
+                    Envie um material para que ele apareça na área do paciente.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                  }}
+                >
+                  {materials.map((material) => (
+                    <div
+                      key={material.id}
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "18px",
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          alignItems: "flex-start",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              color: "#111827",
+                              fontWeight: 800,
+                              fontSize: "18px",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {material.title}
+                          </p>
+
+                          {material.category && (
+                            <p style={{ color: "#6b7280", margin: 0 }}>
+                              Categoria: {material.category}
+                            </p>
+                          )}
+                        </div>
+
+                        <span
+                          style={{
+                            backgroundColor: material.viewedAt
+                              ? "#ecfdf5"
+                              : "#eff6ff",
+                            color: material.viewedAt ? "#065f46" : "#1d4ed8",
+                            border: material.viewedAt
+                              ? "1px solid #a7f3d0"
+                              : "1px solid #bfdbfe",
+                            borderRadius: "999px",
+                            padding: "5px 10px",
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {material.viewedAt ? "Visualizado" : "Enviado"}
+                        </span>
+                      </div>
+
+                      {material.description && (
+                        <p style={{ color: "#4b5563", marginBottom: "10px" }}>
+                          {material.description}
+                        </p>
+                      )}
+
+                      {material.url && (
+                        <a
+                          href={material.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            color: "#2563eb",
+                            fontWeight: 800,
+                            textDecoration: "none",
+                            display: "inline-block",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Abrir link do material
+                        </a>
+                      )}
+
+                      {material.content && (
+                        <div
+                          style={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "12px",
+                            padding: "12px",
+                            color: "#4b5563",
+                            whiteSpace: "pre-wrap",
+                            marginTop: "4px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          {material.content}
+                        </div>
+                      )}
+
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: "13px",
+                          marginTop: "8px",
+                          marginBottom: 0,
+                        }}
+                      >
+                        Enviado em {formatDate(material.createdAt)}
+                        {material.viewedAt
+                          ? ` · Visualizado em ${formatDate(material.viewedAt)}`
+                          : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
         {activeTab === "NOTES" && (
           <div

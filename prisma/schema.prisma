@@ -30,6 +30,7 @@ model Psychologist {
 
   appointments Appointment[]
   notes        SessionNote[]
+  materials PatientMaterial[]
 
   patientLinks PsychologistPatient[]
 
@@ -44,6 +45,7 @@ model Patient {
 
   appointments Appointment[]
   notes        SessionNote[]
+  materials PatientMaterial[]
 
   psychologistLinks PsychologistPatient[]
   preSessionCheckins PreSessionCheckin[]
@@ -191,6 +193,31 @@ model TherapeuticTask {
   @@index([status])
 }
 
+model PatientMaterial {
+  id             String       @id @default(uuid())
+
+  title          String
+  description    String?
+  category       String?
+  url            String?
+  content        String?
+
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id])
+
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
+
+  viewedAt       DateTime?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([patientId])
+  @@index([psychologistId])
+  @@index([createdAt])
+}
+
 enum Role {
   PSYCHOLOGIST
   PATIENT
@@ -206,3 +233,4 @@ enum TherapeuticTaskStatus {
   COMPLETED
   CANCELLED
 }
+
