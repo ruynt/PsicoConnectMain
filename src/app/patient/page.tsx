@@ -951,7 +951,7 @@ export default function PatientHomePage() {
                 <p
                   style={{
                     color: "#6b7280",
-                    marginBottom: "8px",
+                    marginBottom: "6px",
                     fontSize: "14px",
                   }}
                 >
@@ -959,26 +959,78 @@ export default function PatientHomePage() {
                   {formatDate(material.createdAt)}
                 </p>
 
+                {material.viewedAt && (
+                  <p
+                    style={{
+                      color: "#047857",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Visualizado em {formatDate(material.viewedAt)}
+                  </p>
+                )}
+
                 {material.description && (
                   <p style={{ color: "#4b5563", marginBottom: "10px" }}>
                     {material.description}
                   </p>
                 )}
 
-                {material.content && (
-                  <div
+                {material.content && !material.viewedAt && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(
+                          `/api/patient/materials/${material.id}/view`,
+                          {
+                            method: "PATCH",
+                          },
+                        );
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                          throw new Error(
+                            data?.error ||
+                              "Erro ao marcar material como visualizado.",
+                          );
+                        }
+
+                        await loadMaterials();
+
+                        showFeedback(
+                          "success",
+                          "Material marcado como visualizado.",
+                        );
+                      } catch (error: any) {
+                        console.error(
+                          "Erro ao marcar material como visualizado:",
+                          error,
+                        );
+
+                        showFeedback(
+                          "error",
+                          error?.message ||
+                            "Erro ao marcar material como visualizado.",
+                        );
+                      }
+                    }}
                     style={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "12px",
-                      padding: "12px",
-                      color: "#374151",
+                      backgroundColor: "#ecfdf5",
+                      color: "#065f46",
+                      border: "1px solid #a7f3d0",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      fontWeight: 800,
+                      cursor: "pointer",
                       marginBottom: "10px",
-                      whiteSpace: "pre-wrap",
                     }}
                   >
-                    {material.content}
-                  </div>
+                    Marcar como visualizado
+                  </button>
                 )}
 
                 {material.url && (
@@ -987,6 +1039,23 @@ export default function PatientHomePage() {
                     target="_blank"
                     rel="noreferrer"
                     style={secondaryButtonStyle}
+                    onClick={async () => {
+                      try {
+                        await fetch(
+                          `/api/patient/materials/${material.id}/view`,
+                          {
+                            method: "PATCH",
+                          },
+                        );
+
+                        await loadMaterials();
+                      } catch (error) {
+                        console.error(
+                          "Erro ao marcar material como visualizado:",
+                          error,
+                        );
+                      }
+                    }}
                   >
                     Abrir material
                   </a>
