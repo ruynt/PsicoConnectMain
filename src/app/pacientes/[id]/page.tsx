@@ -70,13 +70,32 @@ type PatientCheckin = {
   };
 };
 
+type TherapeuticTaskStatus = "PENDING" | "COMPLETED" | "CANCELLED";
+
+type PatientTask = {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string | null;
+  status: TherapeuticTaskStatus;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  appointment: {
+    id: string;
+    title: string;
+    dateTime: string;
+  } | null;
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
 };
 
 type NoteFilter = "ACTIVE" | "ARCHIVED" | "ALL";
-type PatientTab = "SUMMARY" | "APPOINTMENTS" | "NOTES" | "CHECKINS";
+type PatientTab = "SUMMARY" | "APPOINTMENTS" | "NOTES" | "CHECKINS" | "TASKS";
 
 export default function PatientDetailsPage() {
   const params = useParams();
@@ -85,21 +104,31 @@ export default function PatientDetailsPage() {
   const [patient, setPatient] = useState<PatientDetails | null>(null);
   const [notes, setNotes] = useState<PatientNote[]>([]);
   const [checkins, setCheckins] = useState<PatientCheckin[]>([]);
+  const [tasks, setTasks] = useState<PatientTask[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [loadingCheckins, setLoadingCheckins] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
+  const [updatingTaskId, setUpdatingTaskId] = useState("");
   const [archivingNoteId, setArchivingNoteId] = useState("");
 
   const [error, setError] = useState("");
   const [noteError, setNoteError] = useState("");
   const [checkinError, setCheckinError] = useState("");
+  const [taskError, setTaskError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [selectedAppointmentId, setSelectedAppointmentId] = useState("");
+
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState("");
+  const [taskAppointmentId, setTaskAppointmentId] = useState("");
 
   const [editingNoteId, setEditingNoteId] = useState("");
   const [noteFilter, setNoteFilter] = useState<NoteFilter>("ACTIVE");
@@ -182,6 +211,29 @@ export default function PatientDetailsPage() {
     }
   }
 
+  async function loadTasks() {
+    try {
+      setLoadingTasks(true);
+      setTaskError("");
+
+      const response = await fetch(`/api/patients/${patientId}/tasks`, {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar tarefas.");
+      }
+
+      setTasks(data.tasks || []);
+    } catch (error: any) {
+      setTaskError(error.message || "Erro ao carregar tarefas.");
+    } finally {
+      setLoadingTasks(false);
+    }
+  }
+
   useEffect(() => {
     if (patientId) {
       loadPatient();
@@ -197,6 +249,12 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (patientId) {
       loadCheckins();
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    if (patientId) {
+      loadTasks();
     }
   }, [patientId]);
 
@@ -217,6 +275,44 @@ export default function PatientDetailsPage() {
       dateStyle: "short",
       timeStyle: "short",
     }).format(date);
+  }
+
+  function formatDateOnly(dateString: string | null) {
+    if (!dateString) return "--";
+
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+    }).format(new Date(dateString));
+  }
+
+  function getTaskStatusLabel(status: TherapeuticTaskStatus) {
+    if (status === "COMPLETED") return "Concluída";
+    if (status === "CANCELLED") return "Cancelada";
+    return "Pendente";
+  }
+
+  function getTaskStatusStyle(status: TherapeuticTaskStatus) {
+    if (status === "COMPLETED") {
+      return {
+        backgroundColor: "#ecfdf5",
+        color: "#065f46",
+        border: "1px solid #a7f3d0",
+      };
+    }
+
+    if (status === "CANCELLED") {
+      return {
+        backgroundColor: "#fef2f2",
+        color: "#b91c1c",
+        border: "1px solid #fecaca",
+      };
+    }
+
+    return {
+      backgroundColor: "#fffbeb",
+      color: "#92400e",
+      border: "1px solid #fde68a",
+    };
   }
 
   function showFeedback(type: "success" | "error" | "info", message: string) {
@@ -344,6 +440,97 @@ export default function PatientDetailsPage() {
       showFeedback("error", error.message || "Erro ao arquivar anotação.");
     } finally {
       setArchivingNoteId("");
+    }
+  }
+
+  function resetTaskForm() {
+    setTaskTitle("");
+    setTaskDescription("");
+    setTaskDueDate("");
+    setTaskAppointmentId("");
+    setTaskError("");
+  }
+
+  async function handleCreateTask(e: React.FormEvent) {
+    e.preventDefault();
+
+    setTaskError("");
+
+    if (!taskTitle.trim()) {
+      setTaskError("Informe um título para a tarefa.");
+      return;
+    }
+
+    try {
+      setSavingTask(true);
+
+      const response = await fetch(`/api/patients/${patientId}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: taskTitle,
+          description: taskDescription,
+          dueDate: taskDueDate || null,
+          appointmentId: taskAppointmentId || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao criar tarefa terapêutica.");
+      }
+
+      await loadTasks();
+      resetTaskForm();
+
+      showFeedback("success", "Tarefa terapêutica criada com sucesso.");
+    } catch (error: any) {
+      setTaskError(error.message || "Erro ao criar tarefa terapêutica.");
+    } finally {
+      setSavingTask(false);
+    }
+  }
+
+  async function handleUpdateTaskStatus(
+    taskId: string,
+    status: TherapeuticTaskStatus,
+  ) {
+    try {
+      setUpdatingTaskId(taskId);
+
+      const response = await fetch(`/api/patients/${patientId}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao atualizar tarefa.");
+      }
+
+      await loadTasks();
+
+      showFeedback(
+        "success",
+        status === "COMPLETED"
+          ? "Tarefa marcada como concluída."
+          : status === "CANCELLED"
+            ? "Tarefa cancelada com sucesso."
+            : "Tarefa reaberta com sucesso.",
+      );
+    } catch (error: any) {
+      showFeedback("error", error.message || "Erro ao atualizar tarefa.");
+    } finally {
+      setUpdatingTaskId("");
     }
   }
 
@@ -571,6 +758,7 @@ export default function PatientDetailsPage() {
             { label: "Consultas", value: "APPOINTMENTS" },
             { label: "Anotações", value: "NOTES" },
             { label: "Checklists", value: "CHECKINS" },
+            { label: "Tarefas", value: "TASKS" },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -1161,6 +1349,406 @@ export default function PatientDetailsPage() {
             )}
           </section>
         )}
+
+
+        {activeTab === "TASKS" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1.4fr",
+              gap: "20px",
+            }}
+          >
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                Nova tarefa
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Registre uma tarefa terapêutica para o paciente acompanhar na
+                própria área.
+              </p>
+
+              {taskError && (
+                <div
+                  style={{
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    marginBottom: "16px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {taskError}
+                </div>
+              )}
+
+              <form noValidate onSubmit={handleCreateTask}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Título
+                  </label>
+
+                  <input
+                    type="text"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="Ex.: Registrar pensamentos automáticos"
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Descrição
+                  </label>
+
+                  <textarea
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                    placeholder="Explique brevemente o que o paciente deve realizar."
+                    rows={5}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Prazo
+                  </label>
+
+                  <input
+                    type="date"
+                    value={taskDueDate}
+                    onChange={(e) => setTaskDueDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "18px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Consulta relacionada
+                  </label>
+
+                  <select
+                    value={taskAppointmentId}
+                    onChange={(e) => setTaskAppointmentId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <option value="">Sem consulta vinculada</option>
+
+                    {appointmentOptions.map((appointment) => (
+                      <option key={appointment.id} value={appointment.id}>
+                        {appointment.title || "Consulta"} —{" "}
+                        {formatDate(appointment.dateTime)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingTask}
+                  style={{
+                    ...buttonPrimaryStyle,
+                    width: "100%",
+                    opacity: savingTask ? 0.7 : 1,
+                    cursor: savingTask ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {savingTask ? "Salvando..." : "Criar tarefa"}
+                </button>
+              </form>
+            </section>
+
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                Tarefas terapêuticas
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Acompanhe as tarefas combinadas com o paciente e seus status.
+              </p>
+
+              {loadingTasks ? (
+                <p style={{ color: "#6b7280", margin: 0 }}>
+                  Carregando tarefas...
+                </p>
+              ) : tasks.length === 0 ? (
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    backgroundColor: "#f8fafc",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontWeight: 800,
+                      color: "#111827",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Nenhuma tarefa registrada
+                  </p>
+
+                  <p style={{ color: "#6b7280", margin: 0 }}>
+                    Crie uma tarefa terapêutica para que ela apareça na área do
+                    paciente.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                  }}
+                >
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "18px",
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          alignItems: "flex-start",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              color: "#111827",
+                              fontWeight: 800,
+                              fontSize: "18px",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {task.title}
+                          </p>
+
+                          {task.dueDate && (
+                            <p style={{ color: "#6b7280", margin: 0 }}>
+                              Prazo: {formatDateOnly(task.dueDate)}
+                            </p>
+                          )}
+                        </div>
+
+                        <span
+                          style={{
+                            ...getTaskStatusStyle(task.status),
+                            borderRadius: "999px",
+                            padding: "5px 10px",
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {getTaskStatusLabel(task.status)}
+                        </span>
+                      </div>
+
+                      {task.description && (
+                        <p style={{ color: "#4b5563", marginBottom: "10px" }}>
+                          {task.description}
+                        </p>
+                      )}
+
+                      {task.appointment && (
+                        <p style={{ color: "#4b5563", marginBottom: "10px" }}>
+                          <strong>Consulta relacionada:</strong>{" "}
+                          {task.appointment.title} —{" "}
+                          {formatDate(task.appointment.dateTime)}
+                        </p>
+                      )}
+
+                      {task.completedAt && (
+                        <p style={{ color: "#065f46", marginBottom: "8px" }}>
+                          <strong>Concluída em:</strong>{" "}
+                          {formatDate(task.completedAt)}
+                        </p>
+                      )}
+
+                      {task.cancelledAt && (
+                        <p style={{ color: "#b91c1c", marginBottom: "8px" }}>
+                          <strong>Cancelada em:</strong>{" "}
+                          {formatDate(task.cancelledAt)}
+                        </p>
+                      )}
+
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: "13px",
+                          marginTop: "8px",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        Criada em {formatDate(task.createdAt)}
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {task.status !== "COMPLETED" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateTaskStatus(task.id, "COMPLETED")
+                            }
+                            disabled={updatingTaskId === task.id}
+                            style={{
+                              backgroundColor: "#ecfdf5",
+                              color: "#065f46",
+                              border: "1px solid #a7f3d0",
+                              borderRadius: "10px",
+                              padding: "10px 12px",
+                              fontWeight: 800,
+                              cursor:
+                                updatingTaskId === task.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity: updatingTaskId === task.id ? 0.7 : 1,
+                            }}
+                          >
+                            Marcar concluída
+                          </button>
+                        )}
+
+                        {task.status !== "PENDING" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateTaskStatus(task.id, "PENDING")
+                            }
+                            disabled={updatingTaskId === task.id}
+                            style={buttonSecondaryStyle}
+                          >
+                            Reabrir
+                          </button>
+                        )}
+
+                        {task.status !== "CANCELLED" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateTaskStatus(task.id, "CANCELLED")
+                            }
+                            disabled={updatingTaskId === task.id}
+                            style={{
+                              backgroundColor: "#fef2f2",
+                              color: "#b91c1c",
+                              border: "1px solid #fecaca",
+                              borderRadius: "10px",
+                              padding: "10px 12px",
+                              fontWeight: 800,
+                              cursor:
+                                updatingTaskId === task.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity: updatingTaskId === task.id ? 0.7 : 1,
+                            }}
+                          >
+                            Cancelar tarefa
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
 
         {activeTab === "NOTES" && (
           <div
