@@ -95,7 +95,8 @@ function AuthGuard({ children }: PropsWithChildren) {
   }
 
   if (!isPublicPage && status === "authenticated") {
-    const isActive = (path: string) => pathname === path;
+    const isActive = (path: string) =>
+      pathname === path || pathname.startsWith(`${path}/`);
 
     return (
       <>
@@ -162,11 +163,22 @@ function AuthGuard({ children }: PropsWithChildren) {
                 </Link>
               )}
 
+              {isPatient && (
+                <Link
+                  href="/tarefas-materiais"
+                  onClick={() => handleMenuNavigation("/tarefas-materiais")}
+                  className={isActive("/tarefas-materiais") ? "active" : ""}
+                >
+                  <i className="fa-solid fa-list-check"></i> Tarefas e materiais
+                </Link>
+              )}
+
               <Link
-                href="#"
-                className={isActive("/conteudos") ? "active" : ""}
+                href="/orientacoes"
+                onClick={() => handleMenuNavigation("/orientacoes")}
+                className={isActive("/orientacoes") ? "active" : ""}
               >
-                <i className="fa-solid fa-book-open"></i> Conteúdos
+                <i className="fa-solid fa-book-open"></i> Orientações
               </Link>
 
               <Link
