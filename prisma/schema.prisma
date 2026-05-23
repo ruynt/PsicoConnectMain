@@ -8,29 +8,29 @@ datasource db {
 }
 
 model User {
-  id            String        @id @default(uuid())
+  id            String    @id @default(uuid())
   name          String
-  email         String        @unique
+  email         String    @unique
   passwordHash  String
   role          Role
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   emailVerified DateTime?
 
-  patient       Patient?
-  psychologist  Psychologist?
+  patient      Patient?
+  psychologist Psychologist?
 }
 
 model Psychologist {
-  id           String        @id @default(uuid())
-  userId       String        @unique
-  crp          String        @unique
+  id     String @id @default(uuid())
+  userId String @unique
+  crp    String @unique
 
-  user         User          @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   appointments Appointment[]
   notes        SessionNote[]
-  materials PatientMaterial[]
+  materials    PatientMaterial[]
 
   patientLinks PsychologistPatient[]
 
@@ -38,34 +38,34 @@ model Psychologist {
 }
 
 model Patient {
-  id           String        @id @default(uuid())
-  userId       String        @unique
+  id     String @id @default(uuid())
+  userId String @unique
 
-  user         User          @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   appointments Appointment[]
   notes        SessionNote[]
-  materials PatientMaterial[]
+  materials    PatientMaterial[]
 
-  psychologistLinks PsychologistPatient[]
+  psychologistLinks  PsychologistPatient[]
   preSessionCheckins PreSessionCheckin[]
 
   therapeuticTasks TherapeuticTask[]
 }
 
 model PsychologistPatient {
-  id             String       @id @default(uuid())
+  id String @id @default(uuid())
 
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
 
-  patientId      String
-  patient        Patient      @relation(fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
-  active         Boolean      @default(true)
+  active Boolean @default(true)
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([psychologistId, patientId])
   @@index([psychologistId])
@@ -83,25 +83,37 @@ model Appointment {
   googleEventLink String?
   status          AppointmentStatus @default(SCHEDULED)
 
-  patientId       String
-  patient         Patient           @relation(fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
-  psychologistId  String
-  psychologist    Psychologist      @relation(fields: [psychologistId], references: [id])
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
 
-  notes           SessionNote[]
+  notes              SessionNote[]
   preSessionCheckins PreSessionCheckin[]
-  therapeuticTasks TherapeuticTask[]
+  therapeuticTasks   TherapeuticTask[]
 
   cancellationReason String?
-  cancelledAt         DateTime?
+  cancelledAt        DateTime?
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  confirmationStatus AppointmentConfirmationStatus @default(PENDING)
+  confirmedAt        DateTime?
+
+  cancellationRequestedAt   DateTime?
+  cancellationRequestReason String?
+  cancellationRequestStatus CancellationRequestStatus?
+
+  lastReminderSentAt  DateTime?
+  reminderEmailSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([dateTime])
   @@index([psychologistId, dateTime])
   @@index([patientId, dateTime])
+  @@index([confirmationStatus])
+  @@index([cancellationRequestStatus])
 }
 
 model VerificationToken {
@@ -114,25 +126,25 @@ model VerificationToken {
 }
 
 model SessionNote {
-  id             String       @id @default(uuid())
+  id String @id @default(uuid())
 
-  title          String?
-  content        String
+  title   String?
+  content String
 
-  patientId      String
-  patient        Patient      @relation(fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
 
-  appointmentId  String?
-  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
 
-  archived       Boolean      @default(false)
-  archivedAt     DateTime?
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([patientId, createdAt])
   @@index([psychologistId, createdAt])
@@ -140,24 +152,24 @@ model SessionNote {
 }
 
 model PreSessionCheckin {
-  id              String      @id @default(uuid())
+  id String @id @default(uuid())
 
-  appointmentId   String
-  appointment     Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
 
-  patientId        String
-  patient          Patient     @relation(fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
-  moodLevel        Int?
-  anxietyLevel     Int?
-  sleepLevel       Int?
+  moodLevel    Int?
+  anxietyLevel Int?
+  sleepLevel   Int?
 
-  mainConcern      String?
-  importantEvents  String?
-  topicsToDiscuss  String?
+  mainConcern     String?
+  importantEvents String?
+  topicsToDiscuss String?
 
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([appointmentId, patientId])
   @@index([appointmentId])
@@ -165,27 +177,27 @@ model PreSessionCheckin {
 }
 
 model TherapeuticTask {
-  id             String                 @id @default(uuid())
+  id String @id @default(uuid())
 
-  title          String
-  description    String?
-  dueDate        DateTime?
-  status         TherapeuticTaskStatus  @default(PENDING)
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      TherapeuticTaskStatus @default(PENDING)
 
-  patientId      String
-  patient        Patient                @relation(fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
   psychologistId String
-  psychologist   Psychologist           @relation(fields: [psychologistId], references: [id])
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
 
-  appointmentId  String?
-  appointment    Appointment?           @relation(fields: [appointmentId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
 
-  completedAt    DateTime?
-  cancelledAt    DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
 
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([patientId])
   @@index([psychologistId])
@@ -194,24 +206,24 @@ model TherapeuticTask {
 }
 
 model PatientMaterial {
-  id             String       @id @default(uuid())
+  id String @id @default(uuid())
 
-  title          String
-  description    String?
-  category       String?
-  url            String?
-  content        String?
+  title       String
+  description String?
+  category    String?
+  url         String?
+  content     String?
 
-  patientId      String
-  patient        Patient      @relation(fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
 
-  viewedAt       DateTime?
+  viewedAt DateTime?
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([patientId])
   @@index([psychologistId])
@@ -228,9 +240,20 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum AppointmentConfirmationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLATION_REQUESTED
+}
+
+enum CancellationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum TherapeuticTaskStatus {
   PENDING
   COMPLETED
   CANCELLED
 }
-

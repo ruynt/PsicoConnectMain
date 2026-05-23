@@ -71,16 +71,37 @@ export async function GET(req: NextRequest) {
           location: appointment.location || "",
           dateTime: appointment.dateTime.toISOString(),
           endDateTime: appointment.endDateTime?.toISOString() || null,
+
           status: appointment.status,
           googleEventLink: appointment.googleEventLink || "",
+
           cancellationReason: appointment.cancellationReason || null,
           cancelledAt: appointment.cancelledAt?.toISOString() || null,
+
+          confirmationStatus: appointment.confirmationStatus,
+          confirmedAt: appointment.confirmedAt?.toISOString() || null,
+
+          cancellationRequestedAt:
+            appointment.cancellationRequestedAt?.toISOString() || null,
+          cancellationRequestReason:
+            appointment.cancellationRequestReason || null,
+          cancellationRequestStatus:
+            appointment.cancellationRequestStatus || null,
+
+          lastReminderSentAt:
+            appointment.lastReminderSentAt?.toISOString() || null,
+          reminderEmailSentAt:
+            appointment.reminderEmailSentAt?.toISOString() || null,
+
           createdAt: appointment.createdAt.toISOString(),
+          updatedAt: appointment.updatedAt.toISOString(),
+
           psychologist: {
             id: appointment.psychologistId,
             name: appointment.psychologist.user.name,
             email: appointment.psychologist.user.email,
           },
+
           preSessionCheckin: checkin
             ? {
                 id: checkin.id,

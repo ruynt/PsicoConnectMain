@@ -70,6 +70,10 @@ export async function GET(req: NextRequest) {
       activePatientsCount,
       todayAppointments,
       nextAppointment,
+      pendingCancellationRequests,
+      confirmedAppointmentsCount,
+      pendingConfirmationAppointmentsCount,
+      cancellationRequestedAppointmentsCount,
       scheduledAppointmentsCount,
       cancelledAppointmentsThisMonthCount,
       recentCancelledAppointments,
@@ -139,6 +143,65 @@ export async function GET(req: NextRequest) {
         },
         orderBy: {
           dateTime: "asc",
+        },
+      }),
+
+      prisma.appointment.findMany({
+        where: {
+          psychologistId: psychologist.id,
+          status: "SCHEDULED",
+          confirmationStatus: "CANCELLATION_REQUESTED",
+          cancellationRequestStatus: "PENDING",
+        },
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          dateTime: "asc",
+        },
+        take: 6,
+      }),
+
+      prisma.appointment.count({
+        where: {
+          psychologistId: psychologist.id,
+          status: "SCHEDULED",
+          confirmationStatus: "CONFIRMED",
+          dateTime: {
+            gte: now,
+          },
+        },
+      }),
+
+      prisma.appointment.count({
+        where: {
+          psychologistId: psychologist.id,
+          status: "SCHEDULED",
+          confirmationStatus: "PENDING",
+          dateTime: {
+            gte: now,
+          },
+        },
+      }),
+
+      prisma.appointment.count({
+        where: {
+          psychologistId: psychologist.id,
+          status: "SCHEDULED",
+          confirmationStatus: "CANCELLATION_REQUESTED",
+          cancellationRequestStatus: "PENDING",
+          dateTime: {
+            gte: now,
+          },
         },
       }),
 
@@ -350,6 +413,12 @@ export async function GET(req: NextRequest) {
 
     const recommendations: string[] = [];
 
+    if (pendingCancellationRequests.length > 0) {
+      recommendations.push(
+        `${pendingCancellationRequests.length} solicitação(ões) de cancelamento aguardam sua análise.`,
+      );
+    }
+
     if (todayAppointments.length > 0) {
       recommendations.push(
         `Você possui ${todayAppointments.length} consulta(s) agendada(s) para hoje.`,
@@ -400,6 +469,10 @@ export async function GET(req: NextRequest) {
         activePatientsCount,
         todayAppointmentsCount: todayAppointments.length,
         scheduledAppointmentsCount,
+        confirmedAppointmentsCount,
+        pendingConfirmationAppointmentsCount,
+        cancellationRequestedAppointmentsCount,
+        pendingCancellationRequestsCount: pendingCancellationRequests.length,
         cancelledAppointmentsThisMonthCount,
         recentCheckinsCount: recentCheckins.length,
         recentNotesCount: recentNotes.length,
@@ -420,6 +493,10 @@ export async function GET(req: NextRequest) {
             patientId: nextAppointment.patientId,
             patientName: nextAppointment.patient.user.name,
             patientEmail: nextAppointment.patient.user.email,
+            confirmationStatus: nextAppointment.confirmationStatus,
+            confirmedAt: nextAppointment.confirmedAt?.toISOString() || null,
+            cancellationRequestStatus:
+              nextAppointment.cancellationRequestStatus || null,
           }
         : null,
       todayAppointments: todayAppointments.map((appointment) => ({
@@ -431,7 +508,30 @@ export async function GET(req: NextRequest) {
         patientId: appointment.patientId,
         patientName: appointment.patient.user.name,
         patientEmail: appointment.patient.user.email,
+        confirmationStatus: appointment.confirmationStatus,
+        confirmedAt: appointment.confirmedAt?.toISOString() || null,
+        cancellationRequestStatus:
+          appointment.cancellationRequestStatus || null,
       })),
+      pendingCancellationRequests: pendingCancellationRequests.map(
+        (appointment) => ({
+          id: appointment.id,
+          title: appointment.title || "Consulta",
+          dateTime: appointment.dateTime.toISOString(),
+          endDateTime: appointment.endDateTime?.toISOString() || null,
+          location: appointment.location || "",
+          patientId: appointment.patientId,
+          patientName: appointment.patient.user.name,
+          patientEmail: appointment.patient.user.email,
+          confirmationStatus: appointment.confirmationStatus,
+          cancellationRequestedAt:
+            appointment.cancellationRequestedAt?.toISOString() || null,
+          cancellationRequestReason:
+            appointment.cancellationRequestReason || "",
+          cancellationRequestStatus:
+            appointment.cancellationRequestStatus || null,
+        }),
+      ),
       recentCancelledAppointments: recentCancelledAppointments.map(
         (appointment) => ({
           id: appointment.id,

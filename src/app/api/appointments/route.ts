@@ -72,12 +72,30 @@ export async function GET(req: NextRequest) {
       location: appointment.location || "",
       htmlLink: appointment.googleEventLink || "",
       status: appointment.status,
+
       patientId: appointment.patientId,
       patientName: appointment.patient.user.name,
       patientEmail: appointment.patient.user.email,
+
       googleEventId: appointment.googleEventId || "",
+
       cancellationReason: appointment.cancellationReason || null,
       cancelledAt: appointment.cancelledAt?.toISOString() || null,
+
+      confirmationStatus: appointment.confirmationStatus,
+      confirmedAt: appointment.confirmedAt?.toISOString() || null,
+
+      cancellationRequestedAt:
+        appointment.cancellationRequestedAt?.toISOString() || null,
+      cancellationRequestReason: appointment.cancellationRequestReason || null,
+      cancellationRequestStatus: appointment.cancellationRequestStatus || null,
+
+      lastReminderSentAt: appointment.lastReminderSentAt?.toISOString() || null,
+      reminderEmailSentAt:
+        appointment.reminderEmailSentAt?.toISOString() || null,
+
+      createdAt: appointment.createdAt.toISOString(),
+      updatedAt: appointment.updatedAt.toISOString(),
     }));
 
     return NextResponse.json({

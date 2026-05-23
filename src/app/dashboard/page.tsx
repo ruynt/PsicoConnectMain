@@ -13,6 +13,10 @@ type DashboardData = {
     activePatientsCount: number;
     todayAppointmentsCount: number;
     scheduledAppointmentsCount: number;
+    confirmedAppointmentsCount: number;
+    pendingConfirmationAppointmentsCount: number;
+    cancellationRequestedAppointmentsCount: number;
+    pendingCancellationRequestsCount: number;
     cancelledAppointmentsThisMonthCount: number;
     recentCheckinsCount: number;
     recentNotesCount: number;
@@ -42,6 +46,23 @@ type DashboardData = {
     patientId: string;
     patientName: string;
     patientEmail: string;
+    confirmationStatus?: string;
+    confirmedAt?: string | null;
+    cancellationRequestStatus?: string | null;
+  }[];
+  pendingCancellationRequests: {
+    id: string;
+    title: string;
+    dateTime: string;
+    endDateTime: string | null;
+    location: string;
+    patientId: string;
+    patientName: string;
+    patientEmail: string;
+    confirmationStatus: string;
+    cancellationRequestedAt: string | null;
+    cancellationRequestReason: string;
+    cancellationRequestStatus: string | null;
   }[];
   recentCancelledAppointments: {
     id: string;
@@ -161,6 +182,11 @@ export default function PsychologistDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+  const [reviewingCancellationId, setReviewingCancellationId] = useState("");
 
   async function loadDashboard() {
     try {
@@ -182,6 +208,58 @@ export default function PsychologistDashboardPage() {
       setError(error.message || "Erro ao carregar dashboard.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function showFeedback(type: "success" | "error" | "info", message: string) {
+    setFeedback({ type, message });
+
+    setTimeout(() => {
+      setFeedback(null);
+    }, 5000);
+  }
+
+  async function handleReviewCancellation(
+    appointmentId: string,
+    action: "APPROVE" | "REJECT",
+  ) {
+    try {
+      setReviewingCancellationId(appointmentId);
+
+      const response = await fetch(
+        `/api/appointments/${appointmentId}/cancel-request`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action }),
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || "Erro ao analisar solicitação de cancelamento.",
+        );
+      }
+
+      await loadDashboard();
+
+      showFeedback(
+        "success",
+        action === "APPROVE"
+          ? "Solicitação de cancelamento aprovada com sucesso."
+          : "Solicitação de cancelamento rejeitada com sucesso.",
+      );
+    } catch (error: any) {
+      showFeedback(
+        "error",
+        error.message || "Erro ao analisar solicitação de cancelamento.",
+      );
+    } finally {
+      setReviewingCancellationId("");
     }
   }
 
@@ -284,7 +362,13 @@ export default function PsychologistDashboardPage() {
     justifyContent: "center",
   } as const;
 
-  function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
+  function MetricCard({
+    label,
+    value,
+    description,
+    icon,
+    tone,
+  }: MetricCardProps) {
     const selectedTone = tones[tone];
 
     return (
@@ -549,6 +633,37 @@ export default function PsychologistDashboardPage() {
         </div>
       </section>
 
+      {feedback && (
+        <div
+          style={{
+            backgroundColor:
+              feedback.type === "success"
+                ? "#ecfdf5"
+                : feedback.type === "error"
+                  ? "#fef2f2"
+                  : "#eff6ff",
+            border:
+              feedback.type === "success"
+                ? "1px solid #a7f3d0"
+                : feedback.type === "error"
+                  ? "1px solid #fecaca"
+                  : "1px solid #bfdbfe",
+            color:
+              feedback.type === "success"
+                ? "#065f46"
+                : feedback.type === "error"
+                  ? "#b91c1c"
+                  : "#1d4ed8",
+            borderRadius: "14px",
+            padding: "14px 16px",
+            marginBottom: "18px",
+            fontWeight: 900,
+          }}
+        >
+          {feedback.message}
+        </div>
+      )}
+
       <div
         style={{
           display: "grid",
@@ -590,6 +705,37 @@ export default function PsychologistDashboardPage() {
         />
       </div>
 
+      {feedback && (
+        <div
+          style={{
+            backgroundColor:
+              feedback.type === "success"
+                ? "#ecfdf5"
+                : feedback.type === "error"
+                  ? "#fef2f2"
+                  : "#eff6ff",
+            border:
+              feedback.type === "success"
+                ? "1px solid #a7f3d0"
+                : feedback.type === "error"
+                  ? "1px solid #fecaca"
+                  : "1px solid #bfdbfe",
+            color:
+              feedback.type === "success"
+                ? "#065f46"
+                : feedback.type === "error"
+                  ? "#b91c1c"
+                  : "#1d4ed8",
+            borderRadius: "14px",
+            padding: "14px 16px",
+            marginBottom: "18px",
+            fontWeight: 900,
+          }}
+        >
+          {feedback.message}
+        </div>
+      )}
+
       <div
         style={{
           display: "grid",
@@ -630,6 +776,359 @@ export default function PsychologistDashboardPage() {
           tone="red"
         />
       </div>
+
+      <section
+        style={{
+          ...cardStyle,
+          marginBottom: "20px",
+          border:
+            data.pendingCancellationRequests.length > 0
+              ? "1px solid #fde68a"
+              : "1px solid rgba(226, 232, 240, 0.9)",
+          background:
+            data.pendingCancellationRequests.length > 0
+              ? "linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96))"
+              : "rgba(255, 255, 255, 0.94)",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.3fr 0.9fr",
+            gap: "22px",
+            alignItems: "stretch",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "12px",
+                alignItems: "flex-start",
+                marginBottom: "16px",
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontSize: "28px",
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Atenção necessária
+                </h2>
+
+                <p style={{ color: "#64748b", margin: 0 }}>
+                  Solicitações de cancelamento e confirmações de presença das
+                  próximas consultas.
+                </p>
+              </div>
+
+              <Link href="/agenda" style={secondaryButtonStyle}>
+                Ver agenda
+              </Link>
+            </div>
+
+            {data.pendingCancellationRequests.length === 0 ? (
+              <div
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "18px",
+                  padding: "18px",
+                  backgroundColor: "#f8fafc",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#0f172a",
+                    fontWeight: 900,
+                    marginBottom: "6px",
+                  }}
+                >
+                  Nenhuma solicitação pendente
+                </p>
+
+                <p style={{ color: "#64748b", margin: 0 }}>
+                  Quando um paciente solicitar cancelamento, o aviso aparecerá
+                  aqui para aprovação ou rejeição.
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                {data.pendingCancellationRequests.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    style={{
+                      border: "1px solid #fde68a",
+                      borderRadius: "18px",
+                      padding: "16px",
+                      backgroundColor: "#fffbeb",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        alignItems: "flex-start",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            color: "#0f172a",
+                            fontWeight: 900,
+                            marginBottom: "4px",
+                          }}
+                        >
+                          {appointment.patientName}
+                        </p>
+
+                        <p style={{ color: "#475569", margin: 0 }}>
+                          {appointment.title} ·{" "}
+                          {formatDate(appointment.dateTime)}
+                        </p>
+                      </div>
+
+                      <span
+                        style={{
+                          backgroundColor: "#fef3c7",
+                          color: "#92400e",
+                          border: "1px solid #fde68a",
+                          borderRadius: "999px",
+                          padding: "5px 10px",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Cancelamento solicitado
+                      </span>
+                    </div>
+
+                    {appointment.cancellationRequestReason && (
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #fde68a",
+                          borderRadius: "14px",
+                          padding: "12px",
+                          color: "#475569",
+                          marginBottom: "12px",
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        <strong>Motivo informado:</strong>{" "}
+                        {appointment.cancellationRequestReason}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleReviewCancellation(appointment.id, "APPROVE")
+                        }
+                        disabled={reviewingCancellationId === appointment.id}
+                        style={{
+                          backgroundColor: "#dc2626",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "12px",
+                          padding: "10px 14px",
+                          fontWeight: 900,
+                          cursor:
+                            reviewingCancellationId === appointment.id
+                              ? "not-allowed"
+                              : "pointer",
+                          opacity:
+                            reviewingCancellationId === appointment.id
+                              ? 0.7
+                              : 1,
+                        }}
+                      >
+                        Aprovar cancelamento
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleReviewCancellation(appointment.id, "REJECT")
+                        }
+                        disabled={reviewingCancellationId === appointment.id}
+                        style={{
+                          backgroundColor: "#eff6ff",
+                          color: "#1d4ed8",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: "12px",
+                          padding: "10px 14px",
+                          fontWeight: 900,
+                          cursor:
+                            reviewingCancellationId === appointment.id
+                              ? "not-allowed"
+                              : "pointer",
+                          opacity:
+                            reviewingCancellationId === appointment.id
+                              ? 0.7
+                              : 1,
+                        }}
+                      >
+                        Rejeitar solicitação
+                      </button>
+
+                      <Link
+                        href={`/pacientes/${appointment.patientId}`}
+                        style={{
+                          ...secondaryButtonStyle,
+                          borderRadius: "12px",
+                          padding: "10px 14px",
+                        }}
+                      >
+                        Ver paciente
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: "22px",
+              padding: "20px",
+              background:
+                "linear-gradient(180deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.96))",
+            }}
+          >
+            <p
+              style={{
+                color: "#1d4ed8",
+                fontSize: "14px",
+                fontWeight: 900,
+                marginBottom: "8px",
+              }}
+            >
+              Confirmações de presença
+            </p>
+
+            <h3
+              style={{
+                color: "#0f172a",
+                fontSize: "24px",
+                fontWeight: 900,
+                marginBottom: "16px",
+              }}
+            >
+              Status das consultas futuras
+            </h3>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                gap: "10px",
+              }}
+            >
+              {[
+                {
+                  label: "Confirmadas",
+                  value: data.metrics.confirmedAppointmentsCount,
+                  icon: "fa-solid fa-circle-check",
+                  color: "#065f46",
+                  bg: "#ecfdf5",
+                  border: "#a7f3d0",
+                },
+                {
+                  label: "Aguardando confirmação",
+                  value: data.metrics.pendingConfirmationAppointmentsCount,
+                  icon: "fa-solid fa-hourglass-half",
+                  color: "#92400e",
+                  bg: "#fffbeb",
+                  border: "#fde68a",
+                },
+                {
+                  label: "Cancelamento solicitado",
+                  value: data.metrics.cancellationRequestedAppointmentsCount,
+                  icon: "fa-solid fa-triangle-exclamation",
+                  color: "#b91c1c",
+                  bg: "#fef2f2",
+                  border: "#fecaca",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    border: `1px solid ${item.border}`,
+                    borderRadius: "16px",
+                    padding: "14px",
+                    backgroundColor: item.bg,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        color: item.color,
+                        fontWeight: 900,
+                        margin: 0,
+                      }}
+                    >
+                      {item.label}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      color: item.color,
+                      fontWeight: 900,
+                      fontSize: "22px",
+                    }}
+                  >
+                    <i className={item.icon}></i>
+                    {item.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "13px",
+                lineHeight: 1.5,
+                marginTop: "14px",
+                marginBottom: 0,
+              }}
+            >
+              Esses indicadores consideram consultas futuras ainda agendadas.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <div
         style={{
@@ -696,12 +1195,14 @@ export default function PsychologistDashboardPage() {
               </p>
 
               <p style={{ color: "#475569", marginBottom: "6px" }}>
-                <strong>Início:</strong> {formatDate(data.nextAppointment.dateTime)}
+                <strong>Início:</strong>{" "}
+                {formatDate(data.nextAppointment.dateTime)}
               </p>
 
               {data.nextAppointment.endDateTime && (
                 <p style={{ color: "#475569", marginBottom: "6px" }}>
-                  <strong>Fim:</strong> {formatDate(data.nextAppointment.endDateTime)}
+                  <strong>Fim:</strong>{" "}
+                  {formatDate(data.nextAppointment.endDateTime)}
                 </p>
               )}
 
@@ -711,7 +1212,10 @@ export default function PsychologistDashboardPage() {
                 </p>
               )}
 
-              <Link href={`/pacientes/${data.nextAppointment.patientId}`} style={primaryButtonStyle}>
+              <Link
+                href={`/pacientes/${data.nextAppointment.patientId}`}
+                style={primaryButtonStyle}
+              >
                 Ver paciente
               </Link>
             </div>
@@ -724,7 +1228,13 @@ export default function PsychologistDashboardPage() {
                 backgroundColor: "#f8fafc",
               }}
             >
-              <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "6px" }}>
+              <p
+                style={{
+                  color: "#0f172a",
+                  fontWeight: 900,
+                  marginBottom: "6px",
+                }}
+              >
                 Nenhuma consulta futura
               </p>
 
@@ -770,7 +1280,9 @@ export default function PsychologistDashboardPage() {
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
               {data.recommendations.map((recommendation, index) => (
                 <div
                   key={`${recommendation}-${index}`}
@@ -786,7 +1298,10 @@ export default function PsychologistDashboardPage() {
                     alignItems: "flex-start",
                   }}
                 >
-                  <i className="fa-solid fa-circle-info" style={{ marginTop: "2px" }}></i>
+                  <i
+                    className="fa-solid fa-circle-info"
+                    style={{ marginTop: "2px" }}
+                  ></i>
                   <span>{recommendation}</span>
                 </div>
               ))}
@@ -795,9 +1310,23 @@ export default function PsychologistDashboardPage() {
         </section>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "20px",
+          marginBottom: "20px",
+        }}
+      >
         <section style={cardStyle}>
-          <h2 style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", marginBottom: "6px" }}>
+          <h2
+            style={{
+              fontSize: "26px",
+              fontWeight: 900,
+              color: "#0f172a",
+              marginBottom: "6px",
+            }}
+          >
             Tarefas terapêuticas recentes
           </h2>
           <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
@@ -809,7 +1338,9 @@ export default function PsychologistDashboardPage() {
               Nenhuma tarefa terapêutica registrada recentemente.
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
               {data.recentTasks.map((task) => {
                 const statusStyle = getTaskStatusStyle(task.status);
 
@@ -823,9 +1354,23 @@ export default function PsychologistDashboardPage() {
                       backgroundColor: "#f8fafc",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                        alignItems: "flex-start",
+                        marginBottom: "8px",
+                      }}
+                    >
                       <div>
-                        <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "4px" }}>
+                        <p
+                          style={{
+                            color: "#0f172a",
+                            fontWeight: 900,
+                            marginBottom: "4px",
+                          }}
+                        >
                           {task.title}
                         </p>
 
@@ -860,7 +1405,10 @@ export default function PsychologistDashboardPage() {
                       </p>
                     )}
 
-                    <Link href={`/pacientes/${task.patientId}`} style={secondaryButtonStyle}>
+                    <Link
+                      href={`/pacientes/${task.patientId}`}
+                      style={secondaryButtonStyle}
+                    >
                       Ver paciente
                     </Link>
                   </div>
@@ -871,7 +1419,14 @@ export default function PsychologistDashboardPage() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", marginBottom: "6px" }}>
+          <h2
+            style={{
+              fontSize: "26px",
+              fontWeight: 900,
+              color: "#0f172a",
+              marginBottom: "6px",
+            }}
+          >
             Materiais psicoeducativos recentes
           </h2>
           <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
@@ -883,7 +1438,9 @@ export default function PsychologistDashboardPage() {
               Nenhum material psicoeducativo enviado recentemente.
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
               {data.recentMaterials.map((material) => (
                 <div
                   key={material.id}
@@ -894,7 +1451,15 @@ export default function PsychologistDashboardPage() {
                     backgroundColor: "#f8fafc",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "flex-start",
+                      marginBottom: "8px",
+                    }}
+                  >
                     <div>
                       {material.category && (
                         <span
@@ -914,7 +1479,13 @@ export default function PsychologistDashboardPage() {
                         </span>
                       )}
 
-                      <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "4px" }}>
+                      <p
+                        style={{
+                          color: "#0f172a",
+                          fontWeight: 900,
+                          marginBottom: "4px",
+                        }}
+                      >
                         {material.title}
                       </p>
 
@@ -925,9 +1496,13 @@ export default function PsychologistDashboardPage() {
 
                     <span
                       style={{
-                        backgroundColor: material.viewedAt ? "#ecfdf5" : "#fef2f2",
+                        backgroundColor: material.viewedAt
+                          ? "#ecfdf5"
+                          : "#fef2f2",
                         color: material.viewedAt ? "#065f46" : "#b91c1c",
-                        border: material.viewedAt ? "1px solid #a7f3d0" : "1px solid #fecaca",
+                        border: material.viewedAt
+                          ? "1px solid #a7f3d0"
+                          : "1px solid #fecaca",
                         borderRadius: "999px",
                         padding: "5px 10px",
                         fontSize: "12px",
@@ -945,12 +1520,23 @@ export default function PsychologistDashboardPage() {
                     </p>
                   )}
 
-                  <p style={{ color: "#64748b", marginBottom: "12px", fontSize: "14px" }}>
+                  <p
+                    style={{
+                      color: "#64748b",
+                      marginBottom: "12px",
+                      fontSize: "14px",
+                    }}
+                  >
                     Enviado em {formatDate(material.createdAt)}
-                    {material.viewedAt ? ` · Visualizado em ${formatDate(material.viewedAt)}` : ""}
+                    {material.viewedAt
+                      ? ` · Visualizado em ${formatDate(material.viewedAt)}`
+                      : ""}
                   </p>
 
-                  <Link href={`/pacientes/${material.patientId}`} style={secondaryButtonStyle}>
+                  <Link
+                    href={`/pacientes/${material.patientId}`}
+                    style={secondaryButtonStyle}
+                  >
                     Ver paciente
                   </Link>
                 </div>
@@ -960,9 +1546,18 @@ export default function PsychologistDashboardPage() {
         </section>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}
+      >
         <section style={cardStyle}>
-          <h2 style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", marginBottom: "6px" }}>
+          <h2
+            style={{
+              fontSize: "26px",
+              fontWeight: 900,
+              color: "#0f172a",
+              marginBottom: "6px",
+            }}
+          >
             Checklists pré-sessão recentes
           </h2>
           <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
@@ -974,7 +1569,9 @@ export default function PsychologistDashboardPage() {
               Nenhum checklist respondido recentemente.
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
               {data.recentCheckins.map((checkin) => (
                 <div
                   key={checkin.id}
@@ -985,12 +1582,19 @@ export default function PsychologistDashboardPage() {
                     backgroundColor: "#f8fafc",
                   }}
                 >
-                  <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "6px" }}>
+                  <p
+                    style={{
+                      color: "#0f172a",
+                      fontWeight: 900,
+                      marginBottom: "6px",
+                    }}
+                  >
                     {checkin.patientName}
                   </p>
 
                   <p style={{ color: "#475569", marginBottom: "6px" }}>
-                    {checkin.appointmentTitle} · {formatDate(checkin.appointmentDateTime)}
+                    {checkin.appointmentTitle} ·{" "}
+                    {formatDate(checkin.appointmentDateTime)}
                   </p>
 
                   <p style={{ color: "#475569", marginBottom: "12px" }}>
@@ -999,7 +1603,10 @@ export default function PsychologistDashboardPage() {
                     {checkin.sleepLevel ?? "--"}/10
                   </p>
 
-                  <Link href={`/pacientes/${checkin.patientId}`} style={secondaryButtonStyle}>
+                  <Link
+                    href={`/pacientes/${checkin.patientId}`}
+                    style={secondaryButtonStyle}
+                  >
                     Ver paciente
                   </Link>
                 </div>
@@ -1009,7 +1616,14 @@ export default function PsychologistDashboardPage() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", marginBottom: "6px" }}>
+          <h2
+            style={{
+              fontSize: "26px",
+              fontWeight: 900,
+              color: "#0f172a",
+              marginBottom: "6px",
+            }}
+          >
             Anotações recentes
           </h2>
           <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
@@ -1021,7 +1635,9 @@ export default function PsychologistDashboardPage() {
               Nenhuma anotação recente registrada.
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
               {data.recentNotes.map((note) => (
                 <div
                   key={note.id}
@@ -1032,15 +1648,25 @@ export default function PsychologistDashboardPage() {
                     backgroundColor: "#f8fafc",
                   }}
                 >
-                  <p style={{ color: "#0f172a", fontWeight: 900, marginBottom: "6px" }}>
+                  <p
+                    style={{
+                      color: "#0f172a",
+                      fontWeight: 900,
+                      marginBottom: "6px",
+                    }}
+                  >
                     {note.title}
                   </p>
 
                   <p style={{ color: "#475569", marginBottom: "12px" }}>
-                    Paciente: {note.patientName} · Atualizada em {formatDate(note.updatedAt)}
+                    Paciente: {note.patientName} · Atualizada em{" "}
+                    {formatDate(note.updatedAt)}
                   </p>
 
-                  <Link href={`/pacientes/${note.patientId}`} style={secondaryButtonStyle}>
+                  <Link
+                    href={`/pacientes/${note.patientId}`}
+                    style={secondaryButtonStyle}
+                  >
                     Ver paciente
                   </Link>
                 </div>

@@ -14,6 +14,13 @@ type PreSessionCheckin = {
   updatedAt: string;
 };
 
+type AppointmentConfirmationStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLATION_REQUESTED";
+
+type CancellationRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 type PatientAppointment = {
   id: string;
   title: string;
@@ -25,6 +32,11 @@ type PatientAppointment = {
   googleEventLink: string;
   cancellationReason: string | null;
   cancelledAt: string | null;
+  confirmationStatus?: AppointmentConfirmationStatus;
+  confirmedAt?: string | null;
+  cancellationRequestedAt?: string | null;
+  cancellationRequestReason?: string | null;
+  cancellationRequestStatus?: CancellationRequestStatus | null;
   createdAt: string;
   psychologist: {
     id: string;
@@ -92,6 +104,13 @@ export default function MyAppointmentsPage() {
 
   const [checkinAppointment, setCheckinAppointment] =
     useState<PatientAppointment | null>(null);
+  const [cancelRequestAppointment, setCancelRequestAppointment] =
+    useState<PatientAppointment | null>(null);
+
+  const [updatingConfirmationId, setUpdatingConfirmationId] = useState("");
+  const [savingCancelRequest, setSavingCancelRequest] = useState(false);
+  const [cancelRequestReason, setCancelRequestReason] = useState("");
+  const [cancelRequestError, setCancelRequestError] = useState("");
 
   const [moodLevel, setMoodLevel] = useState("");
   const [anxietyLevel, setAnxietyLevel] = useState("");
@@ -207,7 +226,8 @@ export default function MyAppointmentsPage() {
     HISTORY: {
       label: "Histórico",
       title: "Histórico de consultas",
-      description: "Consultas anteriores e cancelamentos reunidos em um só lugar.",
+      description:
+        "Consultas anteriores e cancelamentos reunidos em um só lugar.",
       emptyTitle: "Nenhum histórico disponível",
       emptyDescription:
         "Consultas anteriores e canceladas aparecerão neste espaço.",
@@ -235,6 +255,182 @@ export default function MyAppointmentsPage() {
     }, 5000);
   }
 
+  async function readJsonSafely(response: Response) {
+    const text = await response.text();
+
+    if (!text) return {};
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: text };
+    }
+  }
+
+  function getConfirmationStatus(appointment: PatientAppointment) {
+    return appointment.confirmationStatus || "PENDING";
+  }
+
+  function getConfirmationInfo(appointment: PatientAppointment) {
+    if (appointment.status === "CANCELLED") {
+      return {
+        label: "Consulta cancelada",
+        description: appointment.cancelledAt
+          ? `Cancelada em ${formatDate(appointment.cancelledAt)}`
+          : "Esta consulta foi cancelada.",
+        bg: "#fef2f2",
+        color: "#b91c1c",
+        border: "#fecaca",
+        icon: "fa-solid fa-calendar-xmark",
+      };
+    }
+
+    const confirmationStatus = getConfirmationStatus(appointment);
+
+    if (confirmationStatus === "CONFIRMED") {
+      return {
+        label: "Presença confirmada",
+        description: appointment.confirmedAt
+          ? `Confirmada em ${formatDate(appointment.confirmedAt)}`
+          : "Você confirmou presença nesta consulta.",
+        bg: "#ecfdf5",
+        color: "#047857",
+        border: "#a7f3d0",
+        icon: "fa-solid fa-circle-check",
+      };
+    }
+
+    if (confirmationStatus === "CANCELLATION_REQUESTED") {
+      return {
+        label: "Cancelamento solicitado",
+        description:
+          appointment.cancellationRequestStatus === "REJECTED"
+            ? "A solicitação foi analisada e rejeitada pelo profissional."
+            : "Sua solicitação está aguardando análise do profissional.",
+        bg: "#fffbeb",
+        color: "#92400e",
+        border: "#fde68a",
+        icon: "fa-solid fa-hourglass-half",
+      };
+    }
+
+    return {
+      label: "Aguardando confirmação",
+      description:
+        "Confirme sua presença ou solicite cancelamento, se necessário.",
+      bg: "#eff6ff",
+      color: "#1d4ed8",
+      border: "#bfdbfe",
+      icon: "fa-solid fa-calendar-check",
+    };
+  }
+
+  async function handleConfirmPresence(appointmentId: string) {
+    try {
+      setUpdatingConfirmationId(appointmentId);
+
+      const response = await fetch(
+        `/api/patient/appointments/${appointmentId}/confirm`,
+        {
+          method: "PATCH",
+        },
+      );
+
+      const data = await readJsonSafely(response);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao confirmar presença.");
+      }
+
+      await loadAppointments();
+      showFeedback("success", "Presença confirmada com sucesso.");
+    } catch (error: any) {
+      showFeedback("error", error.message || "Erro ao confirmar presença.");
+    } finally {
+      setUpdatingConfirmationId("");
+    }
+  }
+
+  async function handleSubmitCancelRequest(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!cancelRequestAppointment) return;
+
+    const reason = cancelRequestReason.trim();
+
+    if (!reason) {
+      setCancelRequestError("Informe o motivo da solicitação de cancelamento.");
+      return;
+    }
+
+    try {
+      setSavingCancelRequest(true);
+      setCancelRequestError("");
+
+      const response = await fetch(
+        `/api/patient/appointments/${cancelRequestAppointment.id}/cancel-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ reason }),
+        },
+      );
+
+      const data = await readJsonSafely(response);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao solicitar cancelamento.");
+      }
+
+      await loadAppointments();
+      closeCancelRequestModal();
+      showFeedback(
+        "success",
+        "Solicitação de cancelamento enviada ao profissional.",
+      );
+    } catch (error: any) {
+      setCancelRequestError(error.message || "Erro ao solicitar cancelamento.");
+    } finally {
+      setSavingCancelRequest(false);
+    }
+  }
+
+  async function handleWithdrawCancelRequest(appointmentId: string) {
+    try {
+      setUpdatingConfirmationId(appointmentId);
+
+      const response = await fetch(
+        `/api/patient/appointments/${appointmentId}/cancel-request`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await readJsonSafely(response);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Erro ao cancelar solicitação de cancelamento.",
+        );
+      }
+
+      await loadAppointments();
+      showFeedback(
+        "success",
+        "Solicitação de cancelamento retirada com sucesso.",
+      );
+    } catch (error: any) {
+      showFeedback(
+        "error",
+        error.message || "Erro ao cancelar solicitação de cancelamento.",
+      );
+    } finally {
+      setUpdatingConfirmationId("");
+    }
+  }
+
   function resetCheckinForm() {
     setMoodLevel("");
     setAnxietyLevel("");
@@ -248,6 +444,18 @@ export default function MyAppointmentsPage() {
   function closeCheckinModal() {
     setCheckinAppointment(null);
     resetCheckinForm();
+  }
+
+  function openCancelRequestModal(appointment: PatientAppointment) {
+    setCancelRequestAppointment(appointment);
+    setCancelRequestReason(appointment.cancellationRequestReason || "");
+    setCancelRequestError("");
+  }
+
+  function closeCancelRequestModal() {
+    setCancelRequestAppointment(null);
+    setCancelRequestReason("");
+    setCancelRequestError("");
   }
 
   function openCheckinModal(appointment: PatientAppointment) {
@@ -400,7 +608,13 @@ export default function MyAppointmentsPage() {
     backgroundColor: "#ffffff",
   } as const;
 
-  function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
+  function MetricCard({
+    label,
+    value,
+    description,
+    icon,
+    tone,
+  }: MetricCardProps) {
     const selectedTone = tones[tone];
 
     return (
@@ -909,7 +1123,8 @@ export default function MyAppointmentsPage() {
                     }}
                   >
                     <p style={{ color: "#475569", margin: 0 }}>
-                      <strong>Início:</strong> {formatDate(appointment.dateTime)}
+                      <strong>Início:</strong>{" "}
+                      {formatDate(appointment.dateTime)}
                     </p>
 
                     {appointment.endDateTime && (
@@ -933,6 +1148,63 @@ export default function MyAppointmentsPage() {
                         </p>
                       )}
                   </div>
+
+                  {appointment.status === "SCHEDULED" &&
+                    new Date(appointment.dateTime) >= now &&
+                    (() => {
+                      const confirmationInfo = getConfirmationInfo(appointment);
+
+                      return (
+                        <div
+                          style={{
+                            backgroundColor: confirmationInfo.bg,
+                            border: `1px solid ${confirmationInfo.border}`,
+                            color: confirmationInfo.color,
+                            borderRadius: "14px",
+                            padding: "12px",
+                            marginTop: "12px",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          <p
+                            style={{
+                              fontWeight: 900,
+                              marginBottom: "6px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <i className={confirmationInfo.icon}></i>
+                            {confirmationInfo.label}
+                          </p>
+
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "14px",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {confirmationInfo.description}
+                          </p>
+
+                          {appointment.cancellationRequestReason && (
+                            <p
+                              style={{
+                                marginTop: "8px",
+                                marginBottom: 0,
+                                fontSize: "14px",
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              <strong>Motivo informado:</strong>{" "}
+                              {appointment.cancellationRequestReason}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                   {appointment.description && (
                     <p style={{ color: "#475569", marginBottom: "8px" }}>
@@ -1013,6 +1285,95 @@ export default function MyAppointmentsPage() {
                         </button>
                       )}
 
+                    {appointment.status === "SCHEDULED" &&
+                      new Date(appointment.dateTime) >= now &&
+                      getConfirmationStatus(appointment) !== "CONFIRMED" &&
+                      getConfirmationStatus(appointment) !==
+                        "CANCELLATION_REQUESTED" && (
+                        <button
+                          type="button"
+                          onClick={() => handleConfirmPresence(appointment.id)}
+                          disabled={updatingConfirmationId === appointment.id}
+                          style={{
+                            backgroundColor: "#ecfdf5",
+                            color: "#047857",
+                            border: "1px solid #a7f3d0",
+                            borderRadius: "14px",
+                            padding: "11px 16px",
+                            fontWeight: 900,
+                            cursor:
+                              updatingConfirmationId === appointment.id
+                                ? "not-allowed"
+                                : "pointer",
+                            fontSize: "14px",
+                            opacity:
+                              updatingConfirmationId === appointment.id
+                                ? 0.7
+                                : 1,
+                          }}
+                        >
+                          {updatingConfirmationId === appointment.id
+                            ? "Confirmando..."
+                            : "Confirmar presença"}
+                        </button>
+                      )}
+
+                    {appointment.status === "SCHEDULED" &&
+                      new Date(appointment.dateTime) >= now &&
+                      getConfirmationStatus(appointment) !==
+                        "CANCELLATION_REQUESTED" && (
+                        <button
+                          type="button"
+                          onClick={() => openCancelRequestModal(appointment)}
+                          style={{
+                            backgroundColor: "#fff7ed",
+                            color: "#c2410c",
+                            border: "1px solid #fed7aa",
+                            borderRadius: "14px",
+                            padding: "11px 16px",
+                            fontWeight: 900,
+                            cursor: "pointer",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Solicitar cancelamento
+                        </button>
+                      )}
+
+                    {appointment.status === "SCHEDULED" &&
+                      new Date(appointment.dateTime) >= now &&
+                      getConfirmationStatus(appointment) ===
+                        "CANCELLATION_REQUESTED" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleWithdrawCancelRequest(appointment.id)
+                          }
+                          disabled={updatingConfirmationId === appointment.id}
+                          style={{
+                            backgroundColor: "#fff7ed",
+                            color: "#c2410c",
+                            border: "1px solid #fed7aa",
+                            borderRadius: "14px",
+                            padding: "11px 16px",
+                            fontWeight: 900,
+                            cursor:
+                              updatingConfirmationId === appointment.id
+                                ? "not-allowed"
+                                : "pointer",
+                            fontSize: "14px",
+                            opacity:
+                              updatingConfirmationId === appointment.id
+                                ? 0.7
+                                : 1,
+                          }}
+                        >
+                          {updatingConfirmationId === appointment.id
+                            ? "Cancelando..."
+                            : "Cancelar solicitação"}
+                        </button>
+                      )}
+
                     {appointment.googleEventLink &&
                       appointment.status !== "CANCELLED" && (
                         <a
@@ -1031,6 +1392,177 @@ export default function MyAppointmentsPage() {
           )}
         </section>
       </div>
+
+      {cancelRequestAppointment && (
+        <div
+          onClick={closeCancelRequestModal}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            zIndex: 1000,
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "620px",
+              backgroundColor: "#ffffff",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <div style={{ marginBottom: "22px" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#fff7ed",
+                  color: "#c2410c",
+                  border: "1px solid #fed7aa",
+                  borderRadius: "999px",
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: 900,
+                  marginBottom: "12px",
+                }}
+              >
+                <i className="fa-solid fa-calendar-xmark"></i>
+                Solicitação de cancelamento
+              </span>
+
+              <h2
+                style={{
+                  fontSize: "30px",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "8px",
+                }}
+              >
+                Solicitar cancelamento da consulta
+              </h2>
+
+              <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+                Sua solicitação será enviada ao profissional, que poderá aprovar
+                ou rejeitar o cancelamento. A consulta continua agendada até a
+                análise.
+              </p>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                borderRadius: "16px",
+                padding: "14px",
+                marginBottom: "18px",
+              }}
+            >
+              <p
+                style={{
+                  color: "#1d4ed8",
+                  fontWeight: 900,
+                  marginBottom: "6px",
+                }}
+              >
+                {cancelRequestAppointment.title}
+              </p>
+
+              <p style={{ color: "#1e40af", margin: 0 }}>
+                {formatDate(cancelRequestAppointment.dateTime)} · Profissional:{" "}
+                {cancelRequestAppointment.psychologist.name}
+              </p>
+            </div>
+
+            {cancelRequestError && (
+              <div
+                style={{
+                  backgroundColor: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#b91c1c",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  marginBottom: "16px",
+                  fontWeight: 800,
+                }}
+              >
+                {cancelRequestError}
+              </div>
+            )}
+
+            <form noValidate onSubmit={handleSubmitCancelRequest}>
+              <div style={{ marginBottom: "18px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Motivo da solicitação
+                </label>
+
+                <textarea
+                  value={cancelRequestReason}
+                  onChange={(e) => setCancelRequestReason(e.target.value)}
+                  rows={5}
+                  placeholder="Explique brevemente o motivo do cancelamento..."
+                  style={{
+                    ...inputStyle,
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={closeCancelRequestModal}
+                  style={secondaryButtonStyle}
+                  disabled={savingCancelRequest}
+                >
+                  Voltar
+                </button>
+
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: "#ea580c",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "14px",
+                    padding: "12px 16px",
+                    fontWeight: 900,
+                    cursor: savingCancelRequest ? "not-allowed" : "pointer",
+                    fontSize: "14px",
+                    opacity: savingCancelRequest ? 0.7 : 1,
+                  }}
+                  disabled={savingCancelRequest}
+                >
+                  {savingCancelRequest ? "Enviando..." : "Enviar solicitação"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {checkinAppointment && (
         <div
