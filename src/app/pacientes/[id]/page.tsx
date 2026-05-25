@@ -162,6 +162,11 @@ export default function PatientDetailsPage() {
   const [noteFilter, setNoteFilter] = useState<NoteFilter>("ACTIVE");
   const [activeTab, setActiveTab] = useState<PatientTab>("SUMMARY");
 
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [generatedSummary, setGeneratedSummary] = useState("");
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState("");
+  const [summarySourceNotesCount, setSummarySourceNotesCount] = useState(0);
+
   const [noteToArchive, setNoteToArchive] = useState<{
     id: string;
     title: string;
@@ -497,6 +502,51 @@ export default function PatientDetailsPage() {
       showFeedback("error", error.message || "Erro ao arquivar anotação.");
     } finally {
       setArchivingNoteId("");
+    }
+  }
+
+  async function handleGenerateProntuarioSummary() {
+    try {
+      setGeneratingSummary(true);
+      setGeneratedSummary("");
+      setSummaryGeneratedAt("");
+      setSummarySourceNotesCount(0);
+
+      const response = await fetch(`/api/patients/${patientId}/generate-summary`, {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao gerar resumo para prontuário.");
+      }
+
+      setGeneratedSummary(data.summary || "");
+      setSummaryGeneratedAt(data.generatedAt || "");
+      setSummarySourceNotesCount(data.sourceNotesCount || 0);
+      showFeedback("success", "Resumo para prontuário gerado com sucesso.");
+    } catch (error: any) {
+      showFeedback(
+        "error",
+        error.message || "Erro ao gerar resumo para prontuário.",
+      );
+    } finally {
+      setGeneratingSummary(false);
+    }
+  }
+
+  async function handleCopyProntuarioSummary() {
+    if (!generatedSummary.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(generatedSummary);
+      showFeedback("success", "Resumo copiado para a área de transferência.");
+    } catch {
+      showFeedback(
+        "error",
+        "Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.",
+      );
     }
   }
 
@@ -2516,6 +2566,164 @@ export default function PatientDetailsPage() {
                 Histórico de registros criados pelo psicólogo para este
                 paciente.
               </p>
+
+              <div
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.08))",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "18px",
+                  padding: "16px",
+                  marginBottom: "18px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "14px",
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: "240px" }}>
+                    <p
+                      style={{
+                        color: "#1e3a8a",
+                        fontWeight: 900,
+                        fontSize: "17px",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Resumo para prontuário com apoio de IA
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#1e40af",
+                        fontSize: "14px",
+                        lineHeight: 1.5,
+                        margin: 0,
+                      }}
+                    >
+                      Gere uma versão organizada das anotações ativas deste
+                      paciente. O texto é apenas uma sugestão e deve ser
+                      revisado pelo psicólogo antes de qualquer registro formal.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateProntuarioSummary}
+                    disabled={generatingSummary || notes.length === 0}
+                    style={{
+                      ...buttonPrimaryStyle,
+                      minWidth: "230px",
+                      opacity: generatingSummary || notes.length === 0 ? 0.7 : 1,
+                      cursor:
+                        generatingSummary || notes.length === 0
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    {generatingSummary
+                      ? "Gerando resumo..."
+                      : "Gerar resumo para prontuário"}
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: "#fff7ed",
+                    border: "1px solid #fed7aa",
+                    color: "#9a3412",
+                    borderRadius: "12px",
+                    padding: "12px",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Este recurso não substitui o julgamento clínico profissional,
+                  não deve gerar diagnósticos automaticamente e precisa ser
+                  revisado antes de uso em prontuário.
+                </div>
+
+                {generatedSummary && (
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #dbeafe",
+                      borderRadius: "14px",
+                      padding: "16px",
+                      marginTop: "14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontWeight: 900,
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Resultado gerado
+                        </p>
+
+                        <p
+                          style={{
+                            color: "#6b7280",
+                            fontSize: "13px",
+                            margin: 0,
+                          }}
+                        >
+                          {summarySourceNotesCount > 0
+                            ? `${summarySourceNotesCount} anotações utilizadas`
+                            : "Anotações utilizadas"}
+                          {summaryGeneratedAt
+                            ? ` · Gerado em ${formatDate(summaryGeneratedAt)}`
+                            : ""}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyProntuarioSummary}
+                        style={buttonSecondaryStyle}
+                      >
+                        Copiar resumo
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "12px",
+                        padding: "14px",
+                        color: "#374151",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: 1.65,
+                        maxHeight: "520px",
+                        overflow: "auto",
+                      }}
+                    >
+                      {generatedSummary}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div
                 style={{

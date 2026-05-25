@@ -118,13 +118,13 @@ export default function OrientacoesPage() {
         style={{
           position: "relative",
           overflow: "hidden",
-          borderRadius: "32px",
-          padding: "34px",
+          borderRadius: "28px",
+          padding: "30px",
           marginBottom: "26px",
           color: "#ffffff",
           background:
-            "linear-gradient(135deg, #172554 0%, #1d4ed8 45%, #60a5fa 100%)",
-          boxShadow: "0 24px 60px rgba(37, 99, 235, 0.26)",
+           "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
+          boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
         }}
       >
         <div
