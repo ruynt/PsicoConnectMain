@@ -98,6 +98,49 @@ export async function GET(
       .filter((appointment) => appointment.dateTime >= now)
       .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
 
+    function mapAppointment(
+      appointment: (typeof patient.appointments)[number],
+    ) {
+      return {
+        id: appointment.id,
+        title: appointment.title || "Consulta",
+        description: appointment.description || "",
+        location: appointment.location || "",
+        dateTime: appointment.dateTime.toISOString(),
+        endDateTime: appointment.endDateTime?.toISOString() || null,
+        status: appointment.status,
+        googleEventLink: appointment.googleEventLink || "",
+
+        cancellationReason: appointment.cancellationReason || null,
+        cancelledAt: appointment.cancelledAt?.toISOString() || null,
+
+        confirmationStatus: appointment.confirmationStatus,
+        confirmedAt: appointment.confirmedAt?.toISOString() || null,
+
+        cancellationRequestedAt:
+          appointment.cancellationRequestedAt?.toISOString() || null,
+        cancellationRequestReason:
+          appointment.cancellationRequestReason || null,
+        cancellationRequestStatus:
+          appointment.cancellationRequestStatus || null,
+
+        lastReminderSentAt:
+          appointment.lastReminderSentAt?.toISOString() || null,
+        reminderEmailSentAt:
+          appointment.reminderEmailSentAt?.toISOString() || null,
+
+        paymentStatus: appointment.paymentStatus,
+        paymentAmount: appointment.paymentAmount
+          ? Number(appointment.paymentAmount)
+          : null,
+        paymentNote: appointment.paymentNote || null,
+        paidAt: appointment.paidAt?.toISOString() || null,
+
+        createdAt: appointment.createdAt.toISOString(),
+        updatedAt: appointment.updatedAt.toISOString(),
+      };
+    }
+
     return NextResponse.json({
       patient: {
         id: patient.id,
@@ -108,30 +151,9 @@ export async function GET(
         scheduledAppointments: scheduledAppointments.length,
         cancelledAppointments: cancelledAppointments.length,
         nextAppointment: nextAppointment
-          ? {
-              id: nextAppointment.id,
-              title: nextAppointment.title || "Consulta",
-              description: nextAppointment.description || "",
-              location: nextAppointment.location || "",
-              dateTime: nextAppointment.dateTime.toISOString(),
-              endDateTime: nextAppointment.endDateTime?.toISOString() || null,
-              status: nextAppointment.status,
-              googleEventLink: nextAppointment.googleEventLink || "",
-            }
+          ? mapAppointment(nextAppointment)
           : null,
-        appointments: patient.appointments.map((appointment) => ({
-          id: appointment.id,
-          title: appointment.title || "Consulta",
-          description: appointment.description || "",
-          location: appointment.location || "",
-          dateTime: appointment.dateTime.toISOString(),
-          endDateTime: appointment.endDateTime?.toISOString() || null,
-          status: appointment.status,
-          googleEventLink: appointment.googleEventLink || "",
-          cancellationReason: appointment.cancellationReason || null,
-          cancelledAt: appointment.cancelledAt?.toISOString() || null,
-          createdAt: appointment.createdAt.toISOString(),
-        })),
+        appointments: patient.appointments.map(mapAppointment),
       },
     });
   } catch (error: any) {

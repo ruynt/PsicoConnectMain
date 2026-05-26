@@ -94,6 +94,13 @@ export async function GET(req: NextRequest) {
       reminderEmailSentAt:
         appointment.reminderEmailSentAt?.toISOString() || null,
 
+      paymentStatus: appointment.paymentStatus,
+      paymentAmount: appointment.paymentAmount
+        ? Number(appointment.paymentAmount)
+        : null,
+      paymentNote: appointment.paymentNote || null,
+      paidAt: appointment.paidAt?.toISOString() || null,
+
       createdAt: appointment.createdAt.toISOString(),
       updatedAt: appointment.updatedAt.toISOString(),
     }));

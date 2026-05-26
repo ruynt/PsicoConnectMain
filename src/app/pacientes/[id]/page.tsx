@@ -15,6 +15,10 @@ type Appointment = {
   googleEventLink: string;
   cancellationReason: string | null;
   cancelledAt: string | null;
+  paymentStatus?: PaymentStatus;
+  paymentAmount?: number | string | null;
+  paymentNote?: string | null;
+  paidAt?: string | null;
   createdAt: string;
 };
 
@@ -71,6 +75,8 @@ type PatientCheckin = {
 };
 
 type TherapeuticTaskStatus = "PENDING" | "COMPLETED" | "CANCELLED";
+
+type PaymentStatus = "PENDING" | "PAID" | "EXEMPT";
 
 type PatientTask = {
   id: string;
@@ -347,6 +353,62 @@ export default function PatientDetailsPage() {
     }).format(new Date(dateString));
   }
 
+  function formatCurrency(value: number | string | null | undefined) {
+    if (value === null || value === undefined || value === "") {
+      return "Não informado";
+    }
+
+    const numericValue =
+      typeof value === "number"
+        ? value
+        : Number(String(value).replace(",", "."));
+
+    if (Number.isNaN(numericValue)) {
+      return "Não informado";
+    }
+
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(numericValue);
+  }
+
+  function getPaymentStatusLabel(status: PaymentStatus | null | undefined) {
+    if (status === "PAID") return "Pago";
+    if (status === "EXEMPT") return "Isento";
+    return "Pendente";
+  }
+
+  function getPaymentStatusStyle(status: PaymentStatus | null | undefined) {
+    if (status === "PAID") {
+      return {
+        backgroundColor: "#ecfdf5",
+        color: "#065f46",
+        border: "1px solid #a7f3d0",
+      };
+    }
+
+    if (status === "EXEMPT") {
+      return {
+        backgroundColor: "#eff6ff",
+        color: "#1d4ed8",
+        border: "1px solid #bfdbfe",
+      };
+    }
+
+    return {
+      backgroundColor: "#fffbeb",
+      color: "#92400e",
+      border: "1px solid #fde68a",
+    };
+  }
+
+  function getPaymentIcon(status: PaymentStatus | null | undefined) {
+    if (status === "PAID") return "fa-solid fa-circle-check";
+    if (status === "EXEMPT") return "fa-solid fa-hand-holding-heart";
+    return "fa-solid fa-clock";
+  }
+
   function getTaskStatusLabel(status: TherapeuticTaskStatus) {
     if (status === "COMPLETED") return "Concluída";
     if (status === "CANCELLED") return "Cancelada";
@@ -512,9 +574,12 @@ export default function PatientDetailsPage() {
       setSummaryGeneratedAt("");
       setSummarySourceNotesCount(0);
 
-      const response = await fetch(`/api/patients/${patientId}/generate-summary`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/patients/${patientId}/generate-summary`,
+        {
+          method: "POST",
+        },
+      );
 
       const data = await response.json();
 
@@ -608,15 +673,18 @@ export default function PatientDetailsPage() {
     try {
       setUpdatingTaskId(taskId);
 
-      const response = await fetch(`/api/patients/${patientId}/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/patients/${patientId}/tasks/${taskId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+          }),
         },
-        body: JSON.stringify({
-          status,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -951,8 +1019,9 @@ export default function PatientDetailsPage() {
                   margin: 0,
                 }}
               >
-                Acompanhe consultas, checklists pré-sessão, tarefas terapêuticas,
-                materiais psicoeducativos e anotações clínicas internas.
+                Acompanhe consultas, checklists pré-sessão, tarefas
+                terapêuticas, materiais psicoeducativos e anotações clínicas
+                internas.
               </p>
             </div>
 
@@ -1003,7 +1072,6 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
-
         <div
           style={{
             display: "flex",
@@ -1013,12 +1081,36 @@ export default function PatientDetailsPage() {
           }}
         >
           {[
-            { label: "Resumo", value: "SUMMARY", icon: "fa-solid fa-chart-simple" },
-            { label: "Consultas", value: "APPOINTMENTS", icon: "fa-solid fa-calendar-days" },
-            { label: "Anotações", value: "NOTES", icon: "fa-solid fa-pen-to-square" },
-            { label: "Checklists", value: "CHECKINS", icon: "fa-solid fa-clipboard-check" },
-            { label: "Tarefas", value: "TASKS", icon: "fa-solid fa-list-check" },
-            { label: "Materiais", value: "MATERIALS", icon: "fa-solid fa-book-open" },
+            {
+              label: "Resumo",
+              value: "SUMMARY",
+              icon: "fa-solid fa-chart-simple",
+            },
+            {
+              label: "Consultas",
+              value: "APPOINTMENTS",
+              icon: "fa-solid fa-calendar-days",
+            },
+            {
+              label: "Anotações",
+              value: "NOTES",
+              icon: "fa-solid fa-pen-to-square",
+            },
+            {
+              label: "Checklists",
+              value: "CHECKINS",
+              icon: "fa-solid fa-clipboard-check",
+            },
+            {
+              label: "Tarefas",
+              value: "TASKS",
+              icon: "fa-solid fa-list-check",
+            },
+            {
+              label: "Materiais",
+              value: "MATERIALS",
+              icon: "fa-solid fa-book-open",
+            },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -1196,6 +1288,81 @@ export default function PatientDetailsPage() {
                     </p>
                   )}
 
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "12px",
+                      borderRadius: "12px",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#111827",
+                          fontWeight: 900,
+                          margin: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <i
+                          className={getPaymentIcon(
+                            patient.nextAppointment.paymentStatus,
+                          )}
+                        ></i>
+                        Controle financeiro
+                      </p>
+
+                      <span
+                        style={{
+                          ...getPaymentStatusStyle(
+                            patient.nextAppointment.paymentStatus,
+                          ),
+                          borderRadius: "999px",
+                          padding: "5px 10px",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {getPaymentStatusLabel(
+                          patient.nextAppointment.paymentStatus,
+                        )}
+                      </span>
+                    </div>
+
+                    <p style={{ color: "#4b5563", marginBottom: "6px" }}>
+                      <strong>Valor:</strong>{" "}
+                      {formatCurrency(patient.nextAppointment.paymentAmount)}
+                    </p>
+
+                    {patient.nextAppointment.paidAt && (
+                      <p style={{ color: "#065f46", marginBottom: "6px" }}>
+                        <strong>Pago em:</strong>{" "}
+                        {formatDate(patient.nextAppointment.paidAt)}
+                      </p>
+                    )}
+
+                    {patient.nextAppointment.paymentNote && (
+                      <p style={{ color: "#4b5563", marginBottom: 0 }}>
+                        <strong>Observação:</strong>{" "}
+                        {patient.nextAppointment.paymentNote}
+                      </p>
+                    )}
+                  </div>
+
                   {patient.nextAppointment.googleEventLink && (
                     <a
                       href={patient.nextAppointment.googleEventLink}
@@ -1333,6 +1500,133 @@ export default function PatientDetailsPage() {
                           {appointment.cancellationReason}
                         </p>
                       )}
+
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        marginBottom: "12px",
+                        padding: "12px",
+                        borderRadius: "12px",
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontWeight: 900,
+                            margin: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <i
+                            className={getPaymentIcon(
+                              appointment.paymentStatus,
+                            )}
+                          ></i>
+                          Controle financeiro
+                        </p>
+
+                        <span
+                          style={{
+                            ...getPaymentStatusStyle(appointment.paymentStatus),
+                            borderRadius: "999px",
+                            padding: "5px 10px",
+                            fontSize: "12px",
+                            fontWeight: 900,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {getPaymentStatusLabel(appointment.paymentStatus)}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                          gap: "10px",
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              color: "#6b7280",
+                              fontSize: "12px",
+                              marginBottom: "4px",
+                              fontWeight: 800,
+                            }}
+                          >
+                            Valor
+                          </p>
+                          <p style={{ color: "#111827", margin: 0 }}>
+                            {formatCurrency(appointment.paymentAmount)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p
+                            style={{
+                              color: "#6b7280",
+                              fontSize: "12px",
+                              marginBottom: "4px",
+                              fontWeight: 800,
+                            }}
+                          >
+                            Pago em
+                          </p>
+                          <p style={{ color: "#111827", margin: 0 }}>
+                            {appointment.paidAt
+                              ? formatDate(appointment.paidAt)
+                              : "--"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p
+                            style={{
+                              color: "#6b7280",
+                              fontSize: "12px",
+                              marginBottom: "4px",
+                              fontWeight: 800,
+                            }}
+                          >
+                            Registro
+                          </p>
+                          <p style={{ color: "#111827", margin: 0 }}>
+                            {appointment.paymentStatus === "EXEMPT"
+                              ? "Sem cobrança"
+                              : appointment.paymentStatus === "PAID"
+                                ? "Quitado"
+                                : "Em aberto"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {appointment.paymentNote && (
+                        <p
+                          style={{
+                            color: "#4b5563",
+                            marginTop: "10px",
+                            marginBottom: 0,
+                          }}
+                        >
+                          <strong>Observação:</strong> {appointment.paymentNote}
+                        </p>
+                      )}
+                    </div>
 
                     {appointment.googleEventLink && (
                       <a
@@ -1613,7 +1907,6 @@ export default function PatientDetailsPage() {
             )}
           </section>
         )}
-
 
         {activeTab === "TASKS" && (
           <div
@@ -2013,7 +2306,6 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
-
         {activeTab === "MATERIALS" && (
           <div
             style={{
@@ -2384,7 +2676,6 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
-
         {activeTab === "NOTES" && (
           <div
             style={{
@@ -2620,7 +2911,8 @@ export default function PatientDetailsPage() {
                     style={{
                       ...buttonPrimaryStyle,
                       minWidth: "230px",
-                      opacity: generatingSummary || notes.length === 0 ? 0.7 : 1,
+                      opacity:
+                        generatingSummary || notes.length === 0 ? 0.7 : 1,
                       cursor:
                         generatingSummary || notes.length === 0
                           ? "not-allowed"

@@ -27,6 +27,10 @@ type CalendarEvent = {
   cancellationRequestStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
   lastReminderSentAt?: string | null;
   reminderEmailSentAt?: string | null;
+  paymentStatus?: "PENDING" | "PAID" | "EXEMPT";
+  paymentAmount?: number | null;
+  paymentNote?: string | null;
+  paidAt?: string | null;
 };
 
 type PatientOption = {
@@ -36,6 +40,7 @@ type PatientOption = {
 };
 
 type AppointmentStatusFilter = "SCHEDULED" | "CANCELLED" | "ALL";
+type PaymentStatus = "PENDING" | "PAID" | "EXEMPT";
 
 type Feedback = {
   type: "success" | "error" | "info";
@@ -73,6 +78,12 @@ export default function AgendaPage() {
   const [cancelingAppointmentId, setCancelingAppointmentId] = useState("");
   const [reviewingCancellationId, setReviewingCancellationId] = useState("");
   const [sendingReminderId, setSendingReminderId] = useState("");
+  const [updatingPaymentId, setUpdatingPaymentId] = useState("");
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<string, string>>(
+    {},
+  );
+  const [paymentNotes, setPaymentNotes] = useState<Record<string, string>>({});
+  const [expandedPaymentId, setExpandedPaymentId] = useState("");
 
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [formError, setFormError] = useState("");
@@ -216,6 +227,69 @@ export default function AgendaPage() {
       dateStyle: "short",
       timeStyle: "short",
     }).format(date);
+  }
+
+  function formatCurrency(value: number | null | undefined) {
+    if (value === null || value === undefined) return "Não informado";
+
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  }
+
+  function getPaymentLabel(status: CalendarEvent["paymentStatus"]) {
+    if (status === "PAID") return "Pago";
+    if (status === "EXEMPT") return "Isento";
+    return "Pendente";
+  }
+
+  function getPaymentStyle(status: CalendarEvent["paymentStatus"]) {
+    if (status === "PAID") {
+      return {
+        backgroundColor: "#ecfdf5",
+        color: "#065f46",
+        border: "1px solid #a7f3d0",
+      };
+    }
+
+    if (status === "EXEMPT") {
+      return {
+        backgroundColor: "#eff6ff",
+        color: "#1d4ed8",
+        border: "1px solid #bfdbfe",
+      };
+    }
+
+    return {
+      backgroundColor: "#fffbeb",
+      color: "#92400e",
+      border: "1px solid #fde68a",
+    };
+  }
+
+  function getPaymentDraftAmount(event: CalendarEvent) {
+    const appointmentId = event.appointmentId || event.id;
+    const typedAmount = paymentAmounts[appointmentId];
+
+    if (typedAmount !== undefined) {
+      return typedAmount;
+    }
+
+    return event.paymentAmount !== null && event.paymentAmount !== undefined
+      ? String(event.paymentAmount).replace(".", ",")
+      : "";
+  }
+
+  function getPaymentDraftNote(event: CalendarEvent) {
+    const appointmentId = event.appointmentId || event.id;
+    const typedNote = paymentNotes[appointmentId];
+
+    if (typedNote !== undefined) {
+      return typedNote;
+    }
+
+    return event.paymentNote || "";
   }
 
   function getConfirmationLabel(event: CalendarEvent) {
@@ -563,6 +637,60 @@ export default function AgendaPage() {
       );
     } finally {
       setSendingReminderId("");
+    }
+  }
+
+  async function handleUpdatePayment(
+    event: CalendarEvent,
+    paymentStatus: PaymentStatus,
+  ) {
+    const appointmentId = event.appointmentId || event.id;
+
+    if (!appointmentId) {
+      showFeedback("error", "Consulta inválida.");
+      return;
+    }
+
+    const draftAmount = getPaymentDraftAmount(event);
+    const draftNote = getPaymentDraftNote(event);
+
+    try {
+      setUpdatingPaymentId(`${appointmentId}-${paymentStatus}`);
+
+      const response = await fetch(
+        `/api/appointments/${appointmentId}/payment`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            paymentStatus,
+            paymentAmount: draftAmount || null,
+            paymentNote: draftNote || "",
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao atualizar pagamento.");
+      }
+
+      await loadEvents();
+
+      showFeedback(
+        "success",
+        data?.message || "Pagamento atualizado com sucesso.",
+      );
+    } catch (error: any) {
+      showFeedback(
+        "error",
+        error.message || "Erro ao atualizar pagamento da consulta.",
+      );
+    } finally {
+      setUpdatingPaymentId("");
     }
   }
 
@@ -1411,6 +1539,341 @@ export default function AgendaPage() {
                               ? "Reenviar lembrete por e-mail"
                               : "Enviar lembrete por e-mail"}
                         </button>
+                      </div>
+                    )}
+
+                    {event.appointmentId && (
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "16px",
+                          padding: "14px",
+                          marginTop: "12px",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                color: "#0f172a",
+                                fontWeight: 900,
+                                marginBottom: "6px",
+                              }}
+                            >
+                              <i className="fa-solid fa-money-bill-wave"></i>
+                              Controle financeiro
+                            </div>
+
+                            <p
+                              style={{
+                                color: "#4b5563",
+                                fontSize: "13px",
+                                lineHeight: 1.5,
+                                margin: 0,
+                              }}
+                            >
+                              <strong>Valor:</strong>{" "}
+                              {formatCurrency(event.paymentAmount)}
+                              {event.paidAt ? (
+                                <>
+                                  {" "}
+                                  · <strong>Pago em:</strong>{" "}
+                                  {formatDate(event.paidAt)}
+                                </>
+                              ) : null}
+                              {event.paymentNote ? (
+                                <>
+                                  <br />
+                                  <strong>Obs.:</strong> {event.paymentNote}
+                                </>
+                              ) : null}
+                            </p>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <span
+                              style={{
+                                ...getPaymentStyle(event.paymentStatus),
+                                borderRadius: "999px",
+                                padding: "5px 10px",
+                                fontSize: "12px",
+                                fontWeight: 900,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {getPaymentLabel(event.paymentStatus)}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const paymentId =
+                                  event.appointmentId || event.id;
+
+                                setExpandedPaymentId((current) =>
+                                  current === paymentId ? "" : paymentId,
+                                );
+                              }}
+                              style={{
+                                backgroundColor: "#eff6ff",
+                                color: "#1d4ed8",
+                                border: "1px solid #bfdbfe",
+                                borderRadius: "10px",
+                                padding: "9px 12px",
+                                fontWeight: 900,
+                                cursor: "pointer",
+                                fontSize: "13px",
+                              }}
+                            >
+                              {expandedPaymentId ===
+                              (event.appointmentId || event.id)
+                                ? "Fechar"
+                                : "Gerenciar pagamento"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {expandedPaymentId ===
+                          (event.appointmentId || event.id) && (
+                          <div
+                            style={{
+                              borderTop: "1px solid #e5e7eb",
+                              marginTop: "14px",
+                              paddingTop: "14px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                backgroundColor: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "12px",
+                                padding: "12px",
+                                color: "#475569",
+                                fontSize: "13px",
+                                lineHeight: 1.5,
+                                marginBottom: "12px",
+                              }}
+                            >
+                              Use este campo como controle interno. Em casos de
+                              pacote ou avaliação paga à vista, registre a
+                              consulta como isenta ou paga e detalhe na
+                              observação, por exemplo: "incluída no pacote de
+                              avaliação neuropsicológica já quitado".
+                            </div>
+
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "minmax(120px, 180px) 1fr",
+                                gap: "10px",
+                                marginBottom: "12px",
+                              }}
+                            >
+                              <div>
+                                <label
+                                  style={{
+                                    display: "block",
+                                    color: "#374151",
+                                    fontSize: "12px",
+                                    fontWeight: 900,
+                                    marginBottom: "6px",
+                                  }}
+                                >
+                                  Valor
+                                </label>
+
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={getPaymentDraftAmount(event)}
+                                  onChange={(e) =>
+                                    setPaymentAmounts((current) => ({
+                                      ...current,
+                                      [event.appointmentId || event.id]:
+                                        e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Ex.: 150,00"
+                                  style={{
+                                    width: "100%",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "12px",
+                                    padding: "10px 12px",
+                                    fontSize: "14px",
+                                    outline: "none",
+                                  }}
+                                />
+                              </div>
+
+                              <div>
+                                <label
+                                  style={{
+                                    display: "block",
+                                    color: "#374151",
+                                    fontSize: "12px",
+                                    fontWeight: 900,
+                                    marginBottom: "6px",
+                                  }}
+                                >
+                                  Observação
+                                </label>
+
+                                <input
+                                  type="text"
+                                  value={getPaymentDraftNote(event)}
+                                  onChange={(e) =>
+                                    setPaymentNotes((current) => ({
+                                      ...current,
+                                      [event.appointmentId || event.id]:
+                                        e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Ex.: Pago via Pix, incluído em pacote, cortesia..."
+                                  style={{
+                                    width: "100%",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "12px",
+                                    padding: "10px 12px",
+                                    fontSize: "14px",
+                                    outline: "none",
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdatePayment(event, "PAID")
+                                }
+                                disabled={
+                                  updatingPaymentId ===
+                                  `${event.appointmentId || event.id}-PAID`
+                                }
+                                style={{
+                                  backgroundColor: "#ecfdf5",
+                                  color: "#065f46",
+                                  border: "1px solid #a7f3d0",
+                                  borderRadius: "10px",
+                                  padding: "10px 12px",
+                                  fontWeight: 900,
+                                  cursor:
+                                    updatingPaymentId ===
+                                    `${event.appointmentId || event.id}-PAID`
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  opacity:
+                                    updatingPaymentId ===
+                                    `${event.appointmentId || event.id}-PAID`
+                                      ? 0.7
+                                      : 1,
+                                }}
+                              >
+                                {updatingPaymentId ===
+                                `${event.appointmentId || event.id}-PAID`
+                                  ? "Salvando..."
+                                  : "Marcar pago"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdatePayment(event, "EXEMPT")
+                                }
+                                disabled={
+                                  updatingPaymentId ===
+                                  `${event.appointmentId || event.id}-EXEMPT`
+                                }
+                                style={{
+                                  backgroundColor: "#eff6ff",
+                                  color: "#1d4ed8",
+                                  border: "1px solid #bfdbfe",
+                                  borderRadius: "10px",
+                                  padding: "10px 12px",
+                                  fontWeight: 900,
+                                  cursor:
+                                    updatingPaymentId ===
+                                    `${event.appointmentId || event.id}-EXEMPT`
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  opacity:
+                                    updatingPaymentId ===
+                                    `${event.appointmentId || event.id}-EXEMPT`
+                                      ? 0.7
+                                      : 1,
+                                }}
+                              >
+                                {updatingPaymentId ===
+                                `${event.appointmentId || event.id}-EXEMPT`
+                                  ? "Salvando..."
+                                  : "Marcar isento"}
+                              </button>
+
+                              {event.paymentStatus !== "PENDING" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdatePayment(event, "PENDING")
+                                  }
+                                  disabled={
+                                    updatingPaymentId ===
+                                    `${event.appointmentId || event.id}-PENDING`
+                                  }
+                                  style={{
+                                    backgroundColor: "#fffbeb",
+                                    color: "#92400e",
+                                    border: "1px solid #fde68a",
+                                    borderRadius: "10px",
+                                    padding: "10px 12px",
+                                    fontWeight: 900,
+                                    cursor:
+                                      updatingPaymentId ===
+                                      `${event.appointmentId || event.id}-PENDING`
+                                        ? "not-allowed"
+                                        : "pointer",
+                                    opacity:
+                                      updatingPaymentId ===
+                                      `${event.appointmentId || event.id}-PENDING`
+                                        ? 0.7
+                                        : 1,
+                                  }}
+                                >
+                                  {updatingPaymentId ===
+                                  `${event.appointmentId || event.id}-PENDING`
+                                    ? "Salvando..."
+                                    : "Voltar pendente"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
