@@ -37,6 +37,21 @@ type DashboardData = {
     patientName: string;
     patientEmail: string;
   } | null;
+  upcoming24hAppointments: {
+    id: string;
+    title: string;
+    dateTime: string;
+    endDateTime: string | null;
+    location: string;
+    patientId: string;
+    patientName: string;
+    patientEmail: string;
+    confirmationStatus?: string;
+    confirmedAt?: string | null;
+    cancellationRequestStatus?: string | null;
+    reminderEmailSentAt?: string | null;
+    lastReminderSentAt?: string | null;
+  }[];
   todayAppointments: {
     id: string;
     title: string;
@@ -312,6 +327,52 @@ export default function PsychologistDashboardPage() {
       color: "#92400e",
       border: "1px solid #fde68a",
     };
+  }
+
+  function getConfirmationStatusLabel(status: string | null | undefined) {
+    if (status === "CONFIRMED") return "Confirmada";
+    if (status === "CANCELLATION_REQUESTED") return "Cancelamento solicitado";
+    return "Aguardando confirmação";
+  }
+
+  function getConfirmationStatusStyle(status: string | null | undefined) {
+    if (status === "CONFIRMED") {
+      return {
+        backgroundColor: "#ecfdf5",
+        color: "#065f46",
+        border: "1px solid #a7f3d0",
+      };
+    }
+
+    if (status === "CANCELLATION_REQUESTED") {
+      return {
+        backgroundColor: "#fffbeb",
+        color: "#92400e",
+        border: "1px solid #fde68a",
+      };
+    }
+
+    return {
+      backgroundColor: "#eff6ff",
+      color: "#1d4ed8",
+      border: "1px solid #bfdbfe",
+    };
+  }
+
+  function getTimeUntil(dateString: string) {
+    const targetDate = new Date(dateString);
+    const diffInMs = targetDate.getTime() - new Date().getTime();
+
+    if (diffInMs <= 0) return "em instantes";
+
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const hours = Math.floor(diffInMinutes / 60);
+    const minutes = diffInMinutes % 60;
+
+    if (hours <= 0) return `${minutes}min`;
+    if (minutes <= 0) return `${hours}h`;
+
+    return `${hours}h ${minutes}min`;
   }
 
   const pageStyle = {
@@ -776,6 +837,188 @@ export default function PsychologistDashboardPage() {
           tone="red"
         />
       </div>
+
+      {data.upcoming24hAppointments.length > 0 && (
+        <section
+          style={{
+            ...cardStyle,
+            marginBottom: "20px",
+            border: "1px solid #bfdbfe",
+            background:
+              "linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.96))",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "14px",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+              marginBottom: "16px",
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#dbeafe",
+                  color: "#1d4ed8",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "999px",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  fontWeight: 900,
+                  marginBottom: "10px",
+                }}
+              >
+                <i className="fa-solid fa-bell"></i>
+                Lembretes automáticos
+              </span>
+
+              <h2
+                style={{
+                  fontSize: "28px",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Consultas nas próximas 24h
+              </h2>
+
+              <p style={{ color: "#64748b", margin: 0 }}>
+                Acompanhe os atendimentos que entraram na janela de lembrete de
+                24 horas e o status do envio por e-mail.
+              </p>
+            </div>
+
+            <Link href="/agenda" style={secondaryButtonStyle}>
+              Ver agenda
+            </Link>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            {data.upcoming24hAppointments.map((appointment) => {
+              const confirmationStyle = getConfirmationStatusStyle(
+                appointment.confirmationStatus,
+              );
+
+              return (
+                <div
+                  key={appointment.id}
+                  style={{
+                    border: "1px solid #dbeafe",
+                    borderRadius: "18px",
+                    padding: "16px",
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "flex-start",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <div>
+                      <p
+                        style={{
+                          color: "#0f172a",
+                          fontWeight: 900,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        {appointment.patientName}
+                      </p>
+
+                      <p style={{ color: "#475569", margin: 0 }}>
+                        {appointment.title}
+                      </p>
+                    </div>
+
+                    <span
+                      style={{
+                        ...confirmationStyle,
+                        borderRadius: "999px",
+                        padding: "5px 10px",
+                        fontSize: "11px",
+                        fontWeight: 900,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {getConfirmationStatusLabel(
+                        appointment.confirmationStatus,
+                      )}
+                    </span>
+                  </div>
+
+                  <p style={{ color: "#475569", marginBottom: "6px" }}>
+                    <strong>Horário:</strong> {formatDate(appointment.dateTime)}
+                  </p>
+
+                  <p style={{ color: "#475569", marginBottom: "10px" }}>
+                    <strong>Tempo restante:</strong>{" "}
+                    {getTimeUntil(appointment.dateTime)}
+                  </p>
+
+                  {appointment.reminderEmailSentAt ? (
+                    <div
+                      style={{
+                        backgroundColor: "#ecfdf5",
+                        color: "#065f46",
+                        border: "1px solid #a7f3d0",
+                        borderRadius: "12px",
+                        padding: "10px",
+                        fontSize: "13px",
+                        fontWeight: 800,
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <i className="fa-solid fa-envelope-circle-check"></i>{" "}
+                      E-mail enviado em{" "}
+                      {formatDate(appointment.reminderEmailSentAt)}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        backgroundColor: "#fffbeb",
+                        color: "#92400e",
+                        border: "1px solid #fde68a",
+                        borderRadius: "12px",
+                        padding: "10px",
+                        fontSize: "13px",
+                        fontWeight: 800,
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+                      Lembrete automático ainda não registrado.
+                    </div>
+                  )}
+
+                  <Link
+                    href={`/pacientes/${appointment.patientId}`}
+                    style={secondaryButtonStyle}
+                  >
+                    Ver paciente
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section
         style={{

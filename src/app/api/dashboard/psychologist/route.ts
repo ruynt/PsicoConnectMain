@@ -29,6 +29,30 @@ function sevenDaysFromNow() {
   return date;
 }
 
+function next24HoursFromNow() {
+  const date = new Date();
+  date.setHours(date.getHours() + 24);
+  return date;
+}
+
+function mapDashboardAppointment(appointment: any) {
+  return {
+    id: appointment.id,
+    title: appointment.title || "Consulta",
+    dateTime: appointment.dateTime.toISOString(),
+    endDateTime: appointment.endDateTime?.toISOString() || null,
+    location: appointment.location || "",
+    patientId: appointment.patientId,
+    patientName: appointment.patient.user.name,
+    patientEmail: appointment.patient.user.email,
+    confirmationStatus: appointment.confirmationStatus,
+    confirmedAt: appointment.confirmedAt?.toISOString() || null,
+    cancellationRequestStatus: appointment.cancellationRequestStatus || null,
+    reminderEmailSentAt: appointment.reminderEmailSentAt?.toISOString() || null,
+    lastReminderSentAt: appointment.lastReminderSentAt?.toISOString() || null,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const token = await getToken({
     req,
@@ -70,6 +94,7 @@ export async function GET(req: NextRequest) {
       activePatientsCount,
       todayAppointments,
       nextAppointment,
+      upcoming24hAppointments,
       pendingCancellationRequests,
       confirmedAppointmentsCount,
       pendingConfirmationAppointmentsCount,
@@ -150,8 +175,10 @@ export async function GET(req: NextRequest) {
         where: {
           psychologistId: psychologist.id,
           status: "SCHEDULED",
-          confirmationStatus: "CANCELLATION_REQUESTED",
-          cancellationRequestStatus: "PENDING",
+          dateTime: {
+            gte: now,
+            lte: next24HoursFromNow(),
+          },
         },
         include: {
           patient: {
@@ -168,7 +195,33 @@ export async function GET(req: NextRequest) {
         orderBy: {
           dateTime: "asc",
         },
-        take: 6,
+      }),
+
+      prisma.appointment.findMany({
+        where: {
+          psychologistId: psychologist.id,
+          status: "SCHEDULED",
+          confirmationStatus: "CANCELLATION_REQUESTED",
+          cancellationRequestStatus: "PENDING",
+          dateTime: {
+            gte: now,
+          },
+        },
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          dateTime: "asc",
+        },
       }),
 
       prisma.appointment.count({
@@ -413,6 +466,12 @@ export async function GET(req: NextRequest) {
 
     const recommendations: string[] = [];
 
+    if (upcoming24hAppointments.length > 0) {
+      recommendations.push(
+        `${upcoming24hAppointments.length} consulta(s) acontecerão nas próximas 24h.`,
+      );
+    }
+
     if (pendingCancellationRequests.length > 0) {
       recommendations.push(
         `${pendingCancellationRequests.length} solicitação(ões) de cancelamento aguardam sua análise.`,
@@ -499,20 +558,10 @@ export async function GET(req: NextRequest) {
               nextAppointment.cancellationRequestStatus || null,
           }
         : null,
-      todayAppointments: todayAppointments.map((appointment) => ({
-        id: appointment.id,
-        title: appointment.title || "Consulta",
-        dateTime: appointment.dateTime.toISOString(),
-        endDateTime: appointment.endDateTime?.toISOString() || null,
-        location: appointment.location || "",
-        patientId: appointment.patientId,
-        patientName: appointment.patient.user.name,
-        patientEmail: appointment.patient.user.email,
-        confirmationStatus: appointment.confirmationStatus,
-        confirmedAt: appointment.confirmedAt?.toISOString() || null,
-        cancellationRequestStatus:
-          appointment.cancellationRequestStatus || null,
-      })),
+      upcoming24hAppointments: upcoming24hAppointments.map(
+        mapDashboardAppointment,
+      ),
+      todayAppointments: todayAppointments.map(mapDashboardAppointment),
       pendingCancellationRequests: pendingCancellationRequests.map(
         (appointment) => ({
           id: appointment.id,

@@ -3,6 +3,50 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 
+function mapAppointment(appointment: any) {
+  return {
+    id: appointment.id,
+    title: appointment.title || "Consulta",
+    description: appointment.description || "",
+    location: appointment.location || "",
+    dateTime: appointment.dateTime.toISOString(),
+    endDateTime: appointment.endDateTime?.toISOString() || null,
+    status: appointment.status,
+    googleEventLink: appointment.googleEventLink || "",
+
+    cancellationReason: appointment.cancellationReason || null,
+    cancelledAt: appointment.cancelledAt?.toISOString() || null,
+
+    confirmationStatus: appointment.confirmationStatus,
+    confirmedAt: appointment.confirmedAt?.toISOString() || null,
+
+    cancellationRequestedAt:
+      appointment.cancellationRequestedAt?.toISOString() || null,
+    cancellationRequestReason: appointment.cancellationRequestReason || null,
+    cancellationRequestStatus: appointment.cancellationRequestStatus || null,
+
+    lastReminderSentAt: appointment.lastReminderSentAt?.toISOString() || null,
+    reminderEmailSentAt: appointment.reminderEmailSentAt?.toISOString() || null,
+
+    paymentStatus: appointment.paymentStatus,
+    paymentAmount: appointment.paymentAmount
+      ? Number(appointment.paymentAmount)
+      : null,
+    paymentNote: appointment.paymentNote || null,
+    paidAt: appointment.paidAt?.toISOString() || null,
+
+    createdAt: appointment.createdAt.toISOString(),
+    updatedAt: appointment.updatedAt.toISOString(),
+
+    psychologist: {
+      id: appointment.psychologist.id,
+      name: appointment.psychologist.user.name,
+      email: appointment.psychologist.user.email,
+      crp: appointment.psychologist.crp,
+    },
+  };
+}
+
 export async function GET(req: NextRequest) {
   const token = await getToken({
     req,
@@ -45,15 +89,6 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-        preSessionCheckins: {
-          where: {
-            patientId: patient.id,
-          },
-          orderBy: {
-            updatedAt: "desc",
-          },
-          take: 1,
-        },
       },
       orderBy: {
         dateTime: "asc",
@@ -61,62 +96,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      appointments: appointments.map((appointment) => {
-        const checkin = appointment.preSessionCheckins[0] || null;
-
-        return {
-          id: appointment.id,
-          title: appointment.title || "Consulta",
-          description: appointment.description || "",
-          location: appointment.location || "",
-          dateTime: appointment.dateTime.toISOString(),
-          endDateTime: appointment.endDateTime?.toISOString() || null,
-
-          status: appointment.status,
-          googleEventLink: appointment.googleEventLink || "",
-
-          cancellationReason: appointment.cancellationReason || null,
-          cancelledAt: appointment.cancelledAt?.toISOString() || null,
-
-          confirmationStatus: appointment.confirmationStatus,
-          confirmedAt: appointment.confirmedAt?.toISOString() || null,
-
-          cancellationRequestedAt:
-            appointment.cancellationRequestedAt?.toISOString() || null,
-          cancellationRequestReason:
-            appointment.cancellationRequestReason || null,
-          cancellationRequestStatus:
-            appointment.cancellationRequestStatus || null,
-
-          lastReminderSentAt:
-            appointment.lastReminderSentAt?.toISOString() || null,
-          reminderEmailSentAt:
-            appointment.reminderEmailSentAt?.toISOString() || null,
-
-          createdAt: appointment.createdAt.toISOString(),
-          updatedAt: appointment.updatedAt.toISOString(),
-
-          psychologist: {
-            id: appointment.psychologistId,
-            name: appointment.psychologist.user.name,
-            email: appointment.psychologist.user.email,
-          },
-
-          preSessionCheckin: checkin
-            ? {
-                id: checkin.id,
-                moodLevel: checkin.moodLevel,
-                anxietyLevel: checkin.anxietyLevel,
-                sleepLevel: checkin.sleepLevel,
-                mainConcern: checkin.mainConcern || "",
-                importantEvents: checkin.importantEvents || "",
-                topicsToDiscuss: checkin.topicsToDiscuss || "",
-                createdAt: checkin.createdAt.toISOString(),
-                updatedAt: checkin.updatedAt.toISOString(),
-              }
-            : null,
-        };
-      }),
+      appointments: appointments.map(mapAppointment),
     });
   } catch (error: any) {
     console.error("Erro ao listar consultas do paciente:", error);

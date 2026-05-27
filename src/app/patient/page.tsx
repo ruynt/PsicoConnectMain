@@ -260,6 +260,42 @@ export default function PatientHomePage() {
 
   const nextAppointment = upcomingAppointments[0] || null;
 
+  const upcoming24hAppointment = useMemo(() => {
+    const twentyFourHoursFromNow = new Date();
+    twentyFourHoursFromNow.setHours(twentyFourHoursFromNow.getHours() + 24);
+
+    return (
+      upcomingAppointments.find((appointment) => {
+        const appointmentDate = new Date(appointment.dateTime);
+
+        return (
+          appointmentDate >= now && appointmentDate <= twentyFourHoursFromNow
+        );
+      }) || null
+    );
+  }, [upcomingAppointments, now]);
+
+  function getTimeUntilAppointment(dateString: string) {
+    const appointmentDate = new Date(dateString);
+    const diffInMs = appointmentDate.getTime() - new Date().getTime();
+
+    if (diffInMs <= 0) return "em instantes";
+
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const hours = Math.floor(diffInMinutes / 60);
+    const minutes = diffInMinutes % 60;
+
+    if (hours <= 0) {
+      return `${minutes} min`;
+    }
+
+    if (minutes <= 0) {
+      return `${hours}h`;
+    }
+
+    return `${hours}h ${minutes}min`;
+  }
+
   const pendingCheckins = useMemo(() => {
     return upcomingAppointments.filter(
       (appointment) => !appointment.preSessionCheckin,
@@ -889,6 +925,309 @@ export default function PatientHomePage() {
               {error}
             </p>
           </div>
+        )}
+
+        {upcoming24hAppointment && (
+          <section
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.98))",
+              border: "1px solid #bfdbfe",
+              borderRadius: "22px",
+              padding: "22px",
+              marginBottom: "24px",
+              boxShadow: "0 16px 38px rgba(37, 99, 235, 0.12)",
+            }}
+          >
+            {(() => {
+              const confirmationInfo = getConfirmationInfo(
+                upcoming24hAppointment,
+              );
+              const confirmationStatus = getConfirmationStatus(
+                upcoming24hAppointment,
+              );
+
+              return (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "18px",
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: "260px" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          backgroundColor: "#dbeafe",
+                          color: "#1d4ed8",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: "999px",
+                          padding: "6px 12px",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <i className="fa-solid fa-bell"></i>
+                        Consulta nas próximas 24h
+                      </span>
+
+                      <h2
+                        style={{
+                          color: "#0f172a",
+                          fontSize: "24px",
+                          fontWeight: 900,
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Sua consulta está próxima
+                      </h2>
+
+                      <p
+                        style={{
+                          color: "#475569",
+                          lineHeight: 1.5,
+                          margin: 0,
+                        }}
+                      >
+                        Faltam aproximadamente{" "}
+                        <strong>
+                          {getTimeUntilAppointment(
+                            upcoming24hAppointment.dateTime,
+                          )}
+                        </strong>{" "}
+                        para o atendimento. Confira os dados e confirme sua
+                        presença, se ainda não tiver confirmado.
+                      </p>
+                    </div>
+
+                    <span
+                      style={{
+                        backgroundColor: confirmationInfo.bg,
+                        color: confirmationInfo.color,
+                        border: `1px solid ${confirmationInfo.border}`,
+                        borderRadius: "999px",
+                        padding: "7px 12px",
+                        fontSize: "12px",
+                        fontWeight: 900,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {confirmationInfo.label}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                      gap: "12px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #dbeafe",
+                        borderRadius: "14px",
+                        padding: "12px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#64748b",
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Consulta
+                      </p>
+                      <p
+                        style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}
+                      >
+                        {upcoming24hAppointment.title}
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #dbeafe",
+                        borderRadius: "14px",
+                        padding: "12px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#64748b",
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Horário
+                      </p>
+                      <p
+                        style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}
+                      >
+                        {formatDate(upcoming24hAppointment.dateTime)}
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #dbeafe",
+                        borderRadius: "14px",
+                        padding: "12px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#64748b",
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Profissional
+                      </p>
+                      <p
+                        style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}
+                      >
+                        {upcoming24hAppointment.psychologist.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  {upcoming24hAppointment.reminderEmailSentAt && (
+                    <div
+                      style={{
+                        backgroundColor: "#ecfdf5",
+                        border: "1px solid #a7f3d0",
+                        color: "#065f46",
+                        borderRadius: "14px",
+                        padding: "12px",
+                        marginBottom: "16px",
+                        fontWeight: 800,
+                      }}
+                    >
+                      <i className="fa-solid fa-envelope-circle-check"></i>{" "}
+                      Lembrete automático enviado por e-mail em{" "}
+                      {formatDate(upcoming24hAppointment.reminderEmailSentAt)}.
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {confirmationStatus !== "CONFIRMED" &&
+                      confirmationStatus !== "CANCELLATION_REQUESTED" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            confirmPresence(upcoming24hAppointment.id)
+                          }
+                          disabled={
+                            updatingAppointmentId === upcoming24hAppointment.id
+                          }
+                          style={{
+                            ...primaryButtonStyle,
+                            background:
+                              "linear-gradient(135deg, #059669, #22c55e)",
+                            boxShadow: "0 10px 24px rgba(34, 197, 94, 0.20)",
+                            opacity:
+                              updatingAppointmentId ===
+                              upcoming24hAppointment.id
+                                ? 0.7
+                                : 1,
+                            cursor:
+                              updatingAppointmentId ===
+                              upcoming24hAppointment.id
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          {updatingAppointmentId === upcoming24hAppointment.id
+                            ? "Confirmando..."
+                            : "Confirmar presença"}
+                        </button>
+                      )}
+
+                    {confirmationStatus !== "CANCELLATION_REQUESTED" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openCancelRequestModal(upcoming24hAppointment)
+                        }
+                        style={{
+                          backgroundColor: "#fff7ed",
+                          color: "#c2410c",
+                          border: "1px solid #fed7aa",
+                          borderRadius: "14px",
+                          padding: "11px 16px",
+                          fontWeight: 900,
+                          cursor: "pointer",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Solicitar cancelamento
+                      </button>
+                    )}
+
+                    {confirmationStatus === "CANCELLATION_REQUESTED" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          withdrawCancelRequest(upcoming24hAppointment.id)
+                        }
+                        disabled={
+                          updatingAppointmentId === upcoming24hAppointment.id
+                        }
+                        style={{
+                          backgroundColor: "#fff7ed",
+                          color: "#c2410c",
+                          border: "1px solid #fed7aa",
+                          borderRadius: "14px",
+                          padding: "11px 16px",
+                          fontWeight: 900,
+                          cursor:
+                            updatingAppointmentId === upcoming24hAppointment.id
+                              ? "not-allowed"
+                              : "pointer",
+                          fontSize: "14px",
+                          opacity:
+                            updatingAppointmentId === upcoming24hAppointment.id
+                              ? 0.7
+                              : 1,
+                        }}
+                      >
+                        {updatingAppointmentId === upcoming24hAppointment.id
+                          ? "Cancelando..."
+                          : "Cancelar solicitação"}
+                      </button>
+                    )}
+
+                    <Link href="/minhas-consultas" style={secondaryButtonStyle}>
+                      Ver minhas consultas
+                    </Link>
+                  </div>
+                </>
+              );
+            })()}
+          </section>
         )}
 
         <div
