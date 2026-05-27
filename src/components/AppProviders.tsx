@@ -173,6 +173,17 @@ function AuthGuard({ children }: PropsWithChildren) {
                 </Link>
               )}
 
+              {isPatient && (
+                <Link
+                  href="/mensagens"
+                  onClick={() => handleMenuNavigation("/mensagens")}
+                  className={isActive("/mensagens") ? "active" : ""}
+                >
+                  <i className="fa-solid fa-envelope"></i> Mensagens
+                </Link>
+              )}
+
+
               <Link
                 href="/orientacoes"
                 onClick={() => handleMenuNavigation("/orientacoes")}

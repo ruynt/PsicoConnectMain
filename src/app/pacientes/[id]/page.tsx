@@ -107,6 +107,18 @@ type PatientMaterial = {
   updatedAt: string;
 };
 
+type PatientMessage = {
+  id: string;
+  content: string;
+  senderRole: "PSYCHOLOGIST" | "PATIENT";
+  patientId: string;
+  psychologistId: string;
+  readByPatientAt: string | null;
+  readByPsychologistAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
@@ -119,7 +131,8 @@ type PatientTab =
   | "NOTES"
   | "CHECKINS"
   | "TASKS"
-  | "MATERIALS";
+  | "MATERIALS"
+  | "MESSAGES";
 
 export default function PatientDetailsPage() {
   const params = useParams();
@@ -130,15 +143,18 @@ export default function PatientDetailsPage() {
   const [checkins, setCheckins] = useState<PatientCheckin[]>([]);
   const [tasks, setTasks] = useState<PatientTask[]>([]);
   const [materials, setMaterials] = useState<PatientMaterial[]>([]);
+  const [messages, setMessages] = useState<PatientMessage[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [loadingCheckins, setLoadingCheckins] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [savingMaterial, setSavingMaterial] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState("");
   const [archivingNoteId, setArchivingNoteId] = useState("");
 
@@ -147,6 +163,7 @@ export default function PatientDetailsPage() {
   const [checkinError, setCheckinError] = useState("");
   const [taskError, setTaskError] = useState("");
   const [materialError, setMaterialError] = useState("");
+  const [messageError, setMessageError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [noteTitle, setNoteTitle] = useState("");
@@ -163,6 +180,8 @@ export default function PatientDetailsPage() {
   const [materialCategory, setMaterialCategory] = useState("");
   const [materialUrl, setMaterialUrl] = useState("");
   const [materialContent, setMaterialContent] = useState("");
+
+  const [messageContent, setMessageContent] = useState("");
 
   const [editingNoteId, setEditingNoteId] = useState("");
   const [noteFilter, setNoteFilter] = useState<NoteFilter>("ACTIVE");
@@ -296,6 +315,29 @@ export default function PatientDetailsPage() {
     }
   }
 
+  async function loadMessages() {
+    try {
+      setLoadingMessages(true);
+      setMessageError("");
+
+      const response = await fetch(`/api/patients/${patientId}/messages`, {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar mensagens.");
+      }
+
+      setMessages(data.messages || []);
+    } catch (error: any) {
+      setMessageError(error.message || "Erro ao carregar mensagens.");
+    } finally {
+      setLoadingMessages(false);
+    }
+  }
+
   useEffect(() => {
     if (patientId) {
       loadPatient();
@@ -323,6 +365,12 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (patientId) {
       loadMaterials();
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    if (patientId) {
+      loadMessages();
     }
   }, [patientId]);
 
@@ -359,9 +407,7 @@ export default function PatientDetailsPage() {
     }
 
     const numericValue =
-      typeof value === "number"
-        ? value
-        : Number(String(value).replace(",", "."));
+      typeof value === "number" ? value : Number(String(value).replace(",", "."));
 
     if (Number.isNaN(numericValue)) {
       return "Não informado";
@@ -574,12 +620,9 @@ export default function PatientDetailsPage() {
       setSummaryGeneratedAt("");
       setSummarySourceNotesCount(0);
 
-      const response = await fetch(
-        `/api/patients/${patientId}/generate-summary`,
-        {
-          method: "POST",
-        },
-      );
+      const response = await fetch(`/api/patients/${patientId}/generate-summary`, {
+        method: "POST",
+      });
 
       const data = await response.json();
 
@@ -673,18 +716,15 @@ export default function PatientDetailsPage() {
     try {
       setUpdatingTaskId(taskId);
 
-      const response = await fetch(
-        `/api/patients/${patientId}/tasks/${taskId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status,
-          }),
+      const response = await fetch(`/api/patients/${patientId}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          status,
+        }),
+      });
 
       const data = await response.json();
 
@@ -764,6 +804,46 @@ export default function PatientDetailsPage() {
       setMaterialError(error.message || "Erro ao enviar material.");
     } finally {
       setSavingMaterial(false);
+    }
+  }
+
+  async function handleSendMessage(e: React.FormEvent) {
+    e.preventDefault();
+
+    setMessageError("");
+
+    if (!messageContent.trim()) {
+      setMessageError("Escreva uma mensagem antes de enviar.");
+      return;
+    }
+
+    try {
+      setSendingMessage(true);
+
+      const response = await fetch(`/api/patients/${patientId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: messageContent,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao enviar mensagem.");
+      }
+
+      setMessageContent("");
+      await loadMessages();
+
+      showFeedback("success", "Mensagem enviada com sucesso.");
+    } catch (error: any) {
+      setMessageError(error.message || "Erro ao enviar mensagem.");
+    } finally {
+      setSendingMessage(false);
     }
   }
 
@@ -1019,9 +1099,8 @@ export default function PatientDetailsPage() {
                   margin: 0,
                 }}
               >
-                Acompanhe consultas, checklists pré-sessão, tarefas
-                terapêuticas, materiais psicoeducativos e anotações clínicas
-                internas.
+                Acompanhe consultas, checklists pré-sessão, tarefas terapêuticas,
+                materiais psicoeducativos e anotações clínicas internas.
               </p>
             </div>
 
@@ -1072,6 +1151,7 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+
         <div
           style={{
             display: "flex",
@@ -1081,36 +1161,13 @@ export default function PatientDetailsPage() {
           }}
         >
           {[
-            {
-              label: "Resumo",
-              value: "SUMMARY",
-              icon: "fa-solid fa-chart-simple",
-            },
-            {
-              label: "Consultas",
-              value: "APPOINTMENTS",
-              icon: "fa-solid fa-calendar-days",
-            },
-            {
-              label: "Anotações",
-              value: "NOTES",
-              icon: "fa-solid fa-pen-to-square",
-            },
-            {
-              label: "Checklists",
-              value: "CHECKINS",
-              icon: "fa-solid fa-clipboard-check",
-            },
-            {
-              label: "Tarefas",
-              value: "TASKS",
-              icon: "fa-solid fa-list-check",
-            },
-            {
-              label: "Materiais",
-              value: "MATERIALS",
-              icon: "fa-solid fa-book-open",
-            },
+            { label: "Resumo", value: "SUMMARY", icon: "fa-solid fa-chart-simple" },
+            { label: "Consultas", value: "APPOINTMENTS", icon: "fa-solid fa-calendar-days" },
+            { label: "Anotações", value: "NOTES", icon: "fa-solid fa-pen-to-square" },
+            { label: "Checklists", value: "CHECKINS", icon: "fa-solid fa-clipboard-check" },
+            { label: "Tarefas", value: "TASKS", icon: "fa-solid fa-list-check" },
+            { label: "Materiais", value: "MATERIALS", icon: "fa-solid fa-book-open" },
+            { label: "Mensagens", value: "MESSAGES", icon: "fa-solid fa-comments" },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -1317,11 +1374,7 @@ export default function PatientDetailsPage() {
                           gap: "8px",
                         }}
                       >
-                        <i
-                          className={getPaymentIcon(
-                            patient.nextAppointment.paymentStatus,
-                          )}
-                        ></i>
+                        <i className={getPaymentIcon(patient.nextAppointment.paymentStatus)}></i>
                         Controle financeiro
                       </p>
 
@@ -1531,11 +1584,7 @@ export default function PatientDetailsPage() {
                             gap: "8px",
                           }}
                         >
-                          <i
-                            className={getPaymentIcon(
-                              appointment.paymentStatus,
-                            )}
-                          ></i>
+                          <i className={getPaymentIcon(appointment.paymentStatus)}></i>
                           Controle financeiro
                         </p>
 
@@ -1623,7 +1672,8 @@ export default function PatientDetailsPage() {
                             marginBottom: 0,
                           }}
                         >
-                          <strong>Observação:</strong> {appointment.paymentNote}
+                          <strong>Observação:</strong>{" "}
+                          {appointment.paymentNote}
                         </p>
                       )}
                     </div>
@@ -1907,6 +1957,7 @@ export default function PatientDetailsPage() {
             )}
           </section>
         )}
+
 
         {activeTab === "TASKS" && (
           <div
@@ -2306,6 +2357,7 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+
         {activeTab === "MATERIALS" && (
           <div
             style={{
@@ -2676,6 +2728,274 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+
+        {activeTab === "MESSAGES" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1.4fr",
+              gap: "20px",
+            }}
+          >
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                Nova mensagem
+              </h2>
+
+              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                Envie uma orientação ou recado para o paciente. As mensagens
+                ficam visíveis na área do paciente.
+              </p>
+
+              {messageError && (
+                <div
+                  style={{
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    marginBottom: "16px",
+                    fontWeight: 800,
+                  }}
+                >
+                  {messageError}
+                </div>
+              )}
+
+              <form noValidate onSubmit={handleSendMessage}>
+                <div style={{ marginBottom: "18px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: 800,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Mensagem
+                  </label>
+
+                  <textarea
+                    value={messageContent}
+                    onChange={(e) => setMessageContent(e.target.value)}
+                    placeholder="Ex.: Olá! Não esqueça de realizar a tarefa combinada antes da próxima sessão."
+                    rows={8}
+                    maxLength={2000}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                    }}
+                  />
+
+                  <p
+                    style={{
+                      color: "#6b7280",
+                      fontSize: "12px",
+                      marginTop: "6px",
+                      marginBottom: 0,
+                    }}
+                  >
+                    {messageContent.length}/2000 caracteres
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={sendingMessage}
+                  style={{
+                    ...buttonPrimaryStyle,
+                    width: "100%",
+                    opacity: sendingMessage ? 0.7 : 1,
+                    cursor: sendingMessage ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {sendingMessage ? "Enviando..." : "Enviar mensagem"}
+                </button>
+              </form>
+
+              <div
+                style={{
+                  marginTop: "18px",
+                  backgroundColor: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "14px",
+                  padding: "14px",
+                  color: "#1e40af",
+                  lineHeight: 1.5,
+                  fontSize: "14px",
+                }}
+              >
+                Este canal é assíncrono: as mensagens ficam registradas no
+                sistema, mas não funcionam como chat em tempo real.
+              </div>
+            </section>
+
+            <section style={cardStyle}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                  marginBottom: "8px",
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      fontSize: "26px",
+                      fontWeight: 800,
+                      color: "#111827",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Histórico de mensagens
+                  </h2>
+
+                  <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+                    Acompanhe as mensagens trocadas com este paciente.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={loadMessages}
+                  disabled={loadingMessages}
+                  style={buttonSecondaryStyle}
+                >
+                  {loadingMessages ? "Atualizando..." : "Atualizar"}
+                </button>
+              </div>
+
+              {loadingMessages ? (
+                <p style={{ color: "#6b7280", margin: 0 }}>
+                  Carregando mensagens...
+                </p>
+              ) : messages.length === 0 ? (
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    backgroundColor: "#f8fafc",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontWeight: 800,
+                      color: "#111827",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Nenhuma mensagem registrada
+                  </p>
+
+                  <p style={{ color: "#6b7280", margin: 0 }}>
+                    Quando uma mensagem for enviada ou respondida pelo paciente,
+                    ela aparecerá aqui.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    maxHeight: "560px",
+                    overflow: "auto",
+                    paddingRight: "4px",
+                  }}
+                >
+                  {messages.map((message) => {
+                    const isPsychologist =
+                      message.senderRole === "PSYCHOLOGIST";
+
+                    return (
+                      <div
+                        key={message.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: isPsychologist
+                            ? "flex-end"
+                            : "flex-start",
+                        }}
+                      >
+                        <div
+                          style={{
+                            maxWidth: "78%",
+                            backgroundColor: isPsychologist
+                              ? "#2563eb"
+                              : "#ffffff",
+                            color: isPsychologist ? "#ffffff" : "#111827",
+                            border: isPsychologist
+                              ? "1px solid #2563eb"
+                              : "1px solid #e5e7eb",
+                            borderRadius: isPsychologist
+                              ? "16px 16px 4px 16px"
+                              : "16px 16px 16px 4px",
+                            padding: "12px 14px",
+                            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
+                          }}
+                        >
+                          <p
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: 900,
+                              marginBottom: "6px",
+                              color: isPsychologist ? "#dbeafe" : "#2563eb",
+                            }}
+                          >
+                            {isPsychologist ? "Psicólogo" : "Paciente"}
+                          </p>
+
+                          <p
+                            style={{
+                              whiteSpace: "pre-wrap",
+                              lineHeight: 1.5,
+                              marginBottom: "8px",
+                            }}
+                          >
+                            {message.content}
+                          </p>
+
+                          <p
+                            style={{
+                              fontSize: "11px",
+                              margin: 0,
+                              color: isPsychologist ? "#dbeafe" : "#6b7280",
+                            }}
+                          >
+                            {formatDate(message.createdAt)}
+                            {isPsychologist && message.readByPatientAt
+                              ? ` · Lida pelo paciente em ${formatDate(
+                                  message.readByPatientAt,
+                                )}`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
         {activeTab === "NOTES" && (
           <div
             style={{
@@ -2911,8 +3231,7 @@ export default function PatientDetailsPage() {
                     style={{
                       ...buttonPrimaryStyle,
                       minWidth: "230px",
-                      opacity:
-                        generatingSummary || notes.length === 0 ? 0.7 : 1,
+                      opacity: generatingSummary || notes.length === 0 ? 0.7 : 1,
                       cursor:
                         generatingSummary || notes.length === 0
                           ? "not-allowed"
