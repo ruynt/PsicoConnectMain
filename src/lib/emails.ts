@@ -70,12 +70,6 @@ export async function sendVerificationEmail(email: string, token: string) {
         Confirmar e-mail
       </a>
 
-      <p style="margin-top: 16px;">
-        Se o botão não funcionar, copie e cole este link no navegador:
-      </p>
-
-      <p>${confirmLink}</p>
-
       <p style="margin-top: 20px; color: #4b5563; font-size: 14px;">
         Esta é uma mensagem automática do PsicoConnect. Não responda este e-mail.
       </p>

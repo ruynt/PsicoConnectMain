@@ -1,26 +1,33 @@
 "use client";
 
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
+  const [apiError, setApiError] = useState("");
 
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const error = searchParams.get('error');
+    const error = searchParams.get("error");
+    const reset = searchParams.get("reset");
+
+    if (reset === "success") {
+      setApiError("Senha redefinida com sucesso. Faça login com a nova senha.");
+      return;
+    }
+
     if (error) {
-      if (error === 'CredentialsSignin') {
-        setApiError('Email ou senha inválidos.');
+      if (error === "CredentialsSignin") {
+        setApiError("Email ou senha inválidos.");
       } else {
-        setApiError('Não foi possível concluir o login. Tente novamente.');
+        setApiError("Não foi possível concluir o login. Tente novamente.");
       }
     }
   }, [searchParams]);
@@ -28,27 +35,31 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    setApiError('');
+    setApiError("");
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         redirect: false,
-        email: email,
-        password: password,
+        email,
+        password,
       });
 
       if (result?.error) {
-        if (result.error === 'CredentialsSignin') {
-          setApiError('Email ou senha inválidos.');
+        if (result.error === "CredentialsSignin") {
+          setApiError("Email ou senha inválidos.");
         } else {
-          setApiError('Não foi possível conectar ao servidor no momento. Tente novamente.');
+          setApiError(
+            "Não foi possível conectar ao servidor no momento. Tente novamente.",
+          );
         }
       } else if (result?.ok) {
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error(error);
-      setApiError('Não foi possível conectar ao servidor no momento. Tente novamente.');
+      setApiError(
+        "Não foi possível conectar ao servidor no momento. Tente novamente.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +71,18 @@ export default function LoginPage() {
         <div className="login-panel-left">
           <div className="logo-container">
             <img src="/logo.png" alt="Logo PsicoConnect" className="logo-img" />
-            <h1>Psico<br />Connect</h1>
+            <h1>
+              Psico
+              <br />
+              Connect
+            </h1>
           </div>
           <p className="tagline">
-            Um espaço<br />seguro para sua<br />saúde mental.
+            Um espaço
+            <br />
+            seguro para sua
+            <br />
+            saúde mental.
           </p>
         </div>
 
@@ -78,7 +97,14 @@ export default function LoginPage() {
           <h2>Entrar</h2>
 
           {apiError && (
-            <small style={{ color: '#D93025', marginBottom: '15px', textAlign: 'center' }}>
+            <small
+              style={{
+                color: apiError.includes("sucesso") ? "#047857" : "#D93025",
+                marginBottom: "15px",
+                textAlign: "center",
+                fontWeight: 700,
+              }}
+            >
               {apiError}
             </small>
           )}
@@ -91,7 +117,7 @@ export default function LoginPage() {
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={apiError ? 'error' : ''}
+              className={apiError && !apiError.includes("sucesso") ? "error" : ""}
               required
             />
             <small id="email-error" className="error-message"></small>
@@ -103,17 +129,17 @@ export default function LoginPage() {
               name="senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={apiError ? 'error' : ''}
+              className={apiError && !apiError.includes("sucesso") ? "error" : ""}
               required
             />
             <small id="senha-error" className="error-message"></small>
 
-            <Link href="#" className="forgot-password">
+            <Link href="/forgot-password" className="forgot-password">
               Esqueceu sua senha?
             </Link>
 
             <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? 'Aguarde...' : 'Entrar'}
+              {isLoading ? "Aguarde..." : "Entrar"}
             </button>
           </form>
 

@@ -64,10 +64,18 @@ function AuthGuard({ children }: PropsWithChildren) {
   const router = useRouter();
 
   const isAuthPage =
-    pathname.startsWith("/login") || pathname.startsWith("/signup");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
 
   const isLandingPage = pathname === "/";
   const isPublicPage = isAuthPage || isLandingPage;
+
+  const shouldRedirectAuthenticatedUser =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    isLandingPage;
 
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isPsychologist = userRole === "PSYCHOLOGIST";
@@ -83,14 +91,20 @@ function AuthGuard({ children }: PropsWithChildren) {
       return;
     }
 
-    if (status === "authenticated" && (isAuthPage || isLandingPage)) {
+    if (status === "authenticated" && shouldRedirectAuthenticatedUser) {
       const redirectPath =
         userRole === "PSYCHOLOGIST" ? "/dashboard" : "/patient";
 
       setIsNavigating(true);
       router.push(redirectPath);
     }
-  }, [status, isPublicPage, isAuthPage, isLandingPage, userRole, router]);
+  }, [
+    status,
+    isPublicPage,
+    shouldRedirectAuthenticatedUser,
+    userRole,
+    router,
+  ]);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -108,6 +122,10 @@ function AuthGuard({ children }: PropsWithChildren) {
   }
 
   if (isPublicPage && status === "unauthenticated") {
+    return <>{children}</>;
+  }
+
+  if (isPublicPage && status === "authenticated") {
     return <>{children}</>;
   }
 

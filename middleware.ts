@@ -3,21 +3,29 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/api/auth"];
+function isPublicPath(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/reset-password/") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/confirm-email") ||
+    pathname.startsWith("/api/forgot-password") ||
+    pathname.startsWith("/api/reset-password") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon")
+  );
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Permitir rotas públicas
-  if (
-    PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
-  ) {
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
-  // Checar se está logado
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -27,7 +35,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Controle de acesso por papel
   if (
     (pathname.startsWith("/dashboard") ||
       pathname.startsWith("/agenda") ||
@@ -37,7 +44,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/patient", req.url));
   }
 
-  if (pathname.startsWith("/patient") && token.role !== "PATIENT") {
+  if (
+    (pathname.startsWith("/patient") ||
+      pathname.startsWith("/minhas-consultas") ||
+      pathname.startsWith("/tarefas-materiais") ||
+      pathname.startsWith("/mensagens")) &&
+    token.role !== "PATIENT"
+  ) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

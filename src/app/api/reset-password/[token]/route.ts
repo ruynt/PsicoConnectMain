@@ -1,0 +1,94 @@
+import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
+
+import prisma from "../../../../lib/prisma";
+
+type RouteContext = {
+  params: Promise<{
+    token: string;
+  }>;
+};
+
+export async function POST(req: NextRequest, context: RouteContext) {
+  try {
+    const { token } = await context.params;
+
+    if (!token || token === "undefined") {
+      return NextResponse.json(
+        { error: "Token de redefinição inválido." },
+        { status: 400 },
+      );
+    }
+
+    const body = await req.json();
+    const password = String(body?.password || "");
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "A nova senha deve ter pelo menos 6 caracteres." },
+        { status: 400 },
+      );
+    }
+
+    const passwordResetToken = await prisma.passwordResetToken.findUnique({
+      where: { token },
+    });
+
+    if (!passwordResetToken) {
+      return NextResponse.json(
+        { error: "Link de redefinição inválido ou já utilizado." },
+        { status: 400 },
+      );
+    }
+
+    if (passwordResetToken.expiresAt < new Date()) {
+      await prisma.passwordResetToken.delete({
+        where: { token },
+      });
+
+      return NextResponse.json(
+        { error: "Link de redefinição expirado. Solicite um novo link." },
+        { status: 400 },
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: passwordResetToken.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      await prisma.passwordResetToken.delete({
+        where: { token },
+      });
+
+      return NextResponse.json(
+        { error: "Usuário não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      }),
+      prisma.passwordResetToken.delete({
+        where: { token },
+      }),
+    ]);
+
+    return NextResponse.json({
+      message: "Senha redefinida com sucesso.",
+    });
+  } catch (error) {
+    console.error("Erro ao redefinir senha:", error);
+
+    return NextResponse.json(
+      { error: "Não foi possível redefinir a senha." },
+      { status: 500 },
+    );
+  }
+}
