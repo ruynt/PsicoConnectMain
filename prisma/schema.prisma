@@ -26,6 +26,9 @@ model Psychologist {
   userId String @unique
   crp    String @unique
 
+  crpVerificationStatus CrpVerificationStatus @default(PENDING)
+  crpVerifiedAt         DateTime?
+
   user User @relation(fields: [userId], references: [id])
 
   appointments Appointment[]
@@ -36,6 +39,8 @@ model Psychologist {
 
   therapeuticTasks TherapeuticTask[]
   patientMessages  PatientMessage[]
+
+  @@index([crpVerificationStatus])
 }
 
 model Patient {
@@ -309,4 +314,10 @@ enum TherapeuticTaskStatus {
 enum MessageSenderRole {
   PSYCHOLOGIST
   PATIENT
+}
+
+enum CrpVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

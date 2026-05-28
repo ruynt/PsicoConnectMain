@@ -67,7 +67,17 @@ export const authConfig: NextAuthOptions = {
         }
 
         const { email, password } = parsed.data;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: {
+            psychologist: {
+              select: {
+                crpVerificationStatus: true,
+                crpVerifiedAt: true,
+              },
+            },
+          },
+        });
 
         if (!user) {
           throw new Error("Nenhum utilizador encontrado com este email.");
@@ -90,6 +100,13 @@ export const authConfig: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          crpVerificationStatus:
+            user.role === "PSYCHOLOGIST"
+              ? user.psychologist?.crpVerificationStatus || "PENDING"
+              : null,
+          crpVerifiedAt: user.psychologist?.crpVerifiedAt
+            ? user.psychologist.crpVerifiedAt.toISOString()
+            : null,
         };
       },
     }),
@@ -112,17 +129,34 @@ export const authConfig: NextAuthOptions = {
       if (user?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email },
+          include: {
+            psychologist: {
+              select: {
+                crpVerificationStatus: true,
+                crpVerifiedAt: true,
+              },
+            },
+          },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
+          token.crpVerificationStatus =
+            dbUser.role === "PSYCHOLOGIST"
+              ? dbUser.psychologist?.crpVerificationStatus || "PENDING"
+              : null;
+          token.crpVerifiedAt = dbUser.psychologist?.crpVerifiedAt
+            ? dbUser.psychologist.crpVerifiedAt.toISOString()
+            : null;
         }
       }
 
       if (user && !token.id) {
         token.id = (user as any).id;
         token.role = (user as any).role;
+        token.crpVerificationStatus = (user as any).crpVerificationStatus;
+        token.crpVerifiedAt = (user as any).crpVerifiedAt;
       }
 
       if (account?.provider === "google") {
@@ -155,6 +189,9 @@ export const authConfig: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).crpVerificationStatus =
+          token.crpVerificationStatus;
+        (session.user as any).crpVerifiedAt = token.crpVerifiedAt;
         (session.user as any).googleAccessToken = token.googleAccessToken;
         (session.user as any).googleAccessTokenExpires =
           token.googleAccessTokenExpires;

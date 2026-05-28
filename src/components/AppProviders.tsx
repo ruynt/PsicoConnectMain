@@ -5,6 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
 
+type SessionUserWithRoleAndCrp = {
+  role?: string;
+  crpVerificationStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
+};
+
 function PsicoLoadingScreen() {
   return (
     <div
@@ -70,6 +75,7 @@ function AuthGuard({ children }: PropsWithChildren) {
     pathname.startsWith("/reset-password");
 
   const isLandingPage = pathname === "/";
+  const isVerificationPage = pathname.startsWith("/aguardando-verificacao");
   const isPublicPage = isAuthPage || isLandingPage;
 
   const shouldRedirectAuthenticatedUser =
@@ -77,9 +83,23 @@ function AuthGuard({ children }: PropsWithChildren) {
     pathname.startsWith("/signup") ||
     isLandingPage;
 
-  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const sessionUser = session?.user as SessionUserWithRoleAndCrp | undefined;
+  const userRole = sessionUser?.role;
+  const crpVerificationStatus = sessionUser?.crpVerificationStatus;
+
   const isPsychologist = userRole === "PSYCHOLOGIST";
   const isPatient = userRole === "PATIENT";
+
+  /*
+    Importante:
+    - A verificação só é aplicada quando o status vier na sessão.
+    - Isso evita travar o projeto antes de ajustarmos o NextAuth para incluir
+      crpVerificationStatus no token/session.
+  */
+  const shouldBlockPsychologistByCrp =
+    isPsychologist &&
+    Boolean(crpVerificationStatus) &&
+    crpVerificationStatus !== "APPROVED";
 
   const homePath = isPsychologist ? "/dashboard" : "/patient";
 
@@ -97,11 +117,36 @@ function AuthGuard({ children }: PropsWithChildren) {
 
       setIsNavigating(true);
       router.push(redirectPath);
+      return;
+    }
+
+    if (
+      status === "authenticated" &&
+      shouldBlockPsychologistByCrp &&
+      !isVerificationPage
+    ) {
+      setIsNavigating(true);
+      router.push("/aguardando-verificacao");
+      return;
+    }
+
+    if (
+      status === "authenticated" &&
+      isVerificationPage &&
+      isPsychologist &&
+      crpVerificationStatus === "APPROVED"
+    ) {
+      setIsNavigating(true);
+      router.push("/dashboard");
     }
   }, [
     status,
     isPublicPage,
     shouldRedirectAuthenticatedUser,
+    shouldBlockPsychologistByCrp,
+    isVerificationPage,
+    isPsychologist,
+    crpVerificationStatus,
     userRole,
     router,
   ]);
@@ -130,6 +175,10 @@ function AuthGuard({ children }: PropsWithChildren) {
   }
 
   if (!isPublicPage && status === "authenticated") {
+    if (shouldBlockPsychologistByCrp && isVerificationPage) {
+      return <>{children}</>;
+    }
+
     const isActive = (path: string) =>
       pathname === path || pathname.startsWith(`${path}/`);
 
