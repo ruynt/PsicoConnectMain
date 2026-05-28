@@ -226,8 +226,7 @@ export default function MyAppointmentsPage() {
     HISTORY: {
       label: "Histórico",
       title: "Histórico de consultas",
-      description:
-        "Consultas anteriores e cancelamentos reunidos em um só lugar.",
+      description: "Consultas anteriores e cancelamentos reunidos em um só lugar.",
       emptyTitle: "Nenhum histórico disponível",
       emptyDescription:
         "Consultas anteriores e canceladas aparecerão neste espaço.",
@@ -316,8 +315,7 @@ export default function MyAppointmentsPage() {
 
     return {
       label: "Aguardando confirmação",
-      description:
-        "Confirme sua presença ou solicite cancelamento, se necessário.",
+      description: "Confirme sua presença ou solicite cancelamento, se necessário.",
       bg: "#eff6ff",
       color: "#1d4ed8",
       border: "#bfdbfe",
@@ -386,10 +384,7 @@ export default function MyAppointmentsPage() {
 
       await loadAppointments();
       closeCancelRequestModal();
-      showFeedback(
-        "success",
-        "Solicitação de cancelamento enviada ao profissional.",
-      );
+      showFeedback("success", "Solicitação de cancelamento enviada ao profissional.");
     } catch (error: any) {
       setCancelRequestError(error.message || "Erro ao solicitar cancelamento.");
     } finally {
@@ -417,10 +412,7 @@ export default function MyAppointmentsPage() {
       }
 
       await loadAppointments();
-      showFeedback(
-        "success",
-        "Solicitação de cancelamento retirada com sucesso.",
-      );
+      showFeedback("success", "Solicitação de cancelamento retirada com sucesso.");
     } catch (error: any) {
       showFeedback(
         "error",
@@ -553,9 +545,9 @@ export default function MyAppointmentsPage() {
   const pageStyle = {
     padding: "36px",
     minHeight: "calc(100vh - 48px)",
-    background:
-      "radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 32%), #f8fafc",
-    borderRadius: "32px",
+    paddingBottom: "72px",
+    background: "#ffffff",
+    borderRadius: 0,
     overflow: "visible",
   };
 
@@ -608,13 +600,7 @@ export default function MyAppointmentsPage() {
     backgroundColor: "#ffffff",
   } as const;
 
-  function MetricCard({
-    label,
-    value,
-    description,
-    icon,
-    tone,
-  }: MetricCardProps) {
+  function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
     const selectedTone = tones[tone];
 
     return (
@@ -711,10 +697,19 @@ export default function MyAppointmentsPage() {
 
   if (loading) {
     return (
-      <div style={pageStyle}>
-        <h1 style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a" }}>
-          Carregando suas consultas...
-        </h1>
+      <div
+        style={{
+          ...pageStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="psico-simple-loader" aria-label="Carregando">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
     );
   }
@@ -725,7 +720,7 @@ export default function MyAppointmentsPage() {
         <section
           style={{
             background:
-              "linear-gradient(135deg, #4338ca, #2563eb 55%, #60a5fa)",
+              "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
             borderRadius: "28px",
             padding: "30px",
             color: "#ffffff",
@@ -782,6 +777,7 @@ export default function MyAppointmentsPage() {
                   fontSize: "13px",
                   fontWeight: 800,
                   marginBottom: "14px",
+                  color: "#ffffff",
                 }}
               >
                 <i className="fa-solid fa-calendar-days"></i>
@@ -794,6 +790,7 @@ export default function MyAppointmentsPage() {
                   fontWeight: 900,
                   lineHeight: 1.05,
                   marginBottom: "10px",
+                  color: "#ffffff",
                 }}
               >
                 Minhas consultas
@@ -802,7 +799,7 @@ export default function MyAppointmentsPage() {
               <p
                 style={{
                   fontSize: "18px",
-                  color: "#dbeafe",
+                  color: "#ffffff",
                   maxWidth: "760px",
                   margin: 0,
                 }}
@@ -1123,8 +1120,7 @@ export default function MyAppointmentsPage() {
                     }}
                   >
                     <p style={{ color: "#475569", margin: 0 }}>
-                      <strong>Início:</strong>{" "}
-                      {formatDate(appointment.dateTime)}
+                      <strong>Início:</strong> {formatDate(appointment.dateTime)}
                     </p>
 
                     {appointment.endDateTime && (
@@ -1150,8 +1146,7 @@ export default function MyAppointmentsPage() {
                   </div>
 
                   {appointment.status === "SCHEDULED" &&
-                    new Date(appointment.dateTime) >= now &&
-                    (() => {
+                    new Date(appointment.dateTime) >= now && (() => {
                       const confirmationInfo = getConfirmationInfo(appointment);
 
                       return (
@@ -1306,10 +1301,7 @@ export default function MyAppointmentsPage() {
                                 ? "not-allowed"
                                 : "pointer",
                             fontSize: "14px",
-                            opacity:
-                              updatingConfirmationId === appointment.id
-                                ? 0.7
-                                : 1,
+                            opacity: updatingConfirmationId === appointment.id ? 0.7 : 1,
                           }}
                         >
                           {updatingConfirmationId === appointment.id
@@ -1363,9 +1355,7 @@ export default function MyAppointmentsPage() {
                                 : "pointer",
                             fontSize: "14px",
                             opacity:
-                              updatingConfirmationId === appointment.id
-                                ? 0.7
-                                : 1,
+                              updatingConfirmationId === appointment.id ? 0.7 : 1,
                           }}
                         >
                           {updatingConfirmationId === appointment.id
@@ -1556,7 +1546,9 @@ export default function MyAppointmentsPage() {
                   }}
                   disabled={savingCancelRequest}
                 >
-                  {savingCancelRequest ? "Enviando..." : "Enviar solicitação"}
+                  {savingCancelRequest
+                    ? "Enviando..."
+                    : "Enviar solicitação"}
                 </button>
               </div>
             </form>

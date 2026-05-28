@@ -30,7 +30,7 @@ export default function ChatBotPage() {
     {
       id: Date.now(),
       text:
-        "Olá! Sou o assistente virtual da PsicoConnect. Estou aqui para ajudar com agendamentos ou tirar dúvidas.",
+        "Olá! Sou o PsicoBot, assistente virtual da PsicoConnect. Estou aqui para ajudar com agendamentos ou tirar dúvidas.",
       sender: "bot",
       timestamp: formatTimestamp(),
     },
@@ -135,7 +135,7 @@ export default function ChatBotPage() {
       const errorMessage: Message = {
         id: Date.now() + 1,
         text:
-          "Erro: Não foi possível conectar ao bot. Verifique se o servidor (porta 8000) está rodando e se o CORS está configurado.",
+          "Erro: Não foi possível conectar ao PsicoBot. Verifique se o servidor (porta 8000) está rodando e se o CORS está configurado.",
         sender: "bot",
         timestamp: formatTimestamp(),
       };
@@ -150,8 +150,8 @@ export default function ChatBotPage() {
     <div className="chat-page-shell">
       <main className="chat-panel-wrapper">
         <header className="chat-header">
-          <div className="icon">
-            <i className="fa-solid fa-robot" />
+          <div className="icon psicobot-header-icon">
+            <img src="/psicobot_icon_white.png" alt="" aria-hidden="true" />
           </div>
 
           <div className="chat-header-title">
@@ -242,7 +242,7 @@ export default function ChatBotPage() {
         <h2>Sugestões</h2>
 
         <p className="side-panel-description">
-          Use perguntas rápidas para testar o assistente durante a apresentação.
+          Use perguntas rápidas para testar o PsicoBot durante a apresentação.
         </p>
 
         <div className="suggestion-list">
@@ -260,7 +260,7 @@ export default function ChatBotPage() {
         </div>
 
         <div className="side-alert warning">
-          <strong>Importante:</strong> o assistente oferece apoio informativo e
+          <strong>Importante:</strong> o PsicoBot oferece apoio informativo e
           não substitui avaliação profissional, supervisão clínica ou tomada de
           decisão técnica.
         </div>
@@ -321,6 +321,13 @@ export default function ChatBotPage() {
           flex: 0 0 auto;
         }
 
+        .chat-header .psicobot-header-icon img {
+          width: 46px;
+          height: 46px;
+          object-fit: contain;
+          display: block;
+        }
+
         .chat-header-title {
           min-width: 0;
           display: flex;
@@ -342,7 +349,7 @@ export default function ChatBotPage() {
 
         .chat-header-title p {
           font-size: 16px;
-          color: #000000;
+          color: #5272a6;
           font-family: "Inter", sans-serif;
           margin-top: 2px;
           white-space: normal;

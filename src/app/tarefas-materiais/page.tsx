@@ -50,6 +50,11 @@ type Feedback = {
 
 type ActiveTab = "TASKS" | "MATERIALS";
 
+const NAVY = "#001e5e";
+const NAVY_SOFT = "#102a56";
+const MUTED = "#5272a6";
+const BORDER = "#e6edf7";
+
 export default function TarefasMateriaisPage() {
   const [tasks, setTasks] = useState<PatientTask[]>([]);
   const [materials, setMaterials] = useState<PatientMaterial[]>([]);
@@ -392,18 +397,17 @@ export default function TarefasMateriaisPage() {
     padding: "36px",
     minHeight: "calc(100vh - 48px)",
     paddingBottom: "72px",
-    background:
-      "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
-    borderRadius: "32px",
+    background: "#ffffff",
+    borderRadius: 0,
     overflow: "visible",
   };
 
   const cardStyle = {
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
     borderRadius: "22px",
     padding: "24px",
-    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
-    border: "1px solid rgba(226, 232, 240, 0.9)",
+    boxShadow: "0 10px 28px rgba(0, 30, 94, 0.06)",
+    border: `1px solid ${BORDER}`,
   };
 
   const buttonPrimaryStyle = {
@@ -419,7 +423,7 @@ export default function TarefasMateriaisPage() {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.24)",
+    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.20)",
   } as const;
 
   const buttonSecondaryStyle = {
@@ -433,6 +437,8 @@ export default function TarefasMateriaisPage() {
     fontSize: "14px",
   } as const;
 
+  const isLoadingAnyData = loadingTasks || loadingMaterials;
+
   return (
     <div style={pageStyle}>
       <section
@@ -442,7 +448,7 @@ export default function TarefasMateriaisPage() {
           padding: "30px",
           color: "#ffffff",
           marginBottom: "24px",
-          boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+          boxShadow: "0 20px 50px rgba(37, 99, 235, 0.18)",
           position: "relative",
           overflow: "hidden",
         }}
@@ -474,7 +480,7 @@ export default function TarefasMateriaisPage() {
         <div style={{ position: "relative", zIndex: 1 }}>
           <p
             style={{
-              color: "#dbeafe",
+              color: "#ffffff",
               fontSize: "14px",
               fontWeight: 900,
               marginBottom: "8px",
@@ -483,8 +489,11 @@ export default function TarefasMateriaisPage() {
             Acompanhamento terapêutico
           </p>
 
-          <h1
+          <div
+            role="heading"
+            aria-level={1}
             style={{
+              color: "#ffffff",
               fontSize: "42px",
               fontWeight: 900,
               lineHeight: 1.05,
@@ -492,12 +501,12 @@ export default function TarefasMateriaisPage() {
             }}
           >
             Tarefas e materiais
-          </h1>
+          </div>
 
           <p
             style={{
               fontSize: "18px",
-              color: "#dbeafe",
+              color: "#ffffff",
               maxWidth: "850px",
               margin: 0,
               lineHeight: 1.6,
@@ -509,933 +518,864 @@ export default function TarefasMateriaisPage() {
         </div>
       </section>
 
-      <section
-        style={{
-          ...cardStyle,
-          marginBottom: "24px",
-          display: "grid",
-          gridTemplateColumns: "1fr 1.2fr",
-          gap: "24px",
-          alignItems: "stretch",
-        }}
-      >
-        <div>
-          <p
-            style={{
-              color: "#2563eb",
-              fontSize: "14px",
-              fontWeight: 900,
-              marginBottom: "8px",
-            }}
-          >
-            Progresso do acompanhamento
-          </p>
-
-          <h2
-            style={{
-              color: "#111827",
-              fontSize: "30px",
-              fontWeight: 900,
-              marginBottom: "8px",
-            }}
-          >
-            {gamification.level}
-          </h2>
-
-          <p
-            style={{
-              color: "#6b7280",
-              lineHeight: 1.6,
-              marginBottom: "18px",
-            }}
-          >
-            {gamification.levelDescription}
-          </p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: "12px",
-              marginBottom: "18px",
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                borderRadius: "16px",
-                padding: "14px",
-              }}
-            >
-              <p
-                style={{
-                  color: "#1d4ed8",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  marginBottom: "6px",
-                }}
-              >
-                Pontos
-              </p>
-
-              <p
-                style={{
-                  color: "#111827",
-                  fontSize: "28px",
-                  fontWeight: 900,
-                  margin: 0,
-                }}
-              >
-                {gamification.points}
-              </p>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                borderRadius: "16px",
-                padding: "14px",
-              }}
-            >
-              <p
-                style={{
-                  color: "#065f46",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  marginBottom: "6px",
-                }}
-              >
-                Progresso
-              </p>
-
-              <p
-                style={{
-                  color: "#111827",
-                  fontSize: "28px",
-                  fontWeight: 900,
-                  margin: 0,
-                }}
-              >
-                {gamification.progressPercentage}%
-              </p>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: "#f8fafc",
-                border: "1px solid #e5e7eb",
-                borderRadius: "16px",
-                padding: "14px",
-              }}
-            >
-              <p
-                style={{
-                  color: "#4b5563",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  marginBottom: "6px",
-                }}
-              >
-                Itens acompanhados
-              </p>
-
-              <p
-                style={{
-                  color: "#111827",
-                  fontSize: "28px",
-                  fontWeight: 900,
-                  margin: 0,
-                }}
-              >
-                {gamification.completedTrackableItems}/
-                {gamification.totalTrackableItems}
-              </p>
-            </div>
-          </div>
-
-          <div
-            style={{
-              width: "100%",
-              height: "12px",
-              borderRadius: "999px",
-              backgroundColor: "#e5e7eb",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                width: `${gamification.progressPercentage}%`,
-                height: "100%",
-                borderRadius: "999px",
-                background: "linear-gradient(135deg, #2563eb, #22c55e)",
-                transition: "width 0.3s ease",
-              }}
-            />
-          </div>
-
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: "13px",
-              marginTop: "10px",
-              marginBottom: 0,
-            }}
-          >
-            A pontuação é simbólica e serve apenas para visualizar sua
-            participação no acompanhamento.
-          </p>
-        </div>
-
-        <div>
-          <p
-            style={{
-              color: "#111827",
-              fontSize: "18px",
-              fontWeight: 900,
-              marginBottom: "14px",
-            }}
-          >
-            Indicadores de acompanhamento
-          </p>
-
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              lineHeight: 1.6,
-              marginTop: "-6px",
-              marginBottom: "14px",
-            }}
-          >
-            Os indicadores se adaptam ao que foi enviado pelo psicólogo. Se não
-            houver materiais, por exemplo, a tela não exige leitura.
-          </p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: "12px",
-            }}
-          >
-            {gamification.indicators.map((indicator) => (
-              <div
-                key={indicator.title}
-                style={{
-                  border: indicator.unlocked
-                    ? "1px solid #bfdbfe"
-                    : "1px solid #e5e7eb",
-                  backgroundColor: indicator.unlocked ? "#eff6ff" : "#f9fafb",
-                  borderRadius: "16px",
-                  padding: "14px",
-                  opacity: indicator.unlocked ? 1 : 0.86,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "12px",
-                      backgroundColor: indicator.unlocked
-                        ? "#2563eb"
-                        : "#e5e7eb",
-                      color: indicator.unlocked ? "#ffffff" : "#6b7280",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <i className={indicator.icon}></i>
-                  </div>
-
-                  <div>
-                    <p
-                      style={{
-                        color: "#111827",
-                        fontWeight: 900,
-                        margin: 0,
-                        fontSize: "14px",
-                      }}
-                    >
-                      {indicator.title}
-                    </p>
-
-                    <p
-                      style={{
-                        color: indicator.unlocked ? "#1d4ed8" : "#6b7280",
-                        fontSize: "12px",
-                        fontWeight: 800,
-                        margin: 0,
-                      }}
-                    >
-                      {indicator.status}
-                    </p>
-                  </div>
-                </div>
-
-                <p
-                  style={{
-                    color: "#6b7280",
-                    fontSize: "13px",
-                    lineHeight: 1.5,
-                    margin: 0,
-                  }}
-                >
-                  {indicator.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {feedback && (
+      {isLoadingAnyData ? (
         <div
           style={{
-            backgroundColor:
-              feedback.type === "success"
-                ? "#ecfdf5"
-                : feedback.type === "error"
-                  ? "#fef2f2"
-                  : "#eff6ff",
-            border:
-              feedback.type === "success"
-                ? "1px solid #a7f3d0"
-                : feedback.type === "error"
-                  ? "1px solid #fecaca"
-                  : "1px solid #bfdbfe",
-            color:
-              feedback.type === "success"
-                ? "#065f46"
-                : feedback.type === "error"
-                  ? "#b91c1c"
-                  : "#1d4ed8",
-            borderRadius: "12px",
-            padding: "14px 16px",
-            marginBottom: "18px",
-            fontWeight: 800,
-          }}
-        >
-          {feedback.message}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
-        <div style={cardStyle}>
-          <p
-            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Tarefas pendentes
-          </p>
-          <p
-            style={{
-              color: "#92400e",
-              fontSize: "32px",
-              fontWeight: 900,
-              margin: 0,
-            }}
-          >
-            {taskStats.pending}
-          </p>
-        </div>
-
-        <div style={cardStyle}>
-          <p
-            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Tarefas concluídas
-          </p>
-          <p
-            style={{
-              color: "#065f46",
-              fontSize: "32px",
-              fontWeight: 900,
-              margin: 0,
-            }}
-          >
-            {taskStats.completed}
-          </p>
-        </div>
-
-        <div style={cardStyle}>
-          <p
-            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Materiais novos
-          </p>
-          <p
-            style={{
-              color: "#1d4ed8",
-              fontSize: "32px",
-              fontWeight: 900,
-              margin: 0,
-            }}
-          >
-            {materialStats.unread}
-          </p>
-        </div>
-
-        <div style={cardStyle}>
-          <p
-            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Materiais vistos
-          </p>
-          <p
-            style={{
-              color: "#065f46",
-              fontSize: "32px",
-              fontWeight: 900,
-              margin: 0,
-            }}
-          >
-            {materialStats.viewed}
-          </p>
-        </div>
-
-        <div style={cardStyle}>
-          <p
-            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "8px" }}
-          >
-            Total recebido
-          </p>
-          <p
-            style={{
-              color: "#111827",
-              fontSize: "32px",
-              fontWeight: 900,
-              margin: 0,
-            }}
-          >
-            {taskStats.total + materialStats.total}
-          </p>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          marginBottom: "24px",
-          flexWrap: "wrap",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setActiveTab("TASKS")}
-          style={{
-            border:
-              activeTab === "TASKS" ? "1px solid #2563eb" : "1px solid #d1d5db",
-            backgroundColor: activeTab === "TASKS" ? "#eff6ff" : "#fff",
-            color: activeTab === "TASKS" ? "#1d4ed8" : "#374151",
-            borderRadius: "999px",
-            padding: "11px 17px",
-            fontWeight: 900,
-            cursor: "pointer",
-            fontSize: "14px",
-            display: "inline-flex",
+            ...cardStyle,
+            minHeight: "220px",
+            display: "flex",
             alignItems: "center",
-            gap: "8px",
+            justifyContent: "center",
+            marginBottom: "24px",
           }}
         >
-          <i className="fa-solid fa-list-check"></i>
-          Tarefas terapêuticas
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("MATERIALS")}
-          style={{
-            border:
-              activeTab === "MATERIALS"
-                ? "1px solid #2563eb"
-                : "1px solid #d1d5db",
-            backgroundColor: activeTab === "MATERIALS" ? "#eff6ff" : "#fff",
-            color: activeTab === "MATERIALS" ? "#1d4ed8" : "#374151",
-            borderRadius: "999px",
-            padding: "11px 17px",
-            fontWeight: 900,
-            cursor: "pointer",
-            fontSize: "14px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <i className="fa-solid fa-book-open"></i>
-          Materiais psicoeducativos
-        </button>
-      </div>
-
-      {activeTab === "TASKS" && (
-        <section style={cardStyle}>
-          <h2
+          <div className="psico-simple-loader">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <section
             style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#111827",
-              marginBottom: "8px",
+              ...cardStyle,
+              marginBottom: "24px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1.2fr",
+              gap: "24px",
+              alignItems: "stretch",
             }}
           >
-            Tarefas terapêuticas
-          </h2>
-
-          <p
-            style={{ color: "#6b7280", marginBottom: "20px", lineHeight: 1.6 }}
-          >
-            Aqui ficam as atividades combinadas com seu psicólogo para apoiar
-            seu processo terapêutico entre as sessões.
-          </p>
-
-          {taskError && (
-            <div
-              style={{
-                backgroundColor: "#fef2f2",
-                border: "1px solid #fecaca",
-                color: "#b91c1c",
-                borderRadius: "12px",
-                padding: "12px 14px",
-                marginBottom: "16px",
-                fontWeight: 800,
-              }}
-            >
-              {taskError}
-            </div>
-          )}
-
-          {loadingTasks ? (
-            <div
-              style={{
-                minHeight: "160px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div className="psico-simple-loader">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          ) : tasks.length === 0 ? (
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "16px",
-                padding: "18px",
-                backgroundColor: "#f8fafc",
-              }}
-            >
+            <div>
               <p
                 style={{
-                  color: "#111827",
+                  color: "#2563eb",
+                  fontSize: "14px",
                   fontWeight: 900,
-                  marginBottom: "6px",
+                  marginBottom: "8px",
                 }}
               >
-                Nenhuma tarefa recebida
+                Progresso do acompanhamento
               </p>
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                Quando seu psicólogo enviar uma tarefa, ela aparecerá aqui.
-              </p>
-            </div>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-            >
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "16px",
-                    padding: "18px",
-                    backgroundColor: "#f8fafc",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
-                      alignItems: "flex-start",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <div>
-                      <h3
-                        style={{
-                          color: "#111827",
-                          fontSize: "20px",
-                          fontWeight: 900,
-                          marginBottom: "6px",
-                        }}
-                      >
-                        {task.title}
-                      </h3>
 
-                      {task.dueDate && (
-                        <p style={{ color: "#6b7280", margin: 0 }}>
-                          Prazo: {formatDateOnly(task.dueDate)}
-                        </p>
-                      )}
-                    </div>
+              <h2
+                style={{
+                  color: NAVY,
+                  fontSize: "30px",
+                  fontWeight: 900,
+                  marginBottom: "8px",
+                }}
+              >
+                {gamification.level}
+              </h2>
 
-                    <span
-                      style={{
-                        ...getTaskStatusStyle(task.status),
-                        borderRadius: "999px",
-                        padding: "6px 12px",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {getTaskStatusLabel(task.status)}
-                    </span>
-                  </div>
-
-                  {task.description && (
-                    <p
-                      style={{
-                        color: "#4b5563",
-                        lineHeight: 1.6,
-                        marginBottom: "12px",
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
-                      {task.description}
-                    </p>
-                  )}
-
-                  {task.appointment && (
-                    <p style={{ color: "#4b5563", marginBottom: "10px" }}>
-                      <strong>Consulta relacionada:</strong>{" "}
-                      {task.appointment.title} —{" "}
-                      {formatDate(task.appointment.dateTime)}
-                    </p>
-                  )}
-
-                  {task.psychologist?.name && (
-                    <p
-                      style={{
-                        color: "#6b7280",
-                        fontSize: "13px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Enviada por {task.psychologist.name}
-                    </p>
-                  )}
-
-                  {task.completedAt && (
-                    <p style={{ color: "#065f46", marginBottom: "10px" }}>
-                      <strong>Concluída em:</strong>{" "}
-                      {formatDate(task.completedAt)}
-                    </p>
-                  )}
-
-                  <div
-                    style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
-                  >
-                    {task.status === "PENDING" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleUpdateTaskStatus(task.id, "COMPLETED")
-                        }
-                        disabled={updatingTaskId === task.id}
-                        style={{
-                          ...buttonPrimaryStyle,
-                          opacity: updatingTaskId === task.id ? 0.7 : 1,
-                          cursor:
-                            updatingTaskId === task.id
-                              ? "not-allowed"
-                              : "pointer",
-                        }}
-                      >
-                        {updatingTaskId === task.id
-                          ? "Atualizando..."
-                          : "Marcar como concluída"}
-                      </button>
-                    )}
-
-                    {task.status === "COMPLETED" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleUpdateTaskStatus(task.id, "PENDING")
-                        }
-                        disabled={updatingTaskId === task.id}
-                        style={{
-                          ...buttonSecondaryStyle,
-                          opacity: updatingTaskId === task.id ? 0.7 : 1,
-                          cursor:
-                            updatingTaskId === task.id
-                              ? "not-allowed"
-                              : "pointer",
-                        }}
-                      >
-                        Reabrir tarefa
-                      </button>
-                    )}
-
-                    {task.status === "CANCELLED" && (
-                      <span style={{ color: "#b91c1c", fontWeight: 800 }}>
-                        Esta tarefa foi cancelada pelo psicólogo.
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {activeTab === "MATERIALS" && (
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#111827",
-              marginBottom: "8px",
-            }}
-          >
-            Materiais psicoeducativos
-          </h2>
-
-          <p
-            style={{ color: "#6b7280", marginBottom: "20px", lineHeight: 1.6 }}
-          >
-            Acesse links, textos e orientações enviados pelo seu psicólogo para
-            apoiar seu acompanhamento.
-          </p>
-
-          {materialError && (
-            <div
-              style={{
-                backgroundColor: "#fef2f2",
-                border: "1px solid #fecaca",
-                color: "#b91c1c",
-                borderRadius: "12px",
-                padding: "12px 14px",
-                marginBottom: "16px",
-                fontWeight: 800,
-              }}
-            >
-              {materialError}
-            </div>
-          )}
-
-          {loadingMaterials ? (
-            <div
-              style={{
-                minHeight: "160px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div className="psico-simple-loader">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          ) : materials.length === 0 ? (
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "16px",
-                padding: "18px",
-                backgroundColor: "#f8fafc",
-              }}
-            >
               <p
                 style={{
-                  color: "#111827",
-                  fontWeight: 900,
-                  marginBottom: "6px",
+                  color: MUTED,
+                  lineHeight: 1.6,
+                  marginBottom: "18px",
                 }}
               >
-                Nenhum material recebido
+                {gamification.levelDescription}
               </p>
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                Quando seu psicólogo enviar um material, ele aparecerá aqui.
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "12px",
+                  marginBottom: "18px",
+                }}
+              >
+                <SmallStatCard
+                  label="Pontos"
+                  value={gamification.points}
+                  tone="blue"
+                />
+
+                <SmallStatCard
+                  label="Progresso"
+                  value={`${gamification.progressPercentage}%`}
+                  tone="green"
+                />
+
+                <SmallStatCard
+                  label="Itens acompanhados"
+                  value={`${gamification.completedTrackableItems}/${gamification.totalTrackableItems}`}
+                  tone="slate"
+                />
+              </div>
+
+              <div
+                style={{
+                  width: "100%",
+                  height: "12px",
+                  borderRadius: "999px",
+                  backgroundColor: "#e5e7eb",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${gamification.progressPercentage}%`,
+                    height: "100%",
+                    borderRadius: "999px",
+                    background: "linear-gradient(135deg, #2563eb, #22c55e)",
+                    transition: "width 0.3s ease",
+                  }}
+                />
+              </div>
+
+              <p
+                style={{
+                  color: MUTED,
+                  fontSize: "13px",
+                  marginTop: "10px",
+                  marginBottom: 0,
+                }}
+              >
+                A pontuação é simbólica e serve apenas para visualizar sua
+                participação no acompanhamento.
               </p>
             </div>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-            >
-              {materials.map((material) => (
-                <div
-                  key={material.id}
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "16px",
-                    padding: "18px",
-                    backgroundColor: material.viewedAt ? "#f8fafc" : "#eff6ff",
-                  }}
-                >
+
+            <div>
+              <p
+                style={{
+                  color: NAVY,
+                  fontSize: "18px",
+                  fontWeight: 900,
+                  marginBottom: "14px",
+                }}
+              >
+                Indicadores de acompanhamento
+              </p>
+
+              <p
+                style={{
+                  color: MUTED,
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  marginTop: "-6px",
+                  marginBottom: "14px",
+                }}
+              >
+                Os indicadores se adaptam ao que foi enviado pelo psicólogo. Se
+                não houver materiais, por exemplo, a tela não exige leitura.
+              </p>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {gamification.indicators.map((indicator) => (
                   <div
+                    key={indicator.title}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
-                      alignItems: "flex-start",
-                      marginBottom: "10px",
+                      border: indicator.unlocked
+                        ? "1px solid #bfdbfe"
+                        : `1px solid ${BORDER}`,
+                      backgroundColor: indicator.unlocked ? "#eff6ff" : "#f9fafb",
+                      borderRadius: "16px",
+                      padding: "14px",
+                      opacity: indicator.unlocked ? 1 : 0.88,
                     }}
                   >
-                    <div>
-                      <h3
-                        style={{
-                          color: "#111827",
-                          fontSize: "20px",
-                          fontWeight: 900,
-                          marginBottom: "6px",
-                        }}
-                      >
-                        {material.title}
-                      </h3>
-
-                      {material.category && (
-                        <p style={{ color: "#6b7280", margin: 0 }}>
-                          Categoria: {material.category}
-                        </p>
-                      )}
-                    </div>
-
-                    <span
-                      style={{
-                        backgroundColor: material.viewedAt
-                          ? "#ecfdf5"
-                          : "#dbeafe",
-                        color: material.viewedAt ? "#065f46" : "#1d4ed8",
-                        border: material.viewedAt
-                          ? "1px solid #a7f3d0"
-                          : "1px solid #bfdbfe",
-                        borderRadius: "999px",
-                        padding: "6px 12px",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {material.viewedAt ? "Visualizado" : "Novo"}
-                    </span>
-                  </div>
-
-                  {material.description && (
-                    <p
-                      style={{
-                        color: "#4b5563",
-                        lineHeight: 1.6,
-                        marginBottom: "12px",
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
-                      {material.description}
-                    </p>
-                  )}
-
-                  {material.url && (
-                    <a
-                      href={material.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        ...buttonPrimaryStyle,
-                        marginBottom: "12px",
-                      }}
-                    >
-                      Abrir material
-                    </a>
-                  )}
-
-                  {material.content && (
                     <div
                       style={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "14px",
-                        padding: "14px",
-                        color: "#4b5563",
-                        whiteSpace: "pre-wrap",
-                        lineHeight: 1.6,
-                        marginTop: "8px",
-                        marginBottom: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        marginBottom: "8px",
                       }}
                     >
-                      {material.content}
-                    </div>
-                  )}
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "12px",
+                          backgroundColor: indicator.unlocked
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                          color: indicator.unlocked ? "#ffffff" : "#5272a6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <i className={indicator.icon}></i>
+                      </div>
 
-                  {material.psychologist?.name && (
+                      <div>
+                        <p
+                          style={{
+                            color: NAVY,
+                            fontWeight: 900,
+                            margin: 0,
+                            fontSize: "14px",
+                          }}
+                        >
+                          {indicator.title}
+                        </p>
+
+                        <p
+                          style={{
+                            color: indicator.unlocked ? "#1d4ed8" : MUTED,
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            margin: 0,
+                          }}
+                        >
+                          {indicator.status}
+                        </p>
+                      </div>
+                    </div>
+
                     <p
                       style={{
-                        color: "#6b7280",
+                        color: MUTED,
                         fontSize: "13px",
-                        marginBottom: "10px",
+                        lineHeight: 1.5,
+                        margin: 0,
                       }}
                     >
-                      Enviado por {material.psychologist.name} em{" "}
-                      {formatDate(material.createdAt)}
+                      {indicator.description}
                     </p>
-                  )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
-                  {material.viewedAt && (
-                    <p style={{ color: "#065f46", marginBottom: "10px" }}>
-                      <strong>Visualizado em:</strong>{" "}
-                      {formatDate(material.viewedAt)}
-                    </p>
-                  )}
-
-                  {!material.viewedAt && (
-                    <button
-                      type="button"
-                      onClick={() => handleMarkMaterialAsViewed(material.id)}
-                      disabled={updatingMaterialId === material.id}
-                      style={{
-                        ...buttonSecondaryStyle,
-                        opacity: updatingMaterialId === material.id ? 0.7 : 1,
-                        cursor:
-                          updatingMaterialId === material.id
-                            ? "not-allowed"
-                            : "pointer",
-                      }}
-                    >
-                      {updatingMaterialId === material.id
-                        ? "Atualizando..."
-                        : "Marcar como visualizado"}
-                    </button>
-                  )}
-                </div>
-              ))}
+          {feedback && (
+            <div
+              style={{
+                backgroundColor:
+                  feedback.type === "success"
+                    ? "#ecfdf5"
+                    : feedback.type === "error"
+                      ? "#fef2f2"
+                      : "#eff6ff",
+                border:
+                  feedback.type === "success"
+                    ? "1px solid #a7f3d0"
+                    : feedback.type === "error"
+                      ? "1px solid #fecaca"
+                      : "1px solid #bfdbfe",
+                color:
+                  feedback.type === "success"
+                    ? "#065f46"
+                    : feedback.type === "error"
+                      ? "#b91c1c"
+                      : "#1d4ed8",
+                borderRadius: "12px",
+                padding: "14px 16px",
+                marginBottom: "18px",
+                fontWeight: 800,
+              }}
+            >
+              {feedback.message}
             </div>
           )}
-        </section>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+              gap: "16px",
+              marginBottom: "24px",
+            }}
+          >
+            <MetricCard label="Tarefas pendentes" value={taskStats.pending} tone="amber" />
+            <MetricCard label="Tarefas concluídas" value={taskStats.completed} tone="green" />
+            <MetricCard label="Materiais novos" value={materialStats.unread} tone="blue" />
+            <MetricCard label="Materiais vistos" value={materialStats.viewed} tone="green" />
+            <MetricCard label="Total recebido" value={taskStats.total + materialStats.total} tone="navy" />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginBottom: "24px",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveTab("TASKS")}
+              style={{
+                border:
+                  activeTab === "TASKS"
+                    ? "1px solid #2563eb"
+                    : "1px solid #d1d5db",
+                backgroundColor: activeTab === "TASKS" ? "#eff6ff" : "#fff",
+                color: activeTab === "TASKS" ? "#1d4ed8" : NAVY_SOFT,
+                borderRadius: "999px",
+                padding: "11px 17px",
+                fontWeight: 900,
+                cursor: "pointer",
+                fontSize: "14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <i className="fa-solid fa-list-check"></i>
+              Tarefas terapêuticas
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("MATERIALS")}
+              style={{
+                border:
+                  activeTab === "MATERIALS"
+                    ? "1px solid #2563eb"
+                    : "1px solid #d1d5db",
+                backgroundColor: activeTab === "MATERIALS" ? "#eff6ff" : "#fff",
+                color: activeTab === "MATERIALS" ? "#1d4ed8" : NAVY_SOFT,
+                borderRadius: "999px",
+                padding: "11px 17px",
+                fontWeight: 900,
+                cursor: "pointer",
+                fontSize: "14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <i className="fa-solid fa-book-open"></i>
+              Materiais psicoeducativos
+            </button>
+          </div>
+
+          {activeTab === "TASKS" && (
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  color: NAVY,
+                  marginBottom: "8px",
+                }}
+              >
+                Tarefas terapêuticas
+              </h2>
+
+              <p
+                style={{ color: MUTED, marginBottom: "20px", lineHeight: 1.6 }}
+              >
+                Aqui ficam as atividades combinadas com seu psicólogo para apoiar
+                seu processo terapêutico entre as sessões.
+              </p>
+
+              {taskError && (
+                <ErrorBox message={taskError} />
+              )}
+
+              {tasks.length === 0 ? (
+                <EmptyBox
+                  title="Nenhuma tarefa recebida"
+                  description="Quando seu psicólogo enviar uma tarefa, ela aparecerá aqui."
+                />
+              ) : (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                >
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      style={{
+                        border: `1px solid ${BORDER}`,
+                        borderRadius: "16px",
+                        padding: "18px",
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          alignItems: "flex-start",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div>
+                          <h3
+                            style={{
+                              color: NAVY,
+                              fontSize: "20px",
+                              fontWeight: 900,
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {task.title}
+                          </h3>
+
+                          {task.dueDate && (
+                            <p style={{ color: MUTED, margin: 0 }}>
+                              Prazo: {formatDateOnly(task.dueDate)}
+                            </p>
+                          )}
+                        </div>
+
+                        <span
+                          style={{
+                            ...getTaskStatusStyle(task.status),
+                            borderRadius: "999px",
+                            padding: "6px 12px",
+                            fontSize: "12px",
+                            fontWeight: 900,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {getTaskStatusLabel(task.status)}
+                        </span>
+                      </div>
+
+                      {task.description && (
+                        <p
+                          style={{
+                            color: NAVY_SOFT,
+                            lineHeight: 1.6,
+                            marginBottom: "12px",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {task.description}
+                        </p>
+                      )}
+
+                      {task.appointment && (
+                        <p style={{ color: NAVY_SOFT, marginBottom: "10px" }}>
+                          <strong>Consulta relacionada:</strong>{" "}
+                          {task.appointment.title} —{" "}
+                          {formatDate(task.appointment.dateTime)}
+                        </p>
+                      )}
+
+                      {task.psychologist?.name && (
+                        <p
+                          style={{
+                            color: MUTED,
+                            fontSize: "13px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Enviada por {task.psychologist.name}
+                        </p>
+                      )}
+
+                      {task.completedAt && (
+                        <p style={{ color: "#065f46", marginBottom: "10px" }}>
+                          <strong>Concluída em:</strong>{" "}
+                          {formatDate(task.completedAt)}
+                        </p>
+                      )}
+
+                      <div
+                        style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+                      >
+                        {task.status === "PENDING" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateTaskStatus(task.id, "COMPLETED")
+                            }
+                            disabled={updatingTaskId === task.id}
+                            style={{
+                              ...buttonPrimaryStyle,
+                              opacity: updatingTaskId === task.id ? 0.7 : 1,
+                              cursor:
+                                updatingTaskId === task.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                            }}
+                          >
+                            {updatingTaskId === task.id
+                              ? "Atualizando..."
+                              : "Marcar como concluída"}
+                          </button>
+                        )}
+
+                        {task.status === "COMPLETED" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateTaskStatus(task.id, "PENDING")
+                            }
+                            disabled={updatingTaskId === task.id}
+                            style={{
+                              ...buttonSecondaryStyle,
+                              opacity: updatingTaskId === task.id ? 0.7 : 1,
+                              cursor:
+                                updatingTaskId === task.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                            }}
+                          >
+                            Reabrir tarefa
+                          </button>
+                        )}
+
+                        {task.status === "CANCELLED" && (
+                          <span style={{ color: "#b91c1c", fontWeight: 800 }}>
+                            Esta tarefa foi cancelada pelo psicólogo.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === "MATERIALS" && (
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  color: NAVY,
+                  marginBottom: "8px",
+                }}
+              >
+                Materiais psicoeducativos
+              </h2>
+
+              <p
+                style={{ color: MUTED, marginBottom: "20px", lineHeight: 1.6 }}
+              >
+                Acesse links, textos e orientações enviados pelo seu psicólogo
+                para apoiar seu acompanhamento.
+              </p>
+
+              {materialError && (
+                <ErrorBox message={materialError} />
+              )}
+
+              {materials.length === 0 ? (
+                <EmptyBox
+                  title="Nenhum material recebido"
+                  description="Quando seu psicólogo enviar um material, ele aparecerá aqui."
+                />
+              ) : (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                >
+                  {materials.map((material) => (
+                    <div
+                      key={material.id}
+                      style={{
+                        border: `1px solid ${BORDER}`,
+                        borderRadius: "16px",
+                        padding: "18px",
+                        backgroundColor: material.viewedAt ? "#f8fafc" : "#eff6ff",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          alignItems: "flex-start",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div>
+                          <h3
+                            style={{
+                              color: NAVY,
+                              fontSize: "20px",
+                              fontWeight: 900,
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {material.title}
+                          </h3>
+
+                          {material.category && (
+                            <p style={{ color: MUTED, margin: 0 }}>
+                              Categoria: {material.category}
+                            </p>
+                          )}
+                        </div>
+
+                        <span
+                          style={{
+                            backgroundColor: material.viewedAt
+                              ? "#ecfdf5"
+                              : "#dbeafe",
+                            color: material.viewedAt ? "#065f46" : "#1d4ed8",
+                            border: material.viewedAt
+                              ? "1px solid #a7f3d0"
+                              : "1px solid #bfdbfe",
+                            borderRadius: "999px",
+                            padding: "6px 12px",
+                            fontSize: "12px",
+                            fontWeight: 900,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {material.viewedAt ? "Visualizado" : "Novo"}
+                        </span>
+                      </div>
+
+                      {material.description && (
+                        <p
+                          style={{
+                            color: NAVY_SOFT,
+                            lineHeight: 1.6,
+                            marginBottom: "12px",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {material.description}
+                        </p>
+                      )}
+
+                      {material.url && (
+                        <a
+                          href={material.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            ...buttonPrimaryStyle,
+                            marginBottom: "12px",
+                          }}
+                        >
+                          Abrir material
+                        </a>
+                      )}
+
+                      {material.content && (
+                        <div
+                          style={{
+                            backgroundColor: "#ffffff",
+                            border: `1px solid ${BORDER}`,
+                            borderRadius: "14px",
+                            padding: "14px",
+                            color: NAVY_SOFT,
+                            whiteSpace: "pre-wrap",
+                            lineHeight: 1.6,
+                            marginTop: "8px",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          {material.content}
+                        </div>
+                      )}
+
+                      {material.psychologist?.name && (
+                        <p
+                          style={{
+                            color: MUTED,
+                            fontSize: "13px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Enviado por {material.psychologist.name} em{" "}
+                          {formatDate(material.createdAt)}
+                        </p>
+                      )}
+
+                      {material.viewedAt && (
+                        <p style={{ color: "#065f46", marginBottom: "10px" }}>
+                          <strong>Visualizado em:</strong>{" "}
+                          {formatDate(material.viewedAt)}
+                        </p>
+                      )}
+
+                      {!material.viewedAt && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkMaterialAsViewed(material.id)}
+                          disabled={updatingMaterialId === material.id}
+                          style={{
+                            ...buttonSecondaryStyle,
+                            opacity: updatingMaterialId === material.id ? 0.7 : 1,
+                            cursor:
+                              updatingMaterialId === material.id
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          {updatingMaterialId === material.id
+                            ? "Atualizando..."
+                            : "Marcar como visualizado"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function SmallStatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone: "blue" | "green" | "slate";
+}) {
+  const toneMap = {
+    blue: {
+      bg: "#eff6ff",
+      border: "#bfdbfe",
+      label: "#1d4ed8",
+    },
+    green: {
+      bg: "#ecfdf5",
+      border: "#a7f3d0",
+      label: "#065f46",
+    },
+    slate: {
+      bg: "#f8fafc",
+      border: BORDER,
+      label: MUTED,
+    },
+  };
+
+  const selectedTone = toneMap[tone];
+
+  return (
+    <div
+      style={{
+        backgroundColor: selectedTone.bg,
+        border: `1px solid ${selectedTone.border}`,
+        borderRadius: "16px",
+        padding: "14px",
+      }}
+    >
+      <p
+        style={{
+          color: selectedTone.label,
+          fontSize: "13px",
+          fontWeight: 800,
+          marginBottom: "6px",
+        }}
+      >
+        {label}
+      </p>
+
+      <p
+        style={{
+          color: NAVY,
+          fontSize: "28px",
+          fontWeight: 900,
+          margin: 0,
+        }}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "blue" | "green" | "amber" | "navy";
+}) {
+  const toneMap = {
+    blue: "#1d4ed8",
+    green: "#047857",
+    amber: "#92400e",
+    navy: NAVY,
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "22px",
+        padding: "24px",
+        boxShadow: "0 10px 28px rgba(0, 30, 94, 0.06)",
+        border: `1px solid ${BORDER}`,
+      }}
+    >
+      <p style={{ color: MUTED, fontSize: "14px", marginBottom: "8px" }}>
+        {label}
+      </p>
+
+      <p
+        style={{
+          color: toneMap[tone],
+          fontSize: "32px",
+          fontWeight: 900,
+          margin: 0,
+        }}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        backgroundColor: "#fef2f2",
+        border: "1px solid #fecaca",
+        color: "#b91c1c",
+        borderRadius: "12px",
+        padding: "12px 14px",
+        marginBottom: "16px",
+        fontWeight: 800,
+      }}
+    >
+      {message}
+    </div>
+  );
+}
+
+function EmptyBox({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${BORDER}`,
+        borderRadius: "16px",
+        padding: "18px",
+        backgroundColor: "#f8fafc",
+      }}
+    >
+      <p
+        style={{
+          color: NAVY,
+          fontWeight: 900,
+          marginBottom: "6px",
+        }}
+      >
+        {title}
+      </p>
+
+      <p style={{ color: MUTED, margin: 0 }}>{description}</p>
     </div>
   );
 }

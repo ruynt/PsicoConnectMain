@@ -157,18 +157,17 @@ export default function PatientMessagesPage() {
     padding: "36px",
     paddingBottom: "72px",
     minHeight: "calc(100vh - 48px)",
-    background:
-      "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
-    borderRadius: "32px",
+    background: "#ffffff",
+    borderRadius: 0,
     overflow: "visible",
   } as const;
 
   const cardStyle = {
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    backgroundColor: "#ffffff",
     borderRadius: "22px",
     padding: "24px",
-    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
-    border: "1px solid rgba(226, 232, 240, 0.9)",
+    boxShadow: "0 10px 28px rgba(0, 30, 94, 0.06)",
+    border: "1px solid #e6edf7",
   } as const;
 
   const buttonPrimaryStyle = {
@@ -206,8 +205,8 @@ export default function PatientMessagesPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          borderRadius: "32px",
-          background: "#f8fbff",
+          borderRadius: 0,
+          background: "#ffffff",
           overflow: "visible",
         }}
       >
@@ -279,17 +278,21 @@ export default function PatientMessagesPage() {
 
           <p
             style={{
-              color: "#dbeafe",
+              color: "#ffffff",
               fontSize: "13px",
               fontWeight: 800,
               marginBottom: "6px",
+              opacity: 0.92,
             }}
           >
             Canal interno
           </p>
 
-          <h1
+          <div
+            role="heading"
+            aria-level={1}
             style={{
+              color: "#ffffff",
               fontSize: "42px",
               fontWeight: 900,
               lineHeight: 1.05,
@@ -297,13 +300,14 @@ export default function PatientMessagesPage() {
             }}
           >
             Mensagens
-          </h1>
+          </div>
 
           <p
             style={{
               fontSize: "18px",
-              color: "#dbeafe",
+              color: "#ffffff",
               maxWidth: "820px",
+              opacity: 0.92,
               margin: 0,
             }}
           >
@@ -369,7 +373,7 @@ export default function PatientMessagesPage() {
         <aside style={cardStyle}>
           <h2
             style={{
-              color: "#111827",
+              color: "#001e5e",
               fontSize: "22px",
               fontWeight: 900,
               marginBottom: "8px",
@@ -378,7 +382,7 @@ export default function PatientMessagesPage() {
             Profissional
           </h2>
 
-          <p style={{ color: "#6b7280", marginBottom: "18px" }}>
+          <p style={{ color: "#5272a6", marginBottom: "18px" }}>
             Selecione o profissional vinculado para visualizar ou responder a
             conversa.
           </p>
@@ -389,19 +393,19 @@ export default function PatientMessagesPage() {
                 border: "1px solid #e5e7eb",
                 borderRadius: "14px",
                 padding: "14px",
-                backgroundColor: "#f8fafc",
+                backgroundColor: "#f8fbff",
               }}
             >
               <p
                 style={{
-                  color: "#111827",
+                  color: "#001e5e",
                   fontWeight: 900,
                   marginBottom: "6px",
                 }}
               >
                 Nenhum profissional vinculado
               </p>
-              <p style={{ color: "#6b7280", margin: 0 }}>
+              <p style={{ color: "#5272a6", margin: 0 }}>
                 Quando houver um vínculo ativo, as mensagens aparecerão aqui.
               </p>
             </div>
@@ -419,7 +423,7 @@ export default function PatientMessagesPage() {
                       textAlign: "left",
                       border: isSelected ? "1px solid #2563eb" : "1px solid #e5e7eb",
                       backgroundColor: isSelected ? "#eff6ff" : "#ffffff",
-                      color: isSelected ? "#1d4ed8" : "#374151",
+                      color: isSelected ? "#1d4ed8" : "#102a56",
                       borderRadius: "14px",
                       padding: "14px",
                       cursor: "pointer",
@@ -428,13 +432,13 @@ export default function PatientMessagesPage() {
                     <p
                       style={{
                         fontWeight: 900,
-                        color: isSelected ? "#1d4ed8" : "#111827",
+                        color: isSelected ? "#1d4ed8" : "#001e5e",
                         marginBottom: "4px",
                       }}
                     >
                       {psychologist.name}
                     </p>
-                    <p style={{ color: "#6b7280", margin: 0, fontSize: "13px" }}>
+                    <p style={{ color: "#5272a6", margin: 0, fontSize: "13px" }}>
                       {psychologist.crp ? `CRP: ${psychologist.crp}` : psychologist.email}
                     </p>
                   </button>
@@ -458,7 +462,7 @@ export default function PatientMessagesPage() {
             <div>
               <h2
                 style={{
-                  color: "#111827",
+                  color: "#001e5e",
                   fontSize: "26px",
                   fontWeight: 900,
                   marginBottom: "6px",
@@ -469,7 +473,7 @@ export default function PatientMessagesPage() {
                   : "Conversa"}
               </h2>
 
-              <p style={{ color: "#6b7280", margin: 0 }}>
+              <p style={{ color: "#5272a6", margin: 0 }}>
                 Este espaço não substitui atendimento emergencial. Use para
                 orientações e acompanhamentos combinados com o profissional.
               </p>
@@ -484,7 +488,7 @@ export default function PatientMessagesPage() {
             style={{
               border: "1px solid #e5e7eb",
               borderRadius: "18px",
-              backgroundColor: "#f8fafc",
+              backgroundColor: "#f8fbff",
               padding: "16px",
               minHeight: "360px",
               maxHeight: "520px",
@@ -500,7 +504,7 @@ export default function PatientMessagesPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   textAlign: "center",
-                  color: "#6b7280",
+                  color: "#5272a6",
                 }}
               >
                 <div>
@@ -520,7 +524,7 @@ export default function PatientMessagesPage() {
                   >
                     <i className="fa-solid fa-comments"></i>
                   </div>
-                  <p style={{ fontWeight: 900, color: "#111827", marginBottom: "6px" }}>
+                  <p style={{ fontWeight: 900, color: "#001e5e", marginBottom: "6px" }}>
                     Nenhuma mensagem ainda
                   </p>
                   <p style={{ margin: 0 }}>
@@ -545,7 +549,7 @@ export default function PatientMessagesPage() {
                         style={{
                           maxWidth: "78%",
                           backgroundColor: isPatientMessage ? "#2563eb" : "#ffffff",
-                          color: isPatientMessage ? "#ffffff" : "#374151",
+                          color: isPatientMessage ? "#ffffff" : "#102a56",
                           border: isPatientMessage ? "1px solid #2563eb" : "1px solid #e5e7eb",
                           borderRadius: isPatientMessage
                             ? "18px 18px 4px 18px"
@@ -575,7 +579,7 @@ export default function PatientMessagesPage() {
                           style={{
                             fontSize: "11px",
                             margin: 0,
-                            color: isPatientMessage ? "#dbeafe" : "#6b7280",
+                            color: isPatientMessage ? "#dbeafe" : "#5272a6",
                             textAlign: "right",
                           }}
                         >
@@ -593,7 +597,7 @@ export default function PatientMessagesPage() {
             <label
               style={{
                 display: "block",
-                color: "#111827",
+                color: "#001e5e",
                 fontWeight: 900,
                 marginBottom: "8px",
               }}
@@ -627,7 +631,7 @@ export default function PatientMessagesPage() {
                 flexWrap: "wrap",
               }}
             >
-              <p style={{ color: "#6b7280", margin: 0, fontSize: "13px" }}>
+              <p style={{ color: "#5272a6", margin: 0, fontSize: "13px" }}>
                 Evite enviar informações urgentes por aqui. Em situações de risco,
                 procure atendimento de emergência.
               </p>

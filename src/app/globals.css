@@ -8,7 +8,7 @@
 html,
 body {
   min-height: 100%;
-  background-color: #f0f2f5;
+  background-color: #ffffff;
 }
 
 body {
@@ -1314,49 +1314,106 @@ body {
 
 /* ---------------- Refinamento visual global da área autenticada ---------------- */
 
+:root {
+  --psico-navy: #001e5e;
+  --psico-navy-soft: #102a56;
+  --psico-blue: #2563eb;
+  --psico-blue-light: #528cff;
+  --psico-muted: #5272a6;
+  --psico-page-bg: #ffffff;
+  --psico-card-bg: #ffffff;
+  --psico-border: #e6edf7;
+}
+
+html,
 body {
-  background: #f8fbff;
+  background: #ffffff;
+}
+
+body {
+  color: var(--psico-navy);
+  background: #ffffff;
 }
 
 .chat-container {
-  background: linear-gradient(135deg, #eef5ff 0%, #f8fbff 45%, #ffffff 100%);
+  background: #ffffff;
 }
 
-/*
-  A borda cinza "pontuda" vinha do primeiro container renderizado dentro do
-  .chat-main-wrapper. Como o botão de menu é o primeiro filho real, não dava
-  para usar :first-child. Por isso aplicamos nos filhos diretos que não são
-  o botão mobile.
-*/
+/* Área autenticada mais limpa: remove o “retângulo” cinza atrás das telas */
+.chat-main,
 .chat-main-wrapper {
-  background: #f8fbff;
-  border-top-left-radius: 32px;
-  border-bottom-left-radius: 32px;
+  background: #ffffff !important;
+}
+
+.chat-main-wrapper {
+  border-radius: 0 !important;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 100vh;
   padding: 24px 32px;
 }
 
-.chat-main-wrapper > :not(.menu-toggle-button) {
-  border-radius: 32px !important;
-  overflow: hidden;
-}
-
-/* Páginas refinadas que usam um <div> raiz com background inline */
+/*
+  Várias páginas usam um <div> raiz com background e borderRadius inline.
+  Este bloco força esse wrapper principal a ficar branco e sem “placa” cinza.
+*/
 .chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+  background: #ffffff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   min-height: calc(100vh - 48px) !important;
+  overflow: visible !important;
 }
 
-/* Mantém o chat com seu próprio layout, mas sem cantos secos */
+/* Mantém o assistente com layout próprio */
 .chat-page-shell {
-  border-radius: 32px;
+  border-radius: 28px;
   overflow: visible;
 }
 
-/* Suaviza os grandes blocos internos com gradiente */
-.chat-main-wrapper section {
-  border-radius: 24px;
+/* Títulos principais em azul escuro, como na tela inicial */
+.chat-main-wrapper h1,
+.chat-main-wrapper h2,
+.chat-main-wrapper h3,
+.chat-main-wrapper h4,
+.chat-main-wrapper strong,
+.chat-main-wrapper label {
+  color: var(--psico-navy) !important;
+}
+
+/* Textos secundários continuam suaves, sem ficar pretos demais */
+.chat-main-wrapper p,
+.chat-main-wrapper span,
+.chat-main-wrapper li {
+  color: inherit;
+}
+
+/* Cards mais clean */
+.chat-main-wrapper section,
+.chat-main-wrapper article {
+  border-radius: 22px;
+}
+
+.chat-main-wrapper [style*="box-shadow"] {
+  box-shadow: 0 10px 28px rgba(0, 30, 94, 0.06) !important;
+}
+
+.chat-main-wrapper [style*="border: 1px solid #e5e7eb"],
+.chat-main-wrapper [style*="border: \"1px solid #e5e7eb\""] {
+  border-color: var(--psico-border) !important;
+}
+
+/* Inputs mais suaves */
+.chat-main-wrapper input,
+.chat-main-wrapper textarea,
+.chat-main-wrapper select {
+  border-color: #dbe7ff !important;
+  color: var(--psico-navy) !important;
+}
+
+.chat-main-wrapper input::placeholder,
+.chat-main-wrapper textarea::placeholder {
+  color: #8aa4c8;
 }
 
 /* Loading simples com círculos no tom do PsicoConnect */
@@ -1371,7 +1428,7 @@ body {
   width: 13px;
   height: 13px;
   border-radius: 999px;
-  background-color: #528cff;
+  background-color: var(--psico-blue-light);
   animation: psicoSimpleBounce 0.9s infinite ease-in-out;
 }
 
@@ -1401,7 +1458,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(248, 251, 255, 0.72);
+  background: rgba(255, 255, 255, 0.74);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
@@ -1431,7 +1488,141 @@ a:hover {
     padding: 16px;
   }
 
-  .chat-main-wrapper > :not(.menu-toggle-button) {
-    border-radius: 22px !important;
+  .chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+    border-radius: 0 !important;
   }
+}
+
+
+/* ---------------- Correção segura: texto branco somente nos cabeçalhos azuis ---------------- */
+/*
+  A versão anterior usava [style*="linear-gradient"] de forma ampla e acabou
+  afetando cards claros e botões brancos. Aqui a regra mira apenas gradientes
+  azuis usados nos cabeçalhos/heros das telas autenticadas.
+*/
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(29, 78, 216)"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="rgb(28, 75, 179)"] div > span {
+  color: #ffffff !important;
+}
+
+/* Botões e links dentro do cabeçalho mantêm suas próprias cores.
+   Isso evita botão branco com texto branco. */
+.chat-main-wrapper [style*="linear-gradient"] button,
+.chat-main-wrapper [style*="linear-gradient"] button *,
+.chat-main-wrapper [style*="linear-gradient"] a,
+.chat-main-wrapper [style*="linear-gradient"] a * {
+  color: inherit;
+}
+
+/* ---------------- Ajuste: textos escuros dos cards para azul institucional ---------------- */
+/*
+  Algumas telas, como Agenda, usam textos em div/span com color inline (#111827, #0f172a etc.).
+  Este ajuste troca esses pretos/cinzas muito escuros pelo azul escuro do PsicoConnect,
+  sem mexer nos cabeçalhos azuis nem nos status coloridos.
+*/
+.chat-main-wrapper [style*="color: #111827"],
+.chat-main-wrapper [style*="color:#111827"],
+.chat-main-wrapper [style*="color: rgb(17, 24, 39)"],
+.chat-main-wrapper [style*="color: #0f172a"],
+.chat-main-wrapper [style*="color:#0f172a"],
+.chat-main-wrapper [style*="color: rgb(15, 23, 42)"],
+.chat-main-wrapper [style*="color: #020617"],
+.chat-main-wrapper [style*="color:#020617"],
+.chat-main-wrapper [style*="color: rgb(2, 6, 23)"],
+.chat-main-wrapper [style*="color: #000000"],
+.chat-main-wrapper [style*="color:#000000"],
+.chat-main-wrapper [style*="color: black"] {
+  color: var(--psico-navy) !important;
+}
+
+/* Mantém os cabeçalhos/heros azuis com texto branco, mesmo quando alguma regra acima bater. */
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1d4ed8"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3b82f6"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#1c4bb3"] div > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h1,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h2,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h3,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] h4,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] p,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] strong,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] label,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] > span,
+.chat-main-wrapper [style*="linear-gradient"][style*="#3f7afd"] div > span {
+  color: #ffffff !important;
 }

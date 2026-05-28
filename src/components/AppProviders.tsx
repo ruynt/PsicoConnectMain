@@ -38,6 +38,23 @@ function PsicoNavigationLoading() {
   );
 }
 
+function PsicoBotMenuIcon() {
+  return (
+    <img
+      src="/psicobot_icon_white.png"
+      alt=""
+      aria-hidden="true"
+      style={{
+        width: "42px",
+        height: "42px",
+        objectFit: "contain",
+        marginRight: "16px",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
 function AuthGuard({ children }: PropsWithChildren) {
   const { data: session, status } = useSession();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
@@ -179,10 +196,9 @@ function AuthGuard({ children }: PropsWithChildren) {
                   onClick={() => handleMenuNavigation("/mensagens")}
                   className={isActive("/mensagens") ? "active" : ""}
                 >
-                  <i className="fa-solid fa-envelope"></i> Mensagens
+                  <i className="fa-solid fa-comments"></i> Mensagens
                 </Link>
               )}
-
 
               <Link
                 href="/orientacoes"
@@ -197,7 +213,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                 onClick={() => handleMenuNavigation("/chat")}
                 className={isActive("/chat") ? "active" : ""}
               >
-                <i className="fa-solid fa-comments"></i> Chat
+                <PsicoBotMenuIcon /> PsicoBot
               </Link>
             </div>
 

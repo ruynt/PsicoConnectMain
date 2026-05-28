@@ -71,7 +71,7 @@ export default function OrientacoesPage() {
       id: "privacidade",
       title: "Privacidade e sigilo",
       subtitle: "Cuidados com dados pessoais e informações sensíveis.",
-      icon: "fa-solid fa-shield-halved",
+      icon: "fa-solid fa-lock",
       highlight: "Segurança",
       content: [
         "Evite compartilhar informações pessoais desnecessárias em campos abertos.",

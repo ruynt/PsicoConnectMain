@@ -268,9 +268,7 @@ export default function PatientHomePage() {
       upcomingAppointments.find((appointment) => {
         const appointmentDate = new Date(appointment.dateTime);
 
-        return (
-          appointmentDate >= now && appointmentDate <= twentyFourHoursFromNow
-        );
+        return appointmentDate >= now && appointmentDate <= twentyFourHoursFromNow;
       }) || null
     );
   }, [upcomingAppointments, now]);
@@ -763,10 +761,19 @@ export default function PatientHomePage() {
 
   if (loading) {
     return (
-      <div style={pageStyle}>
-        <h1 style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a" }}>
-          Carregando início...
-        </h1>
+      <div
+        style={{
+          ...pageStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="psico-simple-loader" aria-label="Carregando">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
     );
   }
@@ -777,7 +784,7 @@ export default function PatientHomePage() {
         <section
           style={{
             background:
-              "linear-gradient(135deg, #4338ca, #2563eb 55%, #60a5fa)",
+              "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
             borderRadius: "28px",
             padding: "30px",
             color: "#ffffff",
@@ -833,6 +840,7 @@ export default function PatientHomePage() {
                   padding: "7px 12px",
                   fontSize: "13px",
                   fontWeight: 800,
+                  color: "#ffffff",
                   marginBottom: "14px",
                 }}
               >
@@ -844,6 +852,7 @@ export default function PatientHomePage() {
                 style={{
                   fontSize: "44px",
                   fontWeight: 900,
+                  color: "#ffffff",
                   lineHeight: 1.05,
                   marginBottom: "10px",
                 }}
@@ -940,12 +949,8 @@ export default function PatientHomePage() {
             }}
           >
             {(() => {
-              const confirmationInfo = getConfirmationInfo(
-                upcoming24hAppointment,
-              );
-              const confirmationStatus = getConfirmationStatus(
-                upcoming24hAppointment,
-              );
+              const confirmationInfo = getConfirmationInfo(upcoming24hAppointment);
+              const confirmationStatus = getConfirmationStatus(upcoming24hAppointment);
 
               return (
                 <>
@@ -999,9 +1004,7 @@ export default function PatientHomePage() {
                       >
                         Faltam aproximadamente{" "}
                         <strong>
-                          {getTimeUntilAppointment(
-                            upcoming24hAppointment.dateTime,
-                          )}
+                          {getTimeUntilAppointment(upcoming24hAppointment.dateTime)}
                         </strong>{" "}
                         para o atendimento. Confira os dados e confirme sua
                         presença, se ainda não tiver confirmado.
@@ -1050,9 +1053,7 @@ export default function PatientHomePage() {
                       >
                         Consulta
                       </p>
-                      <p
-                        style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}
-                      >
+                      <p style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}>
                         {upcoming24hAppointment.title}
                       </p>
                     </div>
@@ -1075,9 +1076,7 @@ export default function PatientHomePage() {
                       >
                         Horário
                       </p>
-                      <p
-                        style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}
-                      >
+                      <p style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}>
                         {formatDate(upcoming24hAppointment.dateTime)}
                       </p>
                     </div>
@@ -1100,9 +1099,7 @@ export default function PatientHomePage() {
                       >
                         Profissional
                       </p>
-                      <p
-                        style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}
-                      >
+                      <p style={{ color: "#0f172a", fontWeight: 900, margin: 0 }}>
                         {upcoming24hAppointment.psychologist.name}
                       </p>
                     </div>
@@ -1137,25 +1134,20 @@ export default function PatientHomePage() {
                       confirmationStatus !== "CANCELLATION_REQUESTED" && (
                         <button
                           type="button"
-                          onClick={() =>
-                            confirmPresence(upcoming24hAppointment.id)
-                          }
+                          onClick={() => confirmPresence(upcoming24hAppointment.id)}
                           disabled={
                             updatingAppointmentId === upcoming24hAppointment.id
                           }
                           style={{
                             ...primaryButtonStyle,
-                            background:
-                              "linear-gradient(135deg, #059669, #22c55e)",
+                            background: "linear-gradient(135deg, #059669, #22c55e)",
                             boxShadow: "0 10px 24px rgba(34, 197, 94, 0.20)",
                             opacity:
-                              updatingAppointmentId ===
-                              upcoming24hAppointment.id
+                              updatingAppointmentId === upcoming24hAppointment.id
                                 ? 0.7
                                 : 1,
                             cursor:
-                              updatingAppointmentId ===
-                              upcoming24hAppointment.id
+                              updatingAppointmentId === upcoming24hAppointment.id
                                 ? "not-allowed"
                                 : "pointer",
                           }}
@@ -1169,9 +1161,7 @@ export default function PatientHomePage() {
                     {confirmationStatus !== "CANCELLATION_REQUESTED" && (
                       <button
                         type="button"
-                        onClick={() =>
-                          openCancelRequestModal(upcoming24hAppointment)
-                        }
+                        onClick={() => openCancelRequestModal(upcoming24hAppointment)}
                         style={{
                           backgroundColor: "#fff7ed",
                           color: "#c2410c",
@@ -1190,9 +1180,7 @@ export default function PatientHomePage() {
                     {confirmationStatus === "CANCELLATION_REQUESTED" && (
                       <button
                         type="button"
-                        onClick={() =>
-                          withdrawCancelRequest(upcoming24hAppointment.id)
-                        }
+                        onClick={() => withdrawCancelRequest(upcoming24hAppointment.id)}
                         disabled={
                           updatingAppointmentId === upcoming24hAppointment.id
                         }
@@ -1622,9 +1610,15 @@ export default function PatientHomePage() {
             )}
 
             {loadingTasks ? (
-              <p style={{ color: "#64748b", margin: 0 }}>
-                Carregando tarefas...
-              </p>
+              <div
+                className="psico-simple-loader"
+                aria-label="Carregando tarefas"
+                style={{ padding: "18px 0" }}
+              >
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             ) : recentTasks.length === 0 ? (
               <div
                 style={{
@@ -1794,9 +1788,15 @@ export default function PatientHomePage() {
           )}
 
           {loadingMaterials ? (
-            <p style={{ color: "#64748b", margin: 0 }}>
-              Carregando materiais...
-            </p>
+            <div
+              className="psico-simple-loader"
+              aria-label="Carregando materiais"
+              style={{ padding: "18px 0" }}
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           ) : recentMaterials.length === 0 ? (
             <div
               style={{
