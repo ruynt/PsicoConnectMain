@@ -1,143 +1,184 @@
 "use client";
 
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+
+type CrpOption = {
+  state: string;
+  region: string;
+  label: string;
+};
+
+const CRP_OPTIONS: CrpOption[] = [
+  { state: "AC", region: "24", label: "AC - Acre / CRP-24" },
+  { state: "AL", region: "15", label: "AL - Alagoas / CRP-15" },
+  { state: "AP", region: "10", label: "AP - Amapá / CRP-10" },
+  { state: "AM", region: "20", label: "AM - Amazonas / CRP-20" },
+  { state: "BA", region: "03", label: "BA - Bahia / CRP-03" },
+  { state: "CE", region: "11", label: "CE - Ceará / CRP-11" },
+  { state: "DF", region: "01", label: "DF - Distrito Federal / CRP-01" },
+  { state: "ES", region: "16", label: "ES - Espírito Santo / CRP-16" },
+  { state: "GO", region: "09", label: "GO - Goiás / CRP-09" },
+  { state: "MA", region: "22", label: "MA - Maranhão / CRP-22" },
+  { state: "MT", region: "18", label: "MT - Mato Grosso / CRP-18" },
+  { state: "MS", region: "14", label: "MS - Mato Grosso do Sul / CRP-14" },
+  { state: "MG", region: "04", label: "MG - Minas Gerais / CRP-04" },
+  { state: "PA", region: "10", label: "PA - Pará / CRP-10" },
+  { state: "PB", region: "13", label: "PB - Paraíba / CRP-13" },
+  { state: "PR", region: "08", label: "PR - Paraná / CRP-08" },
+  { state: "PE", region: "02", label: "PE - Pernambuco / CRP-02" },
+  { state: "PI", region: "21", label: "PI - Piauí / CRP-21" },
+  { state: "RJ", region: "05", label: "RJ - Rio de Janeiro / CRP-05" },
+  { state: "RN", region: "17", label: "RN - Rio Grande do Norte / CRP-17" },
+  { state: "RS", region: "07", label: "RS - Rio Grande do Sul / CRP-07" },
+  { state: "RO", region: "24", label: "RO - Rondônia / CRP-24" },
+  { state: "RR", region: "20", label: "RR - Roraima / CRP-20" },
+  { state: "SC", region: "12", label: "SC - Santa Catarina / CRP-12" },
+  { state: "SP", region: "06", label: "SP - São Paulo / CRP-06" },
+  { state: "SE", region: "19", label: "SE - Sergipe / CRP-19" },
+  { state: "TO", region: "23", label: "TO - Tocantins / CRP-23" },
+];
 
 export default function SignupPage() {
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmarSenha, setConfirmarSenha] = useState('');
-  const [role, setRole] = useState('paciente');
-  const [crp, setCrp] = useState('');
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [role, setRole] = useState("paciente");
+  const [crpState, setCrpState] = useState("");
+  const [crpNumber, setCrpNumber] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
+  const [apiError, setApiError] = useState("");
 
-  const [nomeError, setNomeError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [senhaError, setSenhaError] = useState('');
-  const [confirmarSenhaError, setConfirmarSenhaError] = useState('');
-  const [crpError, setCrpError] = useState('');
+  const [nomeError, setNomeError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [senhaError, setSenhaError] = useState("");
+  const [confirmarSenhaError, setConfirmarSenhaError] = useState("");
+  const [crpStateError, setCrpStateError] = useState("");
+  const [crpNumberError, setCrpNumberError] = useState("");
 
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const roleParam = searchParams.get('role');
+  const selectedCrp = CRP_OPTIONS.find((option) => option.state === crpState);
+  const crpRegion = selectedCrp?.region || "";
+  const fullCrp = crpRegion && crpNumber ? `${crpRegion}/${crpNumber}` : "";
 
-    if (roleParam === 'PATIENT') {
-      setRole('paciente');
+  useEffect(() => {
+    const roleParam = searchParams.get("role");
+
+    if (roleParam === "PATIENT") {
+      setRole("paciente");
     }
 
-    if (roleParam === 'PSYCHOLOGIST') {
-      setRole('psicologo');
+    if (roleParam === "PSYCHOLOGIST") {
+      setRole("psicologo");
     }
   }, [searchParams]);
 
-  function isValidCRP(crp: string): boolean {
-    const regex = /^\d{2}\/\d{4,8}$/;
-    return regex.test(crp);
+  function handleCrpNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 8);
+    setCrpNumber(value);
   }
-
-  const handleCrpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-
-    if (value.length > 10) {
-      value = value.substring(0, 10);
-    }
-
-    if (value.length > 2) {
-      value = value.substring(0, 2) + '/' + value.substring(2);
-    }
-
-    setCrp(value);
-  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    setApiError('');
-    setNomeError('');
-    setEmailError('');
-    setSenhaError('');
-    setConfirmarSenhaError('');
-    setCrpError('');
+    setApiError("");
+    setNomeError("");
+    setEmailError("");
+    setSenhaError("");
+    setConfirmarSenhaError("");
+    setCrpStateError("");
+    setCrpNumberError("");
 
     let isValid = true;
 
-    if (nome.trim() === '') {
-      setNomeError('Por favor, preencha seu nome.');
+    if (nome.trim() === "") {
+      setNomeError("Por favor, preencha seu nome.");
       isValid = false;
     }
 
-    if (email.trim() === '') {
-      setEmailError('Por favor, preencha o campo de email.');
+    if (email.trim() === "") {
+      setEmailError("Por favor, preencha o campo de email.");
       isValid = false;
     }
 
     if (senha.length < 8) {
-      setSenhaError('A senha deve ter no mínimo 8 caracteres.');
+      setSenhaError("A senha deve ter no mínimo 8 caracteres.");
       isValid = false;
     }
 
     if (senha !== confirmarSenha) {
-      setConfirmarSenhaError('As senhas não coincidem.');
+      setConfirmarSenhaError("As senhas não coincidem.");
       isValid = false;
     }
 
-    if (role === 'psicologo' && !isValidCRP(crp)) {
-      setCrpError('Formato de CRP inválido (ex: 06/123456).');
-      isValid = false;
+    if (role === "psicologo") {
+      if (!crpState || !selectedCrp) {
+        setCrpStateError("Selecione o estado/regional do CRP.");
+        isValid = false;
+      }
+
+      if (!/^\d{4,8}$/.test(crpNumber)) {
+        setCrpNumberError("Informe apenas o número do CRP, sem o prefixo regional. Ex: 123456.");
+        isValid = false;
+      }
     }
 
     if (!isValid) {
       setIsLoading(false);
-      setApiError('Dados inválidos. Verifique os campos.');
+      setApiError("Dados inválidos. Verifique os campos.");
       return;
     }
 
     try {
-      const response = await fetch('/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: nome,
-          email: email,
+          email,
           password: senha,
           confirmPassword: confirmarSenha,
           role: role.toUpperCase(),
-          crp: crp,
+          crp: role === "psicologo" ? fullCrp : "",
+          crpRegion: role === "psicologo" ? crpRegion : "",
+          crpState: role === "psicologo" ? crpState : "",
+          crpNumber: role === "psicologo" ? crpNumber : "",
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setApiError(data.error || 'Dados inválidos. Verifique os campos.');
+        setApiError(data.error || "Dados inválidos. Verifique os campos.");
 
         if (data.details) {
           data.details.name?.forEach((err: string) => setNomeError(err));
           data.details.email?.forEach((err: string) => setEmailError(err));
           data.details.password?.forEach((err: string) => setSenhaError(err));
           data.details.confirmPassword?.forEach((err: string) =>
-            setConfirmarSenhaError(err)
+            setConfirmarSenhaError(err),
           );
           data.details.role?.forEach((err: string) => setApiError(err));
-          data.details.crp?.forEach((err: string) => setCrpError(err));
+          data.details.crp?.forEach((err: string) => setCrpNumberError(err));
+          data.details.crpState?.forEach((err: string) => setCrpStateError(err));
+          data.details.crpNumber?.forEach((err: string) => setCrpNumberError(err));
         }
       } else {
-        setApiError(data.message || 'Registro concluído! Verifique o seu email.');
+        setApiError(data.message || "Registro concluído! Verifique o seu email.");
       }
     } catch {
-      setApiError('Não foi possível conectar ao servidor. Tente novamente.');
+      setApiError("Não foi possível conectar ao servidor. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const isSuccessMessage =
-    apiError.startsWith('Registro') || apiError.startsWith('Email');
+    apiError.startsWith("Registro") || apiError.startsWith("Email");
 
   return (
     <main className="public-page-wrapper signup-page">
@@ -172,9 +213,9 @@ export default function SignupPage() {
           {apiError && (
             <small
               style={{
-                color: isSuccessMessage ? 'green' : '#D93025',
-                marginBottom: '15px',
-                textAlign: 'center',
+                color: isSuccessMessage ? "green" : "#D93025",
+                marginBottom: "15px",
+                textAlign: "center",
               }}
             >
               {apiError}
@@ -189,10 +230,12 @@ export default function SignupPage() {
               name="nome"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className={nomeError ? 'error' : ''}
+              className={nomeError ? "error" : ""}
               required
             />
-            <small id="nome-error" className="error-message">{nomeError}</small>
+            <small id="nome-error" className="error-message">
+              {nomeError}
+            </small>
 
             <label htmlFor="email">Email</label>
             <input
@@ -201,10 +244,12 @@ export default function SignupPage() {
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={emailError ? 'error' : ''}
+              className={emailError ? "error" : ""}
               required
             />
-            <small id="email-error" className="error-message">{emailError}</small>
+            <small id="email-error" className="error-message">
+              {emailError}
+            </small>
 
             <label htmlFor="senha">Senha (mín. 8 caracteres)</label>
             <input
@@ -213,10 +258,12 @@ export default function SignupPage() {
               name="senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className={senhaError ? 'error' : ''}
+              className={senhaError ? "error" : ""}
               required
             />
-            <small id="senha-error" className="error-message">{senhaError}</small>
+            <small id="senha-error" className="error-message">
+              {senhaError}
+            </small>
 
             <label htmlFor="confirmar-senha">Confirmar Senha</label>
             <input
@@ -225,7 +272,7 @@ export default function SignupPage() {
               name="confirmar-senha"
               value={confirmarSenha}
               onChange={(e) => setConfirmarSenha(e.target.value)}
-              className={confirmarSenhaError ? 'error' : ''}
+              className={confirmarSenhaError ? "error" : ""}
               required
             />
             <small id="confirmar-senha-error" className="error-message">
@@ -239,7 +286,7 @@ export default function SignupPage() {
                 id="role-paciente"
                 name="role"
                 value="paciente"
-                checked={role === 'paciente'}
+                checked={role === "paciente"}
                 onChange={(e) => setRole(e.target.value)}
               />
               <label htmlFor="role-paciente" className="radio-label">
@@ -251,7 +298,7 @@ export default function SignupPage() {
                 id="role-psicologo"
                 name="role"
                 value="psicologo"
-                checked={role === 'psicologo'}
+                checked={role === "psicologo"}
                 onChange={(e) => setRole(e.target.value)}
               />
               <label htmlFor="role-psicologo" className="radio-label">
@@ -261,23 +308,69 @@ export default function SignupPage() {
 
             <div
               id="crp-field"
-              className={role === 'psicologo' ? 'hidden-field visible' : 'hidden-field'}
+              className={role === "psicologo" ? "hidden-field visible" : "hidden-field"}
             >
-              <label htmlFor="crp">CRP (ex: 06/123456)</label>
+              <label htmlFor="crpState">Estado/Regional do CRP</label>
+              <select
+                id="crpState"
+                name="crpState"
+                value={crpState}
+                onChange={(e) => setCrpState(e.target.value)}
+                className={crpStateError ? "error" : ""}
+                style={{
+                  width: "100%",
+                  padding: "12px 15px",
+                  border: crpStateError ? "1px solid #d93025" : "1px solid #dcdcdc",
+                  borderRadius: "8px",
+                  marginBottom: "3px",
+                  fontSize: "15px",
+                  outlineColor: "#528cff",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <option value="">Selecione o estado/regional</option>
+                {CRP_OPTIONS.map((option) => (
+                  <option key={option.state} value={option.state}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <small id="crp-state-error" className="error-message">
+                {crpStateError}
+              </small>
+
+              <label htmlFor="crpNumber">Número do CRP</label>
               <input
                 type="text"
-                id="crp"
-                name="crp"
-                value={crp}
-                onChange={handleCrpChange}
-                className={crpError ? 'error' : ''}
-                maxLength={11}
+                id="crpNumber"
+                name="crpNumber"
+                value={crpNumber}
+                onChange={handleCrpNumberChange}
+                className={crpNumberError ? "error" : ""}
+                maxLength={8}
+                placeholder="Ex: 123456"
               />
-              <small id="crp-error" className="error-message">{crpError}</small>
+              <small id="crp-number-error" className="error-message">
+                {crpNumberError}
+              </small>
+
+              {fullCrp && (
+                <small
+                  style={{
+                    display: "block",
+                    color: "#001e5e",
+                    fontWeight: 700,
+                    marginTop: "2px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  CRP completo: {fullCrp}
+                </small>
+              )}
             </div>
 
             <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? 'Aguarde...' : 'Cadastrar'}
+              {isLoading ? "Aguarde..." : "Cadastrar"}
             </button>
           </form>
 

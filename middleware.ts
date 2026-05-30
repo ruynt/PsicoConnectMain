@@ -35,22 +35,47 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  const role = token.role;
+
+  // Área administrativa: somente ADMIN
+  if (pathname.startsWith("/admin") && role !== "ADMIN") {
+    if (role === "PSYCHOLOGIST") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    if (role === "PATIENT") {
+      return NextResponse.redirect(new URL("/patient", req.url));
+    }
+
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // Área do psicólogo: somente PSYCHOLOGIST
   if (
     (pathname.startsWith("/dashboard") ||
       pathname.startsWith("/agenda") ||
       pathname.startsWith("/pacientes")) &&
-    token.role !== "PSYCHOLOGIST"
+    role !== "PSYCHOLOGIST"
   ) {
+    if (role === "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
     return NextResponse.redirect(new URL("/patient", req.url));
   }
 
+  // Área do paciente: somente PATIENT
   if (
     (pathname.startsWith("/patient") ||
       pathname.startsWith("/minhas-consultas") ||
       pathname.startsWith("/tarefas-materiais") ||
       pathname.startsWith("/mensagens")) &&
-    token.role !== "PATIENT"
+    role !== "PATIENT"
   ) {
+    if (role === "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

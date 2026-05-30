@@ -5,6 +5,38 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
+function getLoginErrorMessage(error: string | null | undefined) {
+  if (!error) return "";
+
+  if (
+    error === "CredentialsSignin" ||
+    error === "INVALID_CREDENTIALS" ||
+    error.includes("INVALID_CREDENTIALS") ||
+    error.includes("Email ou senha") ||
+    error.includes("Nenhum utilizador") ||
+    error.includes("senha")
+  ) {
+    return "Email ou senha inválidos.";
+  }
+
+  if (
+    error === "EMAIL_NOT_VERIFIED" ||
+    error.includes("EMAIL_NOT_VERIFIED") ||
+    error.includes("verifique")
+  ) {
+    return "Verifique seu e-mail antes de acessar a plataforma.";
+  }
+
+  if (
+    error === "ACCOUNT_INCOMPLETE" ||
+    error.includes("ACCOUNT_INCOMPLETE")
+  ) {
+    return "Conta incompleta. Entre em contato com o suporte.";
+  }
+
+  return "Não foi possível concluir o login. Tente novamente.";
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,11 +56,7 @@ export default function LoginPage() {
     }
 
     if (error) {
-      if (error === "CredentialsSignin") {
-        setApiError("Email ou senha inválidos.");
-      } else {
-        setApiError("Não foi possível concluir o login. Tente novamente.");
-      }
+      setApiError(getLoginErrorMessage(error));
     }
   }, [searchParams]);
 
@@ -45,14 +73,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        if (result.error === "CredentialsSignin") {
-          setApiError("Email ou senha inválidos.");
-        } else {
-          setApiError(
-            "Não foi possível conectar ao servidor no momento. Tente novamente.",
-          );
-        }
-      } else if (result?.ok) {
+        setApiError(getLoginErrorMessage(result.error));
+        return;
+      }
+
+      if (result?.ok) {
         router.push("/dashboard");
       }
     } catch (error) {
@@ -64,6 +89,9 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const isSuccessMessage = apiError.includes("sucesso");
+  const hasError = Boolean(apiError) && !isSuccessMessage;
 
   return (
     <main className="public-page-wrapper login-page">
@@ -77,6 +105,7 @@ export default function LoginPage() {
               Connect
             </h1>
           </div>
+
           <p className="tagline">
             Um espaço
             <br />
@@ -99,10 +128,11 @@ export default function LoginPage() {
           {apiError && (
             <small
               style={{
-                color: apiError.includes("sucesso") ? "#047857" : "#D93025",
+                color: isSuccessMessage ? "#047857" : "#D93025",
                 marginBottom: "15px",
                 textAlign: "center",
                 fontWeight: 700,
+                lineHeight: 1.4,
               }}
             >
               {apiError}
@@ -117,7 +147,7 @@ export default function LoginPage() {
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={apiError && !apiError.includes("sucesso") ? "error" : ""}
+              className={hasError ? "error" : ""}
               required
             />
             <small id="email-error" className="error-message"></small>
@@ -129,7 +159,7 @@ export default function LoginPage() {
               name="senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={apiError && !apiError.includes("sucesso") ? "error" : ""}
+              className={hasError ? "error" : ""}
               required
             />
             <small id="senha-error" className="error-message"></small>

@@ -26,8 +26,16 @@ model Psychologist {
   userId String @unique
   crp    String @unique
 
+  crpRegion String?
+  crpState  String?
+  crpNumber String?
+
   crpVerificationStatus CrpVerificationStatus @default(PENDING)
   crpVerifiedAt         DateTime?
+
+  crpRejectedAt      DateTime?
+  crpRejectionReason String?
+
 
   user User @relation(fields: [userId], references: [id])
 
@@ -278,6 +286,7 @@ model PatientMessage {
 }
 
 enum Role {
+  ADMIN
   PSYCHOLOGIST
   PATIENT
 }

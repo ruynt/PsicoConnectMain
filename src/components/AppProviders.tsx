@@ -87,21 +87,14 @@ function AuthGuard({ children }: PropsWithChildren) {
   const userRole = sessionUser?.role;
   const crpVerificationStatus = sessionUser?.crpVerificationStatus;
 
+  const isAdmin = userRole === "ADMIN";
   const isPsychologist = userRole === "PSYCHOLOGIST";
   const isPatient = userRole === "PATIENT";
 
-  /*
-    Importante:
-    - A verificação só é aplicada quando o status vier na sessão.
-    - Isso evita travar o projeto antes de ajustarmos o NextAuth para incluir
-      crpVerificationStatus no token/session.
-  */
   const shouldBlockPsychologistByCrp =
-    isPsychologist &&
-    Boolean(crpVerificationStatus) &&
-    crpVerificationStatus !== "APPROVED";
+    isPsychologist && crpVerificationStatus !== "APPROVED";
 
-  const homePath = isPsychologist ? "/dashboard" : "/patient";
+  const homePath = isAdmin ? "/admin" : isPsychologist ? "/dashboard" : "/patient";
 
   useEffect(() => {
     if (status === "loading") return;
@@ -112,8 +105,15 @@ function AuthGuard({ children }: PropsWithChildren) {
     }
 
     if (status === "authenticated" && shouldRedirectAuthenticatedUser) {
-      const redirectPath =
-        userRole === "PSYCHOLOGIST" ? "/dashboard" : "/patient";
+      let redirectPath = "/patient";
+
+      if (isAdmin) {
+        redirectPath = "/admin";
+      } else if (isPsychologist) {
+        redirectPath = shouldBlockPsychologistByCrp
+          ? "/aguardando-verificacao"
+          : "/dashboard";
+      }
 
       setIsNavigating(true);
       router.push(redirectPath);
@@ -143,11 +143,11 @@ function AuthGuard({ children }: PropsWithChildren) {
     status,
     isPublicPage,
     shouldRedirectAuthenticatedUser,
+    isAdmin,
+    isPsychologist,
     shouldBlockPsychologistByCrp,
     isVerificationPage,
-    isPsychologist,
     crpVerificationStatus,
-    userRole,
     router,
   ]);
 
@@ -166,19 +166,15 @@ function AuthGuard({ children }: PropsWithChildren) {
     return <PsicoLoadingScreen />;
   }
 
-  if (isPublicPage && status === "unauthenticated") {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
-  if (isPublicPage && status === "authenticated") {
+  if (isVerificationPage && status === "authenticated") {
     return <>{children}</>;
   }
 
-  if (!isPublicPage && status === "authenticated") {
-    if (shouldBlockPsychologistByCrp && isVerificationPage) {
-      return <>{children}</>;
-    }
-
+  if (status === "authenticated") {
     const isActive = (path: string) =>
       pathname === path || pathname.startsWith(`${path}/`);
 
@@ -209,80 +205,109 @@ function AuthGuard({ children }: PropsWithChildren) {
             </div>
 
             <div className="sidebar-nav">
-              <Link
-                href={homePath}
-                onClick={() => handleMenuNavigation(homePath)}
-                className={isActive(homePath) ? "active" : ""}
-              >
-                <i className="fa-solid fa-home"></i> Início
-              </Link>
+              {isAdmin ? (
+                <>
+                  <Link
+                    href="/admin"
+                    onClick={() => handleMenuNavigation("/admin")}
+                    className={pathname === "/admin" ? "active" : ""}
+                  >
+                    <i className="fa-solid fa-user-shield"></i> Administração
+                  </Link>
 
-              {isPsychologist && (
-                <Link
-                  href="/agenda"
-                  onClick={() => handleMenuNavigation("/agenda")}
-                  className={isActive("/agenda") ? "active" : ""}
-                >
-                  <i className="fa-solid fa-calendar-days"></i> Agenda
-                </Link>
-              )}
+                  <Link
+                    href="/admin/usuarios"
+                    onClick={() => handleMenuNavigation("/admin/usuarios")}
+                    className={isActive("/admin/usuarios") ? "active" : ""}
+                  >
+                    <i className="fa-solid fa-users-gear"></i> Usuários
+                  </Link>
 
-              {isPsychologist && (
-                <Link
-                  href="/pacientes"
-                  onClick={() => handleMenuNavigation("/pacientes")}
-                  className={isActive("/pacientes") ? "active" : ""}
-                >
-                  <i className="fa-solid fa-users"></i> Pacientes
-                </Link>
-              )}
+                  <Link
+                    href="/chat"
+                    onClick={() => handleMenuNavigation("/chat")}
+                    className={isActive("/chat") ? "active" : ""}
+                  >
+                    <PsicoBotMenuIcon /> PsicoBot
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={homePath}
+                    onClick={() => handleMenuNavigation(homePath)}
+                    className={isActive(homePath) ? "active" : ""}
+                  >
+                    <i className="fa-solid fa-home"></i> Início
+                  </Link>
 
-              {isPatient && (
-                <Link
-                  href="/minhas-consultas"
-                  onClick={() => handleMenuNavigation("/minhas-consultas")}
-                  className={isActive("/minhas-consultas") ? "active" : ""}
-                >
-                  <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
-                </Link>
-              )}
+                  {isPsychologist && !shouldBlockPsychologistByCrp && (
+                    <Link
+                      href="/agenda"
+                      onClick={() => handleMenuNavigation("/agenda")}
+                      className={isActive("/agenda") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-calendar-days"></i> Agenda
+                    </Link>
+                  )}
 
-              {isPatient && (
-                <Link
-                  href="/tarefas-materiais"
-                  onClick={() => handleMenuNavigation("/tarefas-materiais")}
-                  className={isActive("/tarefas-materiais") ? "active" : ""}
-                >
-                  <i className="fa-solid fa-list-check"></i> Tarefas e materiais
-                </Link>
-              )}
+                  {isPsychologist && !shouldBlockPsychologistByCrp && (
+                    <Link
+                      href="/pacientes"
+                      onClick={() => handleMenuNavigation("/pacientes")}
+                      className={isActive("/pacientes") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-users"></i> Pacientes
+                    </Link>
+                  )}
 
-              {isPatient && (
-                <Link
-                  href="/mensagens"
-                  onClick={() => handleMenuNavigation("/mensagens")}
-                  className={isActive("/mensagens") ? "active" : ""}
-                >
-                  <i className="fa-solid fa-comments"></i> Mensagens
-                </Link>
-              )}
+                  {isPatient && (
+                    <Link
+                      href="/minhas-consultas"
+                      onClick={() => handleMenuNavigation("/minhas-consultas")}
+                      className={isActive("/minhas-consultas") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
+                    </Link>
+                  )}
 
-              <Link
-                href="/orientacoes"
-                onClick={() => handleMenuNavigation("/orientacoes")}
-                className={isActive("/orientacoes") ? "active" : ""}
-              >
-                <i className="fa-solid fa-book-open"></i> Orientações
-              </Link>
+                  {isPatient && (
+                    <Link
+                      href="/tarefas-materiais"
+                      onClick={() => handleMenuNavigation("/tarefas-materiais")}
+                      className={isActive("/tarefas-materiais") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-list-check"></i> Tarefas e materiais
+                    </Link>
+                  )}
 
-              <Link
-                href="/chat"
-                onClick={() => handleMenuNavigation("/chat")}
-                className={isActive("/chat") ? "active" : ""}
-              >
-                <PsicoBotMenuIcon /> PsicoBot
-              </Link>
-            </div>
+                  {isPatient && (
+                    <Link
+                      href="/mensagens"
+                      onClick={() => handleMenuNavigation("/mensagens")}
+                      className={isActive("/mensagens") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-comments"></i> Mensagens
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/orientacoes"
+                    onClick={() => handleMenuNavigation("/orientacoes")}
+                    className={isActive("/orientacoes") ? "active" : ""}
+                  >
+                    <i className="fa-solid fa-book-open"></i> Orientações
+                  </Link>
+
+                  <Link
+                    href="/chat"
+                    onClick={() => handleMenuNavigation("/chat")}
+                    className={isActive("/chat") ? "active" : ""}
+                  >
+                    <PsicoBotMenuIcon /> PsicoBot
+                  </Link>
+                </>
+              )}            </div>
 
             <div className="sidebar-footer">
               <button onClick={() => signOut({ callbackUrl: "/login" })}>

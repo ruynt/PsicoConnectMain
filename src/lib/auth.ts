@@ -57,16 +57,17 @@ export const authConfig: NextAuthOptions = {
         });
 
         if (!creds) {
-          throw new Error("Credenciais em falta.");
+          throw new Error("INVALID_CREDENTIALS");
         }
 
         const parsed = schema.safeParse(creds);
 
         if (!parsed.success) {
-          throw new Error("Email ou senha inválidos.");
+          throw new Error("INVALID_CREDENTIALS");
         }
 
         const { email, password } = parsed.data;
+
         const user = await prisma.user.findUnique({
           where: { email },
           include: {
@@ -80,19 +81,22 @@ export const authConfig: NextAuthOptions = {
         });
 
         if (!user) {
-          throw new Error("Nenhum utilizador encontrado com este email.");
+          // Mantém e-mail inexistente e senha errada com a mesma mensagem por segurança.
+          throw new Error("INVALID_CREDENTIALS");
         }
 
         const ok = await bcrypt.compare(password, user.passwordHash);
 
         if (!ok) {
-          throw new Error("Email ou senha inválidos.");
+          throw new Error("INVALID_CREDENTIALS");
         }
 
         if (!user.emailVerified) {
-          throw new Error(
-            "Por favor, verifique o seu email antes de fazer login.",
-          );
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
+
+        if (!user.role) {
+          throw new Error("ACCOUNT_INCOMPLETE");
         }
 
         return {

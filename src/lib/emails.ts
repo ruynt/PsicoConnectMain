@@ -412,3 +412,197 @@ export async function sendAppointmentReminderEmail({
     throw error;
   }
 }
+
+type CrpVerificationEmailPayload = {
+  to: string;
+  name: string | null;
+  crp?: string | null;
+  crpState?: string | null;
+  crpRegion?: string | null;
+  crpNumber?: string | null;
+};
+
+type CrpRejectedEmailPayload = CrpVerificationEmailPayload & {
+  reason: string;
+};
+
+function formatCrpDetails({
+  crp,
+  crpState,
+  crpRegion,
+  crpNumber,
+}: Pick<
+  CrpVerificationEmailPayload,
+  "crp" | "crpState" | "crpRegion" | "crpNumber"
+>) {
+  const safeCrp = escapeHtml(crp || "Não informado");
+  const safeCrpState = escapeHtml(crpState || "Não informado");
+  const safeCrpRegion = escapeHtml(crpRegion ? `CRP-${crpRegion}` : "Não informado");
+  const safeCrpNumber = escapeHtml(crpNumber || "Não informado");
+
+  return `
+    <div style="
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 18px 0;
+    ">
+      <p><strong>CRP completo:</strong> ${safeCrp}</p>
+      <p><strong>Estado:</strong> ${safeCrpState}</p>
+      <p><strong>Regional:</strong> ${safeCrpRegion}</p>
+      <p><strong>Número de registro:</strong> ${safeCrpNumber}</p>
+    </div>
+  `;
+}
+
+export async function sendCrpApprovedEmail({
+  to,
+  name,
+  crp,
+  crpState,
+  crpRegion,
+  crpNumber,
+}: CrpVerificationEmailPayload) {
+  const safeName = escapeHtml(name || "profissional");
+  const loginLink = `${baseUrl}/login`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5;">
+      <h2 style="margin-bottom: 12px;">Cadastro profissional aprovado</h2>
+
+      <p>Olá, ${safeName}.</p>
+
+      <p>
+        Seu cadastro profissional no PsicoConnect foi aprovado após a verificação do CRP.
+      </p>
+
+      ${formatCrpDetails({ crp, crpState, crpRegion, crpNumber })}
+
+      <p>
+        A partir de agora, você já pode acessar sua área profissional, gerenciar agenda,
+        pacientes e demais recursos disponíveis na plataforma.
+      </p>
+
+      <a
+        href="${loginLink}"
+        style="
+          display: inline-block;
+          background: #2563eb;
+          color: white;
+          text-decoration: none;
+          padding: 12px 18px;
+          border-radius: 8px;
+          font-weight: bold;
+        "
+      >
+        Acessar PsicoConnect
+      </a>
+
+      <p style="margin-top: 20px; color: #4b5563; font-size: 14px;">
+        Esta é uma mensagem automática do PsicoConnect. Não responda este e-mail.
+      </p>
+    </div>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: emailFrom,
+      to,
+      subject: "Cadastro profissional aprovado - PsicoConnect",
+      html,
+      headers: {
+        "X-Auto-Response-Suppress": "All",
+      },
+      tags: [{ name: "category", value: "crp-approved" }],
+    });
+
+    console.log("Email de CRP aprovado enviado:", result);
+    return result;
+  } catch (error) {
+    console.error("Erro ao enviar email de CRP aprovado:", error);
+    throw error;
+  }
+}
+
+export async function sendCrpRejectedEmail({
+  to,
+  name,
+  crp,
+  crpState,
+  crpRegion,
+  crpNumber,
+  reason,
+}: CrpRejectedEmailPayload) {
+  const safeName = escapeHtml(name || "profissional");
+  const safeReason = escapeHtml(reason || "Não foi informado um motivo específico.");
+  const loginLink = `${baseUrl}/login`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5;">
+      <h2 style="margin-bottom: 12px;">Cadastro profissional não aprovado</h2>
+
+      <p>Olá, ${safeName}.</p>
+
+      <p>
+        Seu cadastro profissional no PsicoConnect não foi aprovado no momento após a análise do CRP.
+      </p>
+
+      ${formatCrpDetails({ crp, crpState, crpRegion, crpNumber })}
+
+      <div style="
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 18px 0;
+      ">
+        <p style="margin-top: 0;"><strong>Motivo informado pela administração:</strong></p>
+        <p style="margin-bottom: 0;">${safeReason}</p>
+      </div>
+
+      <p>
+        Revise os dados cadastrados e, se necessário, entre em contato com a equipe responsável
+        para solicitar uma nova análise.
+      </p>
+
+      <a
+        href="${loginLink}"
+        style="
+          display: inline-block;
+          background: #2563eb;
+          color: white;
+          text-decoration: none;
+          padding: 12px 18px;
+          border-radius: 8px;
+          font-weight: bold;
+        "
+      >
+        Acessar PsicoConnect
+      </a>
+
+      <p style="margin-top: 20px; color: #4b5563; font-size: 14px;">
+        Esta é uma mensagem automática do PsicoConnect. Não responda este e-mail.
+      </p>
+    </div>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: emailFrom,
+      to,
+      subject: "Cadastro profissional não aprovado - PsicoConnect",
+      html,
+      headers: {
+        "X-Auto-Response-Suppress": "All",
+      },
+      tags: [{ name: "category", value: "crp-rejected" }],
+    });
+
+    console.log("Email de CRP rejeitado enviado:", result);
+    return result;
+  } catch (error) {
+    console.error("Erro ao enviar email de CRP rejeitado:", error);
+    throw error;
+  }
+}
