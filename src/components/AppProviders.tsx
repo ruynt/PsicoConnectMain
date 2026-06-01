@@ -241,6 +241,16 @@ function AuthGuard({ children }: PropsWithChildren) {
                     <i className="fa-solid fa-home"></i> Início
                   </Link>
 
+                  {(isPsychologist || isPatient) && (
+                    <Link
+                      href="/perfil"
+                      onClick={() => handleMenuNavigation("/perfil")}
+                      className={isActive("/perfil") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-user"></i> Perfil
+                    </Link>
+                  )}
+
                   {isPsychologist && !shouldBlockPsychologistByCrp && (
                     <Link
                       href="/agenda"
@@ -258,6 +268,16 @@ function AuthGuard({ children }: PropsWithChildren) {
                       className={isActive("/pacientes") ? "active" : ""}
                     >
                       <i className="fa-solid fa-users"></i> Pacientes
+                    </Link>
+                  )}
+
+                  {isPatient && (
+                    <Link
+                      href="/meus-psicologos"
+                      onClick={() => handleMenuNavigation("/meus-psicologos")}
+                      className={isActive("/meus-psicologos") ? "active" : ""}
+                    >
+                      <i className="fa-solid fa-user-doctor"></i> Psicólogos
                     </Link>
                   )}
 
@@ -307,7 +327,8 @@ function AuthGuard({ children }: PropsWithChildren) {
                     <PsicoBotMenuIcon /> PsicoBot
                   </Link>
                 </>
-              )}            </div>
+              )}
+            </div>
 
             <div className="sidebar-footer">
               <button onClick={() => signOut({ callbackUrl: "/login" })}>

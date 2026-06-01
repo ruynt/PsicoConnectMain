@@ -64,6 +64,11 @@ export async function GET(
             name: true,
             email: true,
             createdAt: true,
+            profileImageUrl: true,
+            phone: true,
+            city: true,
+            state: true,
+            bio: true,
           },
         },
         appointments: {
@@ -84,13 +89,14 @@ export async function GET(
       );
     }
 
+    const appointments = patient.appointments;
     const now = new Date();
 
-    const scheduledAppointments = patient.appointments.filter(
+    const scheduledAppointments = appointments.filter(
       (appointment) => appointment.status === "SCHEDULED",
     );
 
-    const cancelledAppointments = patient.appointments.filter(
+    const cancelledAppointments = appointments.filter(
       (appointment) => appointment.status === "CANCELLED",
     );
 
@@ -98,9 +104,9 @@ export async function GET(
       .filter((appointment) => appointment.dateTime >= now)
       .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
 
-    function mapAppointment(
-      appointment: (typeof patient.appointments)[number],
-    ) {
+    type PatientAppointment = (typeof appointments)[number];
+
+    function mapAppointment(appointment: PatientAppointment) {
       return {
         id: appointment.id,
         title: appointment.title || "Consulta",
@@ -130,9 +136,11 @@ export async function GET(
           appointment.reminderEmailSentAt?.toISOString() || null,
 
         paymentStatus: appointment.paymentStatus,
-        paymentAmount: appointment.paymentAmount
-          ? Number(appointment.paymentAmount)
-          : null,
+        paymentAmount:
+          appointment.paymentAmount !== null &&
+          appointment.paymentAmount !== undefined
+            ? Number(appointment.paymentAmount)
+            : null,
         paymentNote: appointment.paymentNote || null,
         paidAt: appointment.paidAt?.toISOString() || null,
 
@@ -144,16 +152,31 @@ export async function GET(
     return NextResponse.json({
       patient: {
         id: patient.id,
+
         name: patient.user.name,
         email: patient.user.email,
         createdAt: patient.user.createdAt.toISOString(),
-        totalAppointments: patient.appointments.length,
+
+        profileImageUrl: patient.user.profileImageUrl || "",
+        phone: patient.user.phone || "",
+        city: patient.user.city || "",
+        state: patient.user.state || "",
+        bio: patient.user.bio || "",
+
+        socialName: patient.socialName || "",
+        birthDate: patient.birthDate?.toISOString() || null,
+        contactPreference: patient.contactPreference || "",
+        emergencyContactName: patient.emergencyContactName || "",
+        emergencyContactPhone: patient.emergencyContactPhone || "",
+        patientNotes: patient.patientNotes || "",
+
+        totalAppointments: appointments.length,
         scheduledAppointments: scheduledAppointments.length,
         cancelledAppointments: cancelledAppointments.length,
         nextAppointment: nextAppointment
           ? mapAppointment(nextAppointment)
           : null,
-        appointments: patient.appointments.map(mapAppointment),
+        appointments: appointments.map(mapAppointment),
       },
     });
   } catch (error: any) {

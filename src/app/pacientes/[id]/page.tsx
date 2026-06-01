@@ -27,6 +27,20 @@ type PatientDetails = {
   name: string;
   email: string;
   createdAt: string;
+
+  profileImageUrl?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  state?: string | null;
+  bio?: string | null;
+
+  socialName?: string | null;
+  birthDate?: string | null;
+  contactPreference?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  patientNotes?: string | null;
+
   totalAppointments: number;
   scheduledAppointments: number;
   cancelledAppointments: number;
@@ -401,13 +415,81 @@ export default function PatientDetailsPage() {
     }).format(new Date(dateString));
   }
 
+  function getTextValue(value: string | null | undefined) {
+    const trimmedValue = value?.trim();
+
+    return trimmedValue || "Não informado";
+  }
+
+  function getPatientDisplayName() {
+    return patient?.socialName?.trim() || patient?.name || "Paciente";
+  }
+
+  function getInitials(name: string) {
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase())
+      .join("");
+  }
+
+  function onlyDigits(value: string | null | undefined) {
+    return (value || "").replace(/\D/g, "");
+  }
+
+  function formatPhone(value: string | null | undefined) {
+    const digits = onlyDigits(value);
+
+    if (!digits) return "Não informado";
+
+    const withoutCountryCode =
+      digits.startsWith("55") && digits.length > 11 ? digits.slice(2) : digits;
+
+    if (withoutCountryCode.length === 11) {
+      return `(${withoutCountryCode.slice(0, 2)}) ${withoutCountryCode.slice(
+        2,
+        7,
+      )}-${withoutCountryCode.slice(7)}`;
+    }
+
+    if (withoutCountryCode.length === 10) {
+      return `(${withoutCountryCode.slice(0, 2)}) ${withoutCountryCode.slice(
+        2,
+        6,
+      )}-${withoutCountryCode.slice(6)}`;
+    }
+
+    return value || "Não informado";
+  }
+
+  function getWhatsappUrl(value: string | null | undefined) {
+    const digits = onlyDigits(value);
+
+    if (!digits) return "";
+
+    const phoneWithCountryCode = digits.startsWith("55")
+      ? digits
+      : `55${digits}`;
+
+    return `https://wa.me/${phoneWithCountryCode}`;
+  }
+
+  function formatBirthDate(dateString: string | null | undefined) {
+    if (!dateString) return "Não informado";
+
+    return formatDateOnly(dateString);
+  }
+
   function formatCurrency(value: number | string | null | undefined) {
     if (value === null || value === undefined || value === "") {
       return "Não informado";
     }
 
     const numericValue =
-      typeof value === "number" ? value : Number(String(value).replace(",", "."));
+      typeof value === "number"
+        ? value
+        : Number(String(value).replace(",", "."));
 
     if (Number.isNaN(numericValue)) {
       return "Não informado";
@@ -620,9 +702,12 @@ export default function PatientDetailsPage() {
       setSummaryGeneratedAt("");
       setSummarySourceNotesCount(0);
 
-      const response = await fetch(`/api/patients/${patientId}/generate-summary`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/patients/${patientId}/generate-summary`,
+        {
+          method: "POST",
+        },
+      );
 
       const data = await response.json();
 
@@ -716,15 +801,18 @@ export default function PatientDetailsPage() {
     try {
       setUpdatingTaskId(taskId);
 
-      const response = await fetch(`/api/patients/${patientId}/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/patients/${patientId}/tasks/${taskId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+          }),
         },
-        body: JSON.stringify({
-          status,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -1025,7 +1113,7 @@ export default function PatientDetailsPage() {
               zIndex: 1,
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: "320px" }}>
               <Link
                 href="/pacientes"
                 style={{
@@ -1035,7 +1123,7 @@ export default function PatientDetailsPage() {
                   color: "#dbeafe",
                   fontWeight: 800,
                   textDecoration: "none",
-                  marginBottom: "14px",
+                  marginBottom: "16px",
                 }}
               >
                 <i className="fa-solid fa-arrow-left"></i>
@@ -1046,62 +1134,161 @@ export default function PatientDetailsPage() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "12px",
+                  gap: "18px",
+                  marginBottom: "16px",
+                  flexWrap: "wrap",
                 }}
               >
-                <div
-                  style={{
-                    width: "52px",
-                    height: "52px",
-                    borderRadius: "18px",
-                    backgroundColor: "rgba(255, 255, 255, 0.18)",
-                    border: "1px solid rgba(255, 255, 255, 0.24)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "22px",
-                  }}
-                >
-                  <i className="fa-solid fa-user"></i>
-                </div>
+                {patient.profileImageUrl ? (
+                  <img
+                    src={patient.profileImageUrl}
+                    alt={`Foto de ${getPatientDisplayName()}`}
+                    style={{
+                      width: "86px",
+                      height: "86px",
+                      borderRadius: "24px",
+                      objectFit: "cover",
+                      border: "3px solid rgba(255, 255, 255, 0.78)",
+                      boxShadow: "0 16px 34px rgba(15, 23, 42, 0.22)",
+                      backgroundColor: "rgba(255, 255, 255, 0.18)",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "86px",
+                      height: "86px",
+                      borderRadius: "24px",
+                      backgroundColor: "rgba(255, 255, 255, 0.18)",
+                      border: "3px solid rgba(255, 255, 255, 0.32)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "30px",
+                      fontWeight: 900,
+                      color: "#ffffff",
+                      boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
+                    }}
+                  >
+                    {getInitials(getPatientDisplayName()) || "P"}
+                  </div>
+                )}
 
-                <div>
+                <div style={{ minWidth: "240px" }}>
                   <p
                     style={{
                       color: "#dbeafe",
                       fontSize: "13px",
-                      fontWeight: 800,
-                      marginBottom: "4px",
+                      fontWeight: 900,
+                      marginBottom: "6px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
                     }}
                   >
+                    <i className="fa-solid fa-address-card"></i>
                     Perfil do paciente
                   </p>
 
                   <h1
                     style={{
-                      fontSize: "42px",
+                      fontSize: "44px",
                       fontWeight: 900,
                       lineHeight: 1.05,
                       margin: 0,
                     }}
                   >
-                    {patient.name}
+                    {getPatientDisplayName()}
                   </h1>
+
+                  {patient.socialName &&
+                    patient.socialName !== patient.name && (
+                      <p
+                        style={{
+                          color: "#dbeafe",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          marginTop: "6px",
+                          marginBottom: 0,
+                        }}
+                      >
+                        Nome civil: {patient.name}
+                      </p>
+                    )}
                 </div>
               </div>
 
-              <p
+              <div
                 style={{
-                  fontSize: "18px",
-                  color: "#dbeafe",
-                  maxWidth: "820px",
-                  margin: 0,
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  maxWidth: "960px",
                 }}
               >
-                Acompanhe consultas, checklists pré-sessão, tarefas terapêuticas,
-                materiais psicoeducativos e anotações clínicas internas.
-              </p>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    backgroundColor: "rgba(255, 255, 255, 0.16)",
+                    border: "1px solid rgba(255, 255, 255, 0.24)",
+                    color: "#ffffff",
+                    borderRadius: "999px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    fontWeight: 800,
+                    maxWidth: "100%",
+                  }}
+                >
+                  <i className="fa-solid fa-envelope"></i>
+                  <span
+                    style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                  >
+                    {patient.email}
+                  </span>
+                </span>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    backgroundColor: "rgba(255, 255, 255, 0.16)",
+                    border: "1px solid rgba(255, 255, 255, 0.24)",
+                    color: "#ffffff",
+                    borderRadius: "999px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    fontWeight: 800,
+                  }}
+                >
+                  <i className="fa-brands fa-whatsapp"></i>
+                  {formatPhone(patient.phone)}
+                </span>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    backgroundColor: "rgba(255, 255, 255, 0.16)",
+                    border: "1px solid rgba(255, 255, 255, 0.24)",
+                    color: "#ffffff",
+                    borderRadius: "999px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    fontWeight: 800,
+                  }}
+                >
+                  <i className="fa-solid fa-location-dot"></i>
+                  {patient.city || patient.state
+                    ? `${patient.city || "Cidade não informada"}${
+                        patient.state ? `/${patient.state}` : ""
+                      }`
+                    : "Cidade/UF não informado"}
+                </span>
+              </div>
             </div>
 
             <Link
@@ -1151,6 +1338,385 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
+        <section
+          style={{
+            ...cardStyle,
+            marginBottom: "24px",
+            padding: "26px",
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: "-70px",
+              top: "-70px",
+              width: "190px",
+              height: "190px",
+              borderRadius: "999px",
+              backgroundColor: "#eff6ff",
+            }}
+          />
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "280px 1fr",
+              gap: "24px",
+              alignItems: "stretch",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(248, 250, 252, 0.95))",
+                border: "1px solid #dbeafe",
+                borderRadius: "20px",
+                padding: "22px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+              }}
+            >
+              {patient.profileImageUrl ? (
+                <img
+                  src={patient.profileImageUrl}
+                  alt={`Foto de ${getPatientDisplayName()}`}
+                  style={{
+                    width: "116px",
+                    height: "116px",
+                    borderRadius: "999px",
+                    objectFit: "cover",
+                    border: "4px solid #ffffff",
+                    boxShadow: "0 14px 30px rgba(15, 23, 42, 0.14)",
+                    marginBottom: "14px",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "116px",
+                    height: "116px",
+                    borderRadius: "999px",
+                    background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+                    color: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "34px",
+                    fontWeight: 900,
+                    border: "4px solid #ffffff",
+                    boxShadow: "0 14px 30px rgba(15, 23, 42, 0.14)",
+                    marginBottom: "14px",
+                  }}
+                >
+                  {getInitials(getPatientDisplayName()) || "P"}
+                </div>
+              )}
+
+              <p
+                style={{
+                  color: "#0f172a",
+                  fontWeight: 900,
+                  fontSize: "22px",
+                  marginBottom: "4px",
+                }}
+              >
+                {getPatientDisplayName()}
+              </p>
+
+              {patient.socialName && patient.socialName !== patient.name && (
+                <p
+                  style={{
+                    color: "#64748b",
+                    fontSize: "13px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  Nome civil: {patient.name}
+                </p>
+              )}
+
+              <span
+                style={{
+                  backgroundColor: "#ecfdf5",
+                  color: "#047857",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "999px",
+                  padding: "6px 11px",
+                  fontSize: "12px",
+                  fontWeight: 900,
+                  marginBottom: "14px",
+                }}
+              >
+                Paciente vinculado
+              </span>
+
+              {getWhatsappUrl(patient.phone) ? (
+                <a
+                  href={getWhatsappUrl(patient.phone)}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    ...buttonPrimaryStyle,
+                    width: "100%",
+                    background: "linear-gradient(135deg, #059669, #22c55e)",
+                    boxShadow: "0 10px 24px rgba(34, 197, 94, 0.20)",
+                  }}
+                >
+                  <i className="fa-brands fa-whatsapp"></i>
+                  <span style={{ marginLeft: "8px" }}>Chamar no WhatsApp</span>
+                </a>
+              ) : (
+                <div
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px",
+                    color: "#64748b",
+                    fontSize: "13px",
+                    lineHeight: 1.5,
+                    width: "100%",
+                  }}
+                >
+                  WhatsApp indisponível porque o telefone ainda não foi
+                  preenchido no perfil.
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                  marginBottom: "18px",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      backgroundColor: "#eff6ff",
+                      color: "#1d4ed8",
+                      border: "1px solid #bfdbfe",
+                      borderRadius: "999px",
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <i className="fa-solid fa-address-card"></i>
+                    Perfil do paciente
+                  </span>
+
+                  <h2
+                    style={{
+                      fontSize: "28px",
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Dados principais do paciente
+                  </h2>
+
+                  <p
+                    style={{
+                      color: "#64748b",
+                      lineHeight: 1.5,
+                      margin: 0,
+                    }}
+                  >
+                    Informações preenchidas pelo paciente na tela de perfil para
+                    facilitar contato, identificação e acompanhamento.
+                  </p>
+                </div>
+
+                <span
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    color: "#64748b",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "999px",
+                    padding: "8px 12px",
+                    fontSize: "12px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Atualizado pelo próprio paciente
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "12px",
+                  marginBottom: "16px",
+                }}
+              >
+                {[
+                  {
+                    label: "E-mail",
+                    value: patient.email,
+                    icon: "fa-solid fa-envelope",
+                  },
+                  {
+                    label: "Telefone",
+                    value: formatPhone(patient.phone),
+                    icon: "fa-solid fa-phone",
+                  },
+                  {
+                    label: "Nascimento",
+                    value: formatBirthDate(patient.birthDate),
+                    icon: "fa-solid fa-cake-candles",
+                  },
+                  {
+                    label: "Cidade/UF",
+                    value:
+                      patient.city || patient.state
+                        ? `${patient.city || "Cidade não informada"}${
+                            patient.state ? `/${patient.state}` : ""
+                          }`
+                        : "Não informado",
+                    icon: "fa-solid fa-location-dot",
+                  },
+                  {
+                    label: "Preferência de contato",
+                    value: getTextValue(patient.contactPreference),
+                    icon: "fa-solid fa-comments",
+                  },
+                  {
+                    label: "Cadastro",
+                    value: formatDateOnly(patient.createdAt),
+                    icon: "fa-solid fa-calendar-plus",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "16px",
+                      padding: "14px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "#64748b",
+                        fontSize: "12px",
+                        fontWeight: 900,
+                        marginBottom: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "7px",
+                      }}
+                    >
+                      <i className={item.icon}></i>
+                      {item.label}
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#0f172a",
+                        fontWeight: 900,
+                        margin: 0,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#fff7ed",
+                    border: "1px solid #fed7aa",
+                    borderRadius: "16px",
+                    padding: "14px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "#9a3412",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Contato de emergência
+                  </p>
+
+                  <p
+                    style={{
+                      color: "#0f172a",
+                      fontWeight: 900,
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {getTextValue(patient.emergencyContactName)}
+                  </p>
+
+                  <p style={{ color: "#475569", margin: 0 }}>
+                    {formatPhone(patient.emergencyContactPhone)}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    padding: "14px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "#64748b",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Observações do perfil
+                  </p>
+
+                  <p
+                    style={{
+                      color: "#475569",
+                      lineHeight: 1.5,
+                      margin: 0,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {getTextValue(patient.patientNotes || patient.bio)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div
           style={{
@@ -1161,13 +1727,41 @@ export default function PatientDetailsPage() {
           }}
         >
           {[
-            { label: "Resumo", value: "SUMMARY", icon: "fa-solid fa-chart-simple" },
-            { label: "Consultas", value: "APPOINTMENTS", icon: "fa-solid fa-calendar-days" },
-            { label: "Anotações", value: "NOTES", icon: "fa-solid fa-pen-to-square" },
-            { label: "Checklists", value: "CHECKINS", icon: "fa-solid fa-clipboard-check" },
-            { label: "Tarefas", value: "TASKS", icon: "fa-solid fa-list-check" },
-            { label: "Materiais", value: "MATERIALS", icon: "fa-solid fa-book-open" },
-            { label: "Mensagens", value: "MESSAGES", icon: "fa-solid fa-comments" },
+            {
+              label: "Resumo",
+              value: "SUMMARY",
+              icon: "fa-solid fa-chart-simple",
+            },
+            {
+              label: "Consultas",
+              value: "APPOINTMENTS",
+              icon: "fa-solid fa-calendar-days",
+            },
+            {
+              label: "Anotações",
+              value: "NOTES",
+              icon: "fa-solid fa-pen-to-square",
+            },
+            {
+              label: "Checklists",
+              value: "CHECKINS",
+              icon: "fa-solid fa-clipboard-check",
+            },
+            {
+              label: "Tarefas",
+              value: "TASKS",
+              icon: "fa-solid fa-list-check",
+            },
+            {
+              label: "Materiais",
+              value: "MATERIALS",
+              icon: "fa-solid fa-book-open",
+            },
+            {
+              label: "Mensagens",
+              value: "MESSAGES",
+              icon: "fa-solid fa-comments",
+            },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -1374,7 +1968,11 @@ export default function PatientDetailsPage() {
                           gap: "8px",
                         }}
                       >
-                        <i className={getPaymentIcon(patient.nextAppointment.paymentStatus)}></i>
+                        <i
+                          className={getPaymentIcon(
+                            patient.nextAppointment.paymentStatus,
+                          )}
+                        ></i>
                         Controle financeiro
                       </p>
 
@@ -1584,7 +2182,11 @@ export default function PatientDetailsPage() {
                             gap: "8px",
                           }}
                         >
-                          <i className={getPaymentIcon(appointment.paymentStatus)}></i>
+                          <i
+                            className={getPaymentIcon(
+                              appointment.paymentStatus,
+                            )}
+                          ></i>
                           Controle financeiro
                         </p>
 
@@ -1672,8 +2274,7 @@ export default function PatientDetailsPage() {
                             marginBottom: 0,
                           }}
                         >
-                          <strong>Observação:</strong>{" "}
-                          {appointment.paymentNote}
+                          <strong>Observação:</strong> {appointment.paymentNote}
                         </p>
                       )}
                     </div>
@@ -1957,7 +2558,6 @@ export default function PatientDetailsPage() {
             )}
           </section>
         )}
-
 
         {activeTab === "TASKS" && (
           <div
@@ -2357,7 +2957,6 @@ export default function PatientDetailsPage() {
           </div>
         )}
 
-
         {activeTab === "MATERIALS" && (
           <div
             style={{
@@ -2727,7 +3326,6 @@ export default function PatientDetailsPage() {
             </section>
           </div>
         )}
-
 
         {activeTab === "MESSAGES" && (
           <div
@@ -3231,7 +3829,8 @@ export default function PatientDetailsPage() {
                     style={{
                       ...buttonPrimaryStyle,
                       minWidth: "230px",
-                      opacity: generatingSummary || notes.length === 0 ? 0.7 : 1,
+                      opacity:
+                        generatingSummary || notes.length === 0 ? 0.7 : 1,
                       cursor:
                         generatingSummary || notes.length === 0
                           ? "not-allowed"
