@@ -59,6 +59,7 @@ model Psychologist {
 
   therapeuticTasks TherapeuticTask[]
   patientMessages  PatientMessage[]
+  patientSummaries PatientSummary[]
 
   @@index([crpVerificationStatus])
 }
@@ -85,6 +86,7 @@ model Patient {
 
   therapeuticTasks TherapeuticTask[]
   patientMessages   PatientMessage[]
+  summaries         PatientSummary[]
 }
 
 model PsychologistPatient {
@@ -302,6 +304,28 @@ model PatientMessage {
   @@index([patientId, createdAt])
   @@index([psychologistId, createdAt])
   @@index([senderRole])
+}
+
+model PatientSummary {
+  id String @id @default(uuid())
+
+  title   String?
+  content String
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id])
+
+  sourceNotesCount Int?
+  generatedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId, createdAt])
+  @@index([psychologistId, createdAt])
 }
 
 enum Role {

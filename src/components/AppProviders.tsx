@@ -43,6 +43,18 @@ function PsicoNavigationLoading() {
   );
 }
 
+
+const menuIconStyle = {
+  width: "42px",
+  minWidth: "42px",
+  marginRight: "16px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center",
+  flexShrink: 0,
+} as const;
+
 function PsicoBotMenuIcon() {
   return (
     <img
@@ -180,6 +192,32 @@ function AuthGuard({ children }: PropsWithChildren) {
 
     return (
       <>
+        <style jsx global>{`
+          .sidebar .sidebar-nav a,
+          .sidebar .sidebar-footer button {
+            position: relative;
+          }
+
+          .sidebar .sidebar-nav a:hover,
+          .sidebar .sidebar-nav a.active,
+          .sidebar .sidebar-nav a.active:hover {
+            background: #001e5e !important;
+            background-color: #001e5e !important;
+            color: #ffffff !important;
+          }
+
+          .sidebar .sidebar-nav a.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 13px;
+            bottom: 13px;
+            width: 4px;
+            border-radius: 0 999px 999px 0;
+            background: #ffffff;
+          }
+        `}</style>
+
         {isNavigating && <PsicoNavigationLoading />}
 
         {isSidebarVisible && (
@@ -193,15 +231,33 @@ function AuthGuard({ children }: PropsWithChildren) {
           <nav
             className={`sidebar ${isSidebarVisible ? "sidebar-visible" : ""}`}
           >
-            <div className="sidebar-header">
-              <div className="logo">
-                <img src="/logo.png" alt="Logo PsicoConnect" />
-              </div>
-              <h1>
-                Psico
-                <br />
-                Connect
-              </h1>
+            <div
+              className="sidebar-header"
+              style={{
+                transform: "scale(0.9)",
+                transformOrigin: "left center",
+              }}
+            >
+              <Link
+                href={homePath}
+                onClick={() => handleMenuNavigation(homePath)}
+                title="Ir para o início"
+                aria-label="Ir para a página inicial do PsicoConnect"
+                style={{
+                  display: "contents",
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+              >
+                <div className="logo">
+                  <img src="/logo.png" alt="Logo PsicoConnect" />
+                </div>
+                <h1>
+                  Psico
+                  <br />
+                  Connect
+                </h1>
+              </Link>
             </div>
 
             <div className="sidebar-nav">
@@ -209,22 +265,25 @@ function AuthGuard({ children }: PropsWithChildren) {
                 <>
                   <Link
                     href="/admin"
+                    title="Ir para Administração"
                     onClick={() => handleMenuNavigation("/admin")}
                     className={pathname === "/admin" ? "active" : ""}
                   >
-                    <i className="fa-solid fa-user-shield"></i> Administração
+                    <i className="fa-solid fa-user-shield" style={menuIconStyle}></i> Administração
                   </Link>
 
                   <Link
                     href="/admin/usuarios"
+                    title="Gerenciar usuários"
                     onClick={() => handleMenuNavigation("/admin/usuarios")}
                     className={isActive("/admin/usuarios") ? "active" : ""}
                   >
-                    <i className="fa-solid fa-users-gear"></i> Usuários
+                    <i className="fa-solid fa-users-gear" style={menuIconStyle}></i> Usuários
                   </Link>
 
                   <Link
                     href="/chat"
+                    title="Abrir PsicoBot"
                     onClick={() => handleMenuNavigation("/chat")}
                     className={isActive("/chat") ? "active" : ""}
                   >
@@ -235,92 +294,102 @@ function AuthGuard({ children }: PropsWithChildren) {
                 <>
                   <Link
                     href={homePath}
+                    title="Ir para o início"
                     onClick={() => handleMenuNavigation(homePath)}
                     className={isActive(homePath) ? "active" : ""}
                   >
-                    <i className="fa-solid fa-home"></i> Início
+                    <i className="fa-solid fa-home" style={menuIconStyle}></i> Início
                   </Link>
 
                   {(isPsychologist || isPatient) && (
                     <Link
                       href="/perfil"
+                      title="Abrir perfil"
                       onClick={() => handleMenuNavigation("/perfil")}
                       className={isActive("/perfil") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-user"></i> Perfil
+                      <i className="fa-solid fa-user" style={menuIconStyle}></i> Perfil
                     </Link>
                   )}
 
                   {isPsychologist && !shouldBlockPsychologistByCrp && (
                     <Link
                       href="/agenda"
+                      title="Abrir agenda"
                       onClick={() => handleMenuNavigation("/agenda")}
                       className={isActive("/agenda") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-calendar-days"></i> Agenda
+                      <i className="fa-solid fa-calendar-days" style={menuIconStyle}></i> Agenda
                     </Link>
                   )}
 
                   {isPsychologist && !shouldBlockPsychologistByCrp && (
                     <Link
                       href="/pacientes"
+                      title="Abrir pacientes"
                       onClick={() => handleMenuNavigation("/pacientes")}
                       className={isActive("/pacientes") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-users"></i> Pacientes
+                      <i className="fa-solid fa-users" style={menuIconStyle}></i> Pacientes
                     </Link>
                   )}
 
                   {isPatient && (
                     <Link
                       href="/meus-psicologos"
+                      title="Ver psicólogos vinculados"
                       onClick={() => handleMenuNavigation("/meus-psicologos")}
                       className={isActive("/meus-psicologos") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-user-doctor"></i> Psicólogos
+                      <i className="fa-solid fa-user-doctor" style={menuIconStyle}></i> Psicólogos
                     </Link>
                   )}
 
                   {isPatient && (
                     <Link
                       href="/minhas-consultas"
+                      title="Ver minhas consultas"
                       onClick={() => handleMenuNavigation("/minhas-consultas")}
                       className={isActive("/minhas-consultas") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-calendar-alt"></i> Minhas Consultas
+                      <i className="fa-solid fa-calendar-alt" style={menuIconStyle}></i> Minhas Consultas
                     </Link>
                   )}
 
                   {isPatient && (
                     <Link
                       href="/tarefas-materiais"
+                      title="Ver tarefas e materiais"
                       onClick={() => handleMenuNavigation("/tarefas-materiais")}
                       className={isActive("/tarefas-materiais") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-list-check"></i> Tarefas e materiais
+                      <i className="fa-solid fa-list-check" style={menuIconStyle}></i> Tarefas e materiais
                     </Link>
                   )}
 
                   {isPatient && (
                     <Link
                       href="/mensagens"
+                      title="Abrir mensagens"
                       onClick={() => handleMenuNavigation("/mensagens")}
                       className={isActive("/mensagens") ? "active" : ""}
                     >
-                      <i className="fa-solid fa-comments"></i> Mensagens
+                      <i className="fa-solid fa-comments" style={menuIconStyle}></i> Mensagens
                     </Link>
                   )}
 
                   <Link
                     href="/orientacoes"
+                    title="Abrir orientações"
                     onClick={() => handleMenuNavigation("/orientacoes")}
                     className={isActive("/orientacoes") ? "active" : ""}
                   >
-                    <i className="fa-solid fa-book-open"></i> Orientações
+                    <i className="fa-solid fa-book-open" style={menuIconStyle}></i> Orientações
                   </Link>
 
                   <Link
                     href="/chat"
+                    title="Abrir PsicoBot"
                     onClick={() => handleMenuNavigation("/chat")}
                     className={isActive("/chat") ? "active" : ""}
                   >
@@ -331,8 +400,11 @@ function AuthGuard({ children }: PropsWithChildren) {
             </div>
 
             <div className="sidebar-footer">
-              <button onClick={() => signOut({ callbackUrl: "/login" })}>
-                <i className="fa-solid fa-sign-out-alt"></i> Sair
+              <button
+                title="Sair da conta"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                <i className="fa-solid fa-sign-out-alt" style={menuIconStyle}></i> Sair
               </button>
             </div>
           </nav>
@@ -340,6 +412,7 @@ function AuthGuard({ children }: PropsWithChildren) {
           <main className="chat-main-wrapper">
             <button
               className="menu-toggle-button"
+              title="Abrir menu"
               onClick={() => setIsSidebarVisible(true)}
             >
               <i className="fa-solid fa-bars"></i>

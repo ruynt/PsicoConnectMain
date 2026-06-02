@@ -133,6 +133,18 @@ type PatientMessage = {
   updatedAt: string;
 };
 
+type PatientSummary = {
+  id: string;
+  title: string | null;
+  content: string;
+  patientId: string;
+  psychologistId: string;
+  sourceNotesCount: number | null;
+  generatedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
@@ -158,6 +170,7 @@ export default function PatientDetailsPage() {
   const [tasks, setTasks] = useState<PatientTask[]>([]);
   const [materials, setMaterials] = useState<PatientMaterial[]>([]);
   const [messages, setMessages] = useState<PatientMessage[]>([]);
+  const [summaries, setSummaries] = useState<PatientSummary[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(false);
@@ -165,10 +178,14 @@ export default function PatientDetailsPage() {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingSummaries, setLoadingSummaries] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [savingMaterial, setSavingMaterial] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [savingGeneratedSummary, setSavingGeneratedSummary] = useState(false);
+  const [updatingSummaryId, setUpdatingSummaryId] = useState("");
+  const [deletingSummaryId, setDeletingSummaryId] = useState("");
   const [updatingTaskId, setUpdatingTaskId] = useState("");
   const [archivingNoteId, setArchivingNoteId] = useState("");
 
@@ -178,6 +195,7 @@ export default function PatientDetailsPage() {
   const [taskError, setTaskError] = useState("");
   const [materialError, setMaterialError] = useState("");
   const [messageError, setMessageError] = useState("");
+  const [summaryError, setSummaryError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [noteTitle, setNoteTitle] = useState("");
@@ -205,6 +223,10 @@ export default function PatientDetailsPage() {
   const [generatedSummary, setGeneratedSummary] = useState("");
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState("");
   const [summarySourceNotesCount, setSummarySourceNotesCount] = useState(0);
+  const [editingSummaryId, setEditingSummaryId] = useState("");
+  const [editingSummaryTitle, setEditingSummaryTitle] = useState("");
+  const [editingSummaryContent, setEditingSummaryContent] = useState("");
+  const [expandedSummaryId, setExpandedSummaryId] = useState("");
 
   const [noteToArchive, setNoteToArchive] = useState<{
     id: string;
@@ -352,6 +374,30 @@ export default function PatientDetailsPage() {
     }
   }
 
+
+  async function loadSummaries() {
+    try {
+      setLoadingSummaries(true);
+      setSummaryError("");
+
+      const response = await fetch(`/api/patients/${patientId}/summaries`, {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao carregar resumos salvos.");
+      }
+
+      setSummaries(data.summaries || []);
+    } catch (error: any) {
+      setSummaryError(error.message || "Erro ao carregar resumos salvos.");
+    } finally {
+      setLoadingSummaries(false);
+    }
+  }
+
   useEffect(() => {
     if (patientId) {
       loadPatient();
@@ -385,6 +431,12 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (patientId) {
       loadMessages();
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    if (patientId) {
+      loadSummaries();
     }
   }, [patientId]);
 
@@ -743,6 +795,152 @@ export default function PatientDetailsPage() {
     }
   }
 
+
+  async function handleSaveGeneratedSummary() {
+    if (!generatedSummary.trim()) {
+      showFeedback("error", "Revise ou escreva o resumo antes de salvar.");
+      return;
+    }
+
+    try {
+      setSavingGeneratedSummary(true);
+      setSummaryError("");
+
+      const response = await fetch(`/api/patients/${patientId}/summaries`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "Resumo para prontuário",
+          content: generatedSummary,
+          sourceNotesCount: summarySourceNotesCount,
+          generatedAt: summaryGeneratedAt || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao salvar resumo.");
+      }
+
+      setGeneratedSummary("");
+      setSummaryGeneratedAt("");
+      setSummarySourceNotesCount(0);
+      await loadSummaries();
+      showFeedback("success", "Resumo salvo com sucesso.");
+    } catch (error: any) {
+      showFeedback("error", error.message || "Erro ao salvar resumo.");
+    } finally {
+      setSavingGeneratedSummary(false);
+    }
+  }
+
+  function handleStartEditSummary(summary: PatientSummary) {
+    setEditingSummaryId(summary.id);
+    setEditingSummaryTitle(summary.title || "Resumo para prontuário");
+    setEditingSummaryContent(summary.content);
+    setExpandedSummaryId(summary.id);
+  }
+
+  function handleCancelEditSummary() {
+    setEditingSummaryId("");
+    setEditingSummaryTitle("");
+    setEditingSummaryContent("");
+  }
+
+  async function handleUpdateSavedSummary(summaryId: string) {
+    if (!editingSummaryContent.trim()) {
+      showFeedback("error", "O resumo não pode ficar vazio.");
+      return;
+    }
+
+    try {
+      setUpdatingSummaryId(summaryId);
+
+      const response = await fetch(
+        `/api/patients/${patientId}/summaries/${summaryId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: editingSummaryTitle,
+            content: editingSummaryContent,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao atualizar resumo.");
+      }
+
+      await loadSummaries();
+      handleCancelEditSummary();
+      showFeedback("success", "Resumo atualizado com sucesso.");
+    } catch (error: any) {
+      showFeedback("error", error.message || "Erro ao atualizar resumo.");
+    } finally {
+      setUpdatingSummaryId("");
+    }
+  }
+
+  async function handleDeleteSavedSummary(summaryId: string) {
+    const confirmed = window.confirm(
+      "Tem certeza que deseja apagar este resumo salvo? Essa ação não pode ser desfeita.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingSummaryId(summaryId);
+
+      const response = await fetch(
+        `/api/patients/${patientId}/summaries/${summaryId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao apagar resumo.");
+      }
+
+      if (editingSummaryId === summaryId) {
+        handleCancelEditSummary();
+      }
+
+      if (expandedSummaryId === summaryId) {
+        setExpandedSummaryId("");
+      }
+
+      await loadSummaries();
+      showFeedback("success", "Resumo apagado com sucesso.");
+    } catch (error: any) {
+      showFeedback("error", error.message || "Erro ao apagar resumo.");
+    } finally {
+      setDeletingSummaryId("");
+    }
+  }
+
+  async function handleCopySavedSummary(content: string) {
+    try {
+      await navigator.clipboard.writeText(content);
+      showFeedback("success", "Resumo copiado para a área de transferência.");
+    } catch {
+      showFeedback(
+        "error",
+        "Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.",
+      );
+    }
+  }
+
   function resetTaskForm() {
     setTaskTitle("");
     setTaskDescription("");
@@ -960,7 +1158,7 @@ export default function PatientDetailsPage() {
 
   const pageStyle = {
     padding: "36px",
-    paddingBottom: "72px",
+    paddingBottom: "150px",
     minHeight: "calc(100vh - 48px)",
     background:
       "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
@@ -1359,360 +1557,228 @@ export default function PatientDetailsPage() {
             }}
           />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "280px 1fr",
-              gap: "24px",
-              alignItems: "stretch",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
+          <div style={{ position: "relative", zIndex: 1 }}>
             <div
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(248, 250, 252, 0.95))",
-                border: "1px solid #dbeafe",
-                borderRadius: "20px",
-                padding: "22px",
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
+                justifyContent: "space-between",
+                gap: "16px",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                marginBottom: "18px",
               }}
             >
-              {patient.profileImageUrl ? (
-                <img
-                  src={patient.profileImageUrl}
-                  alt={`Foto de ${getPatientDisplayName()}`}
+              <div>
+                <span
                   style={{
-                    width: "116px",
-                    height: "116px",
-                    borderRadius: "999px",
-                    objectFit: "cover",
-                    border: "4px solid #ffffff",
-                    boxShadow: "0 14px 30px rgba(15, 23, 42, 0.14)",
-                    marginBottom: "14px",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: "116px",
-                    height: "116px",
-                    borderRadius: "999px",
-                    background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-                    color: "#ffffff",
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "34px",
+                    gap: "8px",
+                    backgroundColor: "#eff6ff",
+                    color: "#1d4ed8",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "999px",
+                    padding: "6px 12px",
+                    fontSize: "12px",
                     fontWeight: 900,
-                    border: "4px solid #ffffff",
-                    boxShadow: "0 14px 30px rgba(15, 23, 42, 0.14)",
-                    marginBottom: "14px",
-                  }}
-                >
-                  {getInitials(getPatientDisplayName()) || "P"}
-                </div>
-              )}
-
-              <p
-                style={{
-                  color: "#0f172a",
-                  fontWeight: 900,
-                  fontSize: "22px",
-                  marginBottom: "4px",
-                }}
-              >
-                {getPatientDisplayName()}
-              </p>
-
-              {patient.socialName && patient.socialName !== patient.name && (
-                <p
-                  style={{
-                    color: "#64748b",
-                    fontSize: "13px",
                     marginBottom: "10px",
                   }}
                 >
-                  Nome civil: {patient.name}
+                  <i className="fa-solid fa-address-card"></i>
+                  Perfil do paciente
+                </span>
+
+                <h2
+                  style={{
+                    fontSize: "28px",
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Dados principais do paciente
+                </h2>
+
+                <p
+                  style={{
+                    color: "#64748b",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  Informações preenchidas pelo paciente na tela de perfil para
+                  facilitar contato, identificação e acompanhamento.
                 </p>
-              )}
+              </div>
 
               <span
                 style={{
-                  backgroundColor: "#ecfdf5",
-                  color: "#047857",
-                  border: "1px solid #a7f3d0",
+                  backgroundColor: "#f8fafc",
+                  color: "#64748b",
+                  border: "1px solid #e2e8f0",
                   borderRadius: "999px",
-                  padding: "6px 11px",
+                  padding: "8px 12px",
                   fontSize: "12px",
                   fontWeight: 900,
-                  marginBottom: "14px",
                 }}
               >
-                Paciente vinculado
+                Atualizado pelo próprio paciente
               </span>
-
-              {getWhatsappUrl(patient.phone) ? (
-                <a
-                  href={getWhatsappUrl(patient.phone)}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    ...buttonPrimaryStyle,
-                    width: "100%",
-                    background: "linear-gradient(135deg, #059669, #22c55e)",
-                    boxShadow: "0 10px 24px rgba(34, 197, 94, 0.20)",
-                  }}
-                >
-                  <i className="fa-brands fa-whatsapp"></i>
-                  <span style={{ marginLeft: "8px" }}>Chamar no WhatsApp</span>
-                </a>
-              ) : (
-                <div
-                  style={{
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px",
-                    color: "#64748b",
-                    fontSize: "13px",
-                    lineHeight: 1.5,
-                    width: "100%",
-                  }}
-                >
-                  WhatsApp indisponível porque o telefone ainda não foi
-                  preenchido no perfil.
-                </div>
-              )}
             </div>
 
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: "16px",
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                  marginBottom: "18px",
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      backgroundColor: "#eff6ff",
-                      color: "#1d4ed8",
-                      border: "1px solid #bfdbfe",
-                      borderRadius: "999px",
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: 900,
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <i className="fa-solid fa-address-card"></i>
-                    Perfil do paciente
-                  </span>
-
-                  <h2
-                    style={{
-                      fontSize: "28px",
-                      fontWeight: 900,
-                      color: "#0f172a",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Dados principais do paciente
-                  </h2>
-
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: "12px",
+                marginBottom: "16px",
+              }}
+            >
+              {[
+                {
+                  label: "E-mail",
+                  value: patient.email,
+                  icon: "fa-solid fa-envelope",
+                },
+                {
+                  label: "Telefone",
+                  value: formatPhone(patient.phone),
+                  icon: "fa-solid fa-phone",
+                },
+                {
+                  label: "Nascimento",
+                  value: formatBirthDate(patient.birthDate),
+                  icon: "fa-solid fa-cake-candles",
+                },
+                {
+                  label: "Cidade/UF",
+                  value:
+                    patient.city || patient.state
+                      ? `${patient.city || "Cidade não informada"}${
+                          patient.state ? `/${patient.state}` : ""
+                        }`
+                      : "Não informado",
+                  icon: "fa-solid fa-location-dot",
+                },
+                {
+                  label: "Preferência de contato",
+                  value: getTextValue(patient.contactPreference),
+                  icon: "fa-solid fa-comments",
+                },
+                {
+                  label: "Cadastro",
+                  value: formatDateOnly(patient.createdAt),
+                  icon: "fa-solid fa-calendar-plus",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    padding: "14px",
+                  }}
+                >
                   <p
                     style={{
                       color: "#64748b",
-                      lineHeight: 1.5,
-                      margin: 0,
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      marginBottom: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "7px",
                     }}
                   >
-                    Informações preenchidas pelo paciente na tela de perfil para
-                    facilitar contato, identificação e acompanhamento.
+                    <i className={item.icon}></i>
+                    {item.label}
+                  </p>
+
+                  <p
+                    style={{
+                      color: "#0f172a",
+                      fontWeight: 900,
+                      margin: 0,
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {item.value}
                   </p>
                 </div>
+              ))}
+            </div>
 
-                <span
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px",
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  borderRadius: "16px",
+                  padding: "14px",
+                }}
+              >
+                <p
                   style={{
-                    backgroundColor: "#f8fafc",
-                    color: "#64748b",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "999px",
-                    padding: "8px 12px",
+                    color: "#9a3412",
                     fontSize: "12px",
                     fontWeight: 900,
+                    marginBottom: "6px",
                   }}
                 >
-                  Atualizado pelo próprio paciente
-                </span>
+                  Contato de emergência
+                </p>
+
+                <p
+                  style={{
+                    color: "#0f172a",
+                    fontWeight: 900,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {getTextValue(patient.emergencyContactName)}
+                </p>
+
+                <p style={{ color: "#475569", margin: 0 }}>
+                  {formatPhone(patient.emergencyContactPhone)}
+                </p>
               </div>
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: "12px",
-                  marginBottom: "16px",
+                  backgroundColor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "16px",
+                  padding: "14px",
                 }}
               >
-                {[
-                  {
-                    label: "E-mail",
-                    value: patient.email,
-                    icon: "fa-solid fa-envelope",
-                  },
-                  {
-                    label: "Telefone",
-                    value: formatPhone(patient.phone),
-                    icon: "fa-solid fa-phone",
-                  },
-                  {
-                    label: "Nascimento",
-                    value: formatBirthDate(patient.birthDate),
-                    icon: "fa-solid fa-cake-candles",
-                  },
-                  {
-                    label: "Cidade/UF",
-                    value:
-                      patient.city || patient.state
-                        ? `${patient.city || "Cidade não informada"}${
-                            patient.state ? `/${patient.state}` : ""
-                          }`
-                        : "Não informado",
-                    icon: "fa-solid fa-location-dot",
-                  },
-                  {
-                    label: "Preferência de contato",
-                    value: getTextValue(patient.contactPreference),
-                    icon: "fa-solid fa-comments",
-                  },
-                  {
-                    label: "Cadastro",
-                    value: formatDateOnly(patient.createdAt),
-                    icon: "fa-solid fa-calendar-plus",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      backgroundColor: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "16px",
-                      padding: "14px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: "#64748b",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        marginBottom: "6px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "7px",
-                      }}
-                    >
-                      <i className={item.icon}></i>
-                      {item.label}
-                    </p>
-
-                    <p
-                      style={{
-                        color: "#0f172a",
-                        fontWeight: 900,
-                        margin: 0,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                }}
-              >
-                <div
+                <p
                   style={{
-                    backgroundColor: "#fff7ed",
-                    border: "1px solid #fed7aa",
-                    borderRadius: "16px",
-                    padding: "14px",
+                    color: "#64748b",
+                    fontSize: "12px",
+                    fontWeight: 900,
+                    marginBottom: "6px",
                   }}
                 >
-                  <p
-                    style={{
-                      color: "#9a3412",
-                      fontSize: "12px",
-                      fontWeight: 900,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Contato de emergência
-                  </p>
+                  Observações do perfil
+                </p>
 
-                  <p
-                    style={{
-                      color: "#0f172a",
-                      fontWeight: 900,
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {getTextValue(patient.emergencyContactName)}
-                  </p>
-
-                  <p style={{ color: "#475569", margin: 0 }}>
-                    {formatPhone(patient.emergencyContactPhone)}
-                  </p>
-                </div>
-
-                <div
+                <p
                   style={{
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "16px",
-                    padding: "14px",
+                    color: "#475569",
+                    lineHeight: 1.5,
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
                   }}
                 >
-                  <p
-                    style={{
-                      color: "#64748b",
-                      fontSize: "12px",
-                      fontWeight: 900,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Observações do perfil
-                  </p>
-
-                  <p
-                    style={{
-                      color: "#475569",
-                      lineHeight: 1.5,
-                      margin: 0,
-                      whiteSpace: "pre-wrap",
-                    }}
-                  >
-                    {getTextValue(patient.patientNotes || patient.bio)}
-                  </p>
-                </div>
+                  {getTextValue(patient.patientNotes || patient.bio)}
+                </p>
               </div>
             </div>
           </div>
@@ -3817,8 +3883,8 @@ export default function PatientDetailsPage() {
                       }}
                     >
                       Gere uma versão organizada das anotações ativas deste
-                      paciente. O texto é apenas uma sugestão e deve ser
-                      revisado pelo psicólogo antes de qualquer registro formal.
+                      paciente. Revise e edite o texto antes de salvar. Resumos
+                      salvos ficam visíveis apenas para o psicólogo nesta tela.
                     </p>
                   </div>
 
@@ -3857,7 +3923,8 @@ export default function PatientDetailsPage() {
                 >
                   Este recurso não substitui o julgamento clínico profissional,
                   não deve gerar diagnósticos automaticamente e precisa ser
-                  revisado antes de uso em prontuário.
+                  revisado antes de uso em prontuário. O paciente não vê estes
+                  resumos, nem pela tela do paciente nem pelo PsicoBot.
                 </div>
 
                 {generatedSummary && (
@@ -3888,7 +3955,7 @@ export default function PatientDetailsPage() {
                             marginBottom: "4px",
                           }}
                         >
-                          Resultado gerado
+                          Rascunho gerado para revisão
                         </p>
 
                         <p
@@ -3907,32 +3974,439 @@ export default function PatientDetailsPage() {
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={handleCopyProntuarioSummary}
-                        style={buttonSecondaryStyle}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                        }}
                       >
-                        Copiar resumo
-                      </button>
+                        <button
+                          type="button"
+                          onClick={handleCopyProntuarioSummary}
+                          style={buttonSecondaryStyle}
+                        >
+                          Copiar rascunho
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSaveGeneratedSummary}
+                          disabled={savingGeneratedSummary}
+                          style={{
+                            ...buttonPrimaryStyle,
+                            opacity: savingGeneratedSummary ? 0.7 : 1,
+                            cursor: savingGeneratedSummary
+                              ? "not-allowed"
+                              : "pointer",
+                          }}
+                        >
+                          {savingGeneratedSummary
+                            ? "Salvando..."
+                            : "Salvar resumo"}
+                        </button>
+                      </div>
                     </div>
 
-                    <div
+                    <textarea
+                      value={generatedSummary}
+                      onChange={(e) => setGeneratedSummary(e.target.value)}
+                      rows={14}
                       style={{
+                        width: "100%",
                         backgroundColor: "#f8fafc",
                         border: "1px solid #e5e7eb",
                         borderRadius: "12px",
                         padding: "14px",
                         color: "#374151",
-                        whiteSpace: "pre-wrap",
                         lineHeight: 1.65,
-                        maxHeight: "520px",
-                        overflow: "auto",
+                        outline: "none",
+                        resize: "vertical",
+                        fontSize: "14px",
+                        fontFamily: "inherit",
                       }}
-                    >
-                      {generatedSummary}
-                    </div>
+                    />
                   </div>
                 )}
+
+                <div
+                  style={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #dbeafe",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    marginTop: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <div>
+                      <p
+                        style={{
+                          color: "#111827",
+                          fontWeight: 900,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Resumos salvos
+                      </p>
+
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: "13px",
+                          margin: 0,
+                        }}
+                      >
+                        Resumos revisados e salvos pelo psicólogo. Eles não são
+                        exibidos para o paciente.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={loadSummaries}
+                      disabled={loadingSummaries}
+                      style={buttonSecondaryStyle}
+                    >
+                      {loadingSummaries ? "Atualizando..." : "Atualizar"}
+                    </button>
+                  </div>
+
+                  {summaryError && (
+                    <div
+                      style={{
+                        backgroundColor: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        borderRadius: "12px",
+                        padding: "12px 14px",
+                        marginBottom: "14px",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {summaryError}
+                    </div>
+                  )}
+
+                  {loadingSummaries ? (
+                    <p style={{ color: "#6b7280", margin: 0 }}>
+                      Carregando resumos salvos...
+                    </p>
+                  ) : summaries.length === 0 ? (
+                    <div
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "16px",
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontWeight: 800,
+                          color: "#111827",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        Nenhum resumo salvo
+                      </p>
+
+                      <p style={{ color: "#6b7280", margin: 0 }}>
+                        Gere um resumo, revise o texto e clique em “Salvar
+                        resumo” para manter uma versão nesta tela.
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "14px",
+                      }}
+                    >
+                      {summaries.map((summary) => {
+                        const isEditingSummary = editingSummaryId === summary.id;
+                        const isExpandedSummary = expandedSummaryId === summary.id;
+                        const previewText = summary.content
+                          .replace(/\s+/g, " ")
+                          .trim();
+
+                        return (
+                          <div
+                            key={summary.id}
+                            onClick={() => {
+                              if (!isEditingSummary) {
+                                setExpandedSummaryId(
+                                  isExpandedSummary ? "" : summary.id,
+                                );
+                              }
+                            }}
+                            style={{
+                              border: isExpandedSummary
+                                ? "1px solid #bfdbfe"
+                                : "1px solid #e5e7eb",
+                              borderRadius: "14px",
+                              padding: "13px 14px",
+                              backgroundColor: isExpandedSummary
+                                ? "#eff6ff"
+                                : "#f8fafc",
+                              cursor: isEditingSummary ? "default" : "pointer",
+                              transition: "0.18s ease",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: "12px",
+                                alignItems: "flex-start",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <div style={{ flex: 1, minWidth: "240px" }}>
+                                {isEditingSummary ? (
+                                  <input
+                                    type="text"
+                                    value={editingSummaryTitle}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) =>
+                                      setEditingSummaryTitle(e.target.value)
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      border: "1px solid #d1d5db",
+                                      borderRadius: "10px",
+                                      padding: "10px 12px",
+                                      fontWeight: 900,
+                                      color: "#111827",
+                                      outline: "none",
+                                      marginBottom: "8px",
+                                    }}
+                                  />
+                                ) : (
+                                  <p
+                                    style={{
+                                      color: "#111827",
+                                      fontWeight: 900,
+                                      marginBottom: "4px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                    }}
+                                  >
+                                    <i className="fa-solid fa-file-lines"></i>
+                                    {summary.title || "Resumo para prontuário"}
+                                  </p>
+                                )}
+
+                                <p
+                                  style={{
+                                    color: "#6b7280",
+                                    fontSize: "12px",
+                                    margin: 0,
+                                    lineHeight: 1.45,
+                                  }}
+                                >
+                                  Salvo em {formatDate(summary.createdAt)}
+                                  {summary.updatedAt !== summary.createdAt
+                                    ? ` · Atualizado em ${formatDate(
+                                        summary.updatedAt,
+                                      )}`
+                                    : ""}
+                                  {summary.sourceNotesCount
+                                    ? ` · ${summary.sourceNotesCount} anotações utilizadas`
+                                    : ""}
+                                </p>
+
+                                {!isEditingSummary && !isExpandedSummary && (
+                                  <p
+                                    style={{
+                                      color: "#475569",
+                                      fontSize: "13px",
+                                      lineHeight: 1.5,
+                                      marginTop: "8px",
+                                      marginBottom: 0,
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                    }}
+                                  >
+                                    {previewText || "Resumo sem conteúdo."}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                {isEditingSummary ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleUpdateSavedSummary(summary.id)
+                                      }
+                                      disabled={updatingSummaryId === summary.id}
+                                      style={{
+                                        ...buttonPrimaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      {updatingSummaryId === summary.id
+                                        ? "Salvando..."
+                                        : "Salvar"}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelEditSummary}
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedSummaryId(
+                                          isExpandedSummary ? "" : summary.id,
+                                        )
+                                      }
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      {isExpandedSummary ? "Ocultar" : "Ver resumo"}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleStartEditSummary(summary)
+                                      }
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      Editar
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopySavedSummary(summary.content)
+                                      }
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      Copiar
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDeleteSavedSummary(summary.id)
+                                      }
+                                      disabled={deletingSummaryId === summary.id}
+                                      style={{
+                                        backgroundColor: "#fef2f2",
+                                        color: "#b91c1c",
+                                        border: "1px solid #fecaca",
+                                        borderRadius: "10px",
+                                        padding: "8px 11px",
+                                        fontWeight: 800,
+                                        cursor:
+                                          deletingSummaryId === summary.id
+                                            ? "not-allowed"
+                                            : "pointer",
+                                        opacity:
+                                          deletingSummaryId === summary.id
+                                            ? 0.7
+                                            : 1,
+                                      }}
+                                    >
+                                      {deletingSummaryId === summary.id
+                                        ? "Apagando..."
+                                        : "Apagar"}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {isEditingSummary ? (
+                              <textarea
+                                value={editingSummaryContent}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  setEditingSummaryContent(e.target.value)
+                                }
+                                rows={12}
+                                style={{
+                                  width: "100%",
+                                  border: "1px solid #d1d5db",
+                                  borderRadius: "12px",
+                                  padding: "12px 14px",
+                                  fontSize: "14px",
+                                  outline: "none",
+                                  resize: "vertical",
+                                  color: "#374151",
+                                  lineHeight: 1.65,
+                                  fontFamily: "inherit",
+                                  marginTop: "12px",
+                                  backgroundColor: "#ffffff",
+                                }}
+                              />
+                            ) : isExpandedSummary ? (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  border: "1px solid #dbeafe",
+                                  borderRadius: "12px",
+                                  padding: "14px",
+                                  color: "#374151",
+                                  whiteSpace: "pre-wrap",
+                                  lineHeight: 1.65,
+                                  maxHeight: "360px",
+                                  overflow: "auto",
+                                  marginTop: "12px",
+                                }}
+                              >
+                                {summary.content}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div
@@ -4167,6 +4641,8 @@ export default function PatientDetailsPage() {
             </section>
           </div>
         )}
+
+        <div style={{ height: "90px" }} aria-hidden="true" />
       </div>
 
       {noteToArchive && (

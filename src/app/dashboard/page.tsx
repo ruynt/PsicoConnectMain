@@ -377,6 +377,7 @@ export default function PsychologistDashboardPage() {
 
   const pageStyle = {
     padding: "36px",
+    paddingBottom: "160px",
     minHeight: "calc(100vh - 48px)",
     background:
       "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
@@ -1918,6 +1919,8 @@ export default function PsychologistDashboardPage() {
           )}
         </section>
       </div>
+
+      <div aria-hidden="true" style={{ height: "96px" }} />
     </div>
   );
 }

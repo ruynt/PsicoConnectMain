@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -10,14 +11,93 @@ interface Message {
   timestamp: string;
 }
 
-const CHAT_API_URL = "http://localhost:8000/api/chat";
+const CHAT_API_URL = "/api/psicobot";
 
-const quickSuggestions = [
-  "Como posso usar a agenda?",
-  "Como funcionam as tarefas terapêuticas?",
-  "Como enviar materiais para um paciente?",
-  "Como organizar anotações de sessão?",
-];
+const roleSuggestions = {
+  ADMIN: [
+    {
+      label: "Resumo dos usuários",
+      prompt: "Mostre um resumo dos usuários",
+    },
+    {
+      label: "CRPs pendentes",
+      prompt: "Mostre os CRPs pendentes",
+    },
+    {
+      label: "Usuários recentes",
+      prompt: "Mostre os usuários recentes",
+    },
+    {
+      label: "Como usar o admin",
+      prompt: "Como funciona a área administrativa?",
+    },
+  ],
+  PSYCHOLOGIST: [
+    {
+      label: "Listar meus pacientes",
+      prompt: "Liste meus pacientes",
+    },
+    {
+      label: "Resumir paciente",
+      prompt: "Resuma o paciente ",
+    },
+    {
+      label: "Tarefas do paciente",
+      prompt: "Mostre as tarefas do paciente ",
+    },
+    {
+      label: "Consultas do paciente",
+      prompt: "Mostre as próximas consultas do paciente ",
+    },
+  ],
+  PATIENT: [
+    {
+      label: "Meu acompanhamento",
+      prompt: "Resuma meu acompanhamento",
+    },
+    {
+      label: "Minhas consultas",
+      prompt: "Quais são minhas próximas consultas?",
+    },
+    {
+      label: "Tarefas pendentes",
+      prompt: "Quais tarefas estão pendentes?",
+    },
+    {
+      label: "Meus psicólogos",
+      prompt: "Quais psicólogos estão vinculados a mim?",
+    },
+  ],
+  UNKNOWN: [
+    {
+      label: "Usar o PsicoConnect",
+      prompt: "Como usar o PsicoConnect?",
+    },
+    {
+      label: "Editar perfil",
+      prompt: "Como editar meu perfil?",
+    },
+    {
+      label: "Usar agenda",
+      prompt: "Como usar a agenda?",
+    },
+    {
+      label: "Mensagens",
+      prompt: "Como funcionam as mensagens?",
+    },
+  ],
+};
+
+const roleDescriptions = {
+  ADMIN:
+    "Perguntas rápidas de leitura para acompanhar usuários e verificações de CRP.",
+  PSYCHOLOGIST:
+    "Perguntas rápidas para consultar pacientes vinculados e dados do acompanhamento.",
+  PATIENT:
+    "Perguntas rápidas para consultar suas consultas, tarefas, materiais e psicólogos vinculados.",
+  UNKNOWN:
+    "Perguntas rápidas para testar o PsicoBot durante a apresentação.",
+};
 
 const formatTimestamp = () =>
   new Date().toLocaleTimeString("pt-BR", {
@@ -26,11 +106,25 @@ const formatTimestamp = () =>
   });
 
 export default function ChatBotPage() {
+  const { data: session } = useSession();
+
+  const userRole =
+    ((session?.user as { role?: string } | undefined)?.role || "UNKNOWN")
+      .toUpperCase();
+
+  const quickSuggestions =
+    roleSuggestions[userRole as keyof typeof roleSuggestions] ||
+    roleSuggestions.UNKNOWN;
+
+  const sidePanelDescription =
+    roleDescriptions[userRole as keyof typeof roleDescriptions] ||
+    roleDescriptions.UNKNOWN;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: Date.now(),
       text:
-        "Olá! Sou o PsicoBot, assistente virtual da PsicoConnect. Estou aqui para ajudar com agendamentos ou tirar dúvidas.",
+        "Olá! Sou o PsicoBot, assistente virtual da PsicoConnect. Estou aqui para ajudar com o uso do sistema, dados do acompanhamento permitidos para seu perfil e dúvidas informativas.",
       sender: "bot",
       timestamp: formatTimestamp(),
     },
@@ -42,6 +136,7 @@ export default function ChatBotPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = (smooth = true) => {
     const chatElement = chatMessagesRef.current;
@@ -77,9 +172,7 @@ export default function ChatBotPage() {
   }, []);
 
   useEffect(() => {
-    const textarea = document.getElementById(
-      "message-input",
-    ) as HTMLTextAreaElement | null;
+    const textarea = inputRef.current;
 
     if (textarea) {
       textarea.style.height = "auto";
@@ -87,6 +180,21 @@ export default function ChatBotPage() {
       textarea.style.height = `${newHeight}px`;
     }
   }, [input]);
+
+  const handleSuggestionClick = (prompt: string) => {
+    if (isLoading) return;
+
+    setInput(prompt);
+
+    setTimeout(() => {
+      const textarea = inputRef.current;
+
+      if (!textarea) return;
+
+      textarea.focus();
+      textarea.setSelectionRange(prompt.length, prompt.length);
+    }, 0);
+  };
 
   const sendMessage = async (e?: React.FormEvent, suggestion?: string) => {
     e?.preventDefault();
@@ -114,6 +222,7 @@ export default function ChatBotPage() {
         },
         body: JSON.stringify({
           message: currentInput,
+          role: userRole,
         }),
       });
 
@@ -135,7 +244,7 @@ export default function ChatBotPage() {
       const errorMessage: Message = {
         id: Date.now() + 1,
         text:
-          "Erro: Não foi possível conectar ao PsicoBot. Verifique se o servidor (porta 8000) está rodando e se o CORS está configurado.",
+          "Erro: Não foi possível conectar ao PsicoBot. Verifique se o projeto principal está rodando e, para perguntas de IA/RAG, se o backend da porta 8000 também está ativo.",
         sender: "bot",
         timestamp: formatTimestamp(),
       };
@@ -200,6 +309,7 @@ export default function ChatBotPage() {
 
           <footer className="chat-input-area">
             <textarea
+              ref={inputRef}
               id="message-input"
               placeholder="Digite sua mensagem aqui..."
               rows={1}
@@ -241,20 +351,18 @@ export default function ChatBotPage() {
 
         <h2>Sugestões</h2>
 
-        <p className="side-panel-description">
-          Use perguntas rápidas para testar o PsicoBot durante a apresentação.
-        </p>
+        <p className="side-panel-description">{sidePanelDescription}</p>
 
         <div className="suggestion-list">
           {quickSuggestions.map((suggestion) => (
             <button
-              key={suggestion}
+              key={suggestion.label}
               type="button"
-              onClick={() => sendMessage(undefined, suggestion)}
+              onClick={() => handleSuggestionClick(suggestion.prompt)}
               disabled={isLoading}
               className="suggestion-button"
             >
-              {suggestion}
+              {suggestion.label}
             </button>
           ))}
         </div>
@@ -263,11 +371,6 @@ export default function ChatBotPage() {
           <strong>Importante:</strong> o PsicoBot oferece apoio informativo e
           não substitui avaliação profissional, supervisão clínica ou tomada de
           decisão técnica.
-        </div>
-
-        <div className="side-alert info">
-          <strong>Status:</strong> para responder, o backend precisa estar
-          rodando em <code>localhost:8000</code>.
         </div>
       </aside>
 
@@ -278,8 +381,10 @@ export default function ChatBotPage() {
           min-height: 620px;
           display: grid;
           grid-template-columns: minmax(0, 1fr) 320px;
-          gap: 20px;
-          background: linear-gradient(135deg, #eef5ff 0%, #f8fbff 45%, #ffffff 100%);
+          gap: 16px;
+          background: #ffffff;
+          box-shadow: none;
+          border: none;
           overflow: hidden;
           box-sizing: border-box;
           border-radius: 28px;
@@ -294,7 +399,8 @@ export default function ChatBotPage() {
           background-color: #ffffff;
           border-radius: 22px;
           overflow: hidden;
-          box-shadow: 0 14px 38px rgba(28, 75, 179, 0.10);
+          box-shadow: none;
+          border: none;
         }
 
         .chat-header {
@@ -385,7 +491,7 @@ export default function ChatBotPage() {
           border-radius: 18px;
           max-width: 60%;
           line-height: 1.4;
-          font-size: 19px;
+          font-size: 17px;
           font-family: "Inter", sans-serif;
           font-weight: 500;
           overflow-wrap: break-word;
@@ -399,6 +505,7 @@ export default function ChatBotPage() {
           color: #333;
           align-self: flex-start;
           border-bottom-left-radius: 4px;
+          max-width: 70%;
         }
 
         .message.bot .timestamp {
@@ -410,6 +517,7 @@ export default function ChatBotPage() {
           color: #ffffff;
           align-self: flex-end;
           border-bottom-right-radius: 4px;
+          max-width: 48%;
         }
 
         .message.user .timestamp {
@@ -424,6 +532,29 @@ export default function ChatBotPage() {
 
         .message.bot a:hover {
           color: #528cff;
+        }
+
+        .message p {
+          margin: 0 0 8px;
+        }
+
+        .message p:last-child {
+          margin-bottom: 0;
+        }
+
+        .message ul,
+        .message ol {
+          margin: 8px 0 8px 22px;
+          padding: 0;
+        }
+
+        .message li {
+          margin: 4px 0;
+        }
+
+        .message strong {
+          font-weight: 800;
+          color: inherit;
         }
 
         .chat-input-area {
@@ -606,10 +737,10 @@ export default function ChatBotPage() {
           min-height: 0;
           overflow-y: auto;
           background: #ffffff;
-          border: 1px solid #d6e4ff;
+          border: 1px solid #eef4ff;
           border-radius: 22px;
           padding: 22px;
-          box-shadow: 0 14px 38px rgba(28, 75, 179, 0.10);
+          box-shadow: none;
           color: #102a56;
           box-sizing: border-box;
         }

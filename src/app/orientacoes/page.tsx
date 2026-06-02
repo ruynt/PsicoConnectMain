@@ -92,19 +92,17 @@ export default function OrientacoesPage() {
   const pageStyle = {
     padding: "36px",
     minHeight: "calc(100vh - 48px)",
-    paddingBottom: "72px",
-    background:
-      "radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%), radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08), transparent 26%), #f8fafc",
+    paddingBottom: "240px",
+    backgroundColor: "#f8fafc",
     borderRadius: "32px",
     overflow: "visible",
   };
 
   const glassCardStyle = {
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
     borderRadius: "26px",
-    border: "1px solid rgba(226, 232, 240, 0.9)",
-    boxShadow: "0 20px 50px rgba(15, 23, 42, 0.08)",
-    backdropFilter: "blur(12px)",
+    border: "1px solid rgba(226, 232, 240, 0.95)",
+    boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)",
   } as const;
 
   const miniCardStyle = {
@@ -124,7 +122,7 @@ export default function OrientacoesPage() {
           color: "#ffffff",
           background:
            "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
-          boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
+          boxShadow: "0 12px 30px rgba(37, 99, 235, 0.18)",
         }}
       >
         <div
@@ -408,9 +406,7 @@ export default function OrientacoesPage() {
                     display: "flex",
                     alignItems: "center",
                     gap: "12px",
-                    boxShadow: isActive
-                      ? "0 12px 28px rgba(37, 99, 235, 0.12)"
-                      : "none",
+                    boxShadow: isActive ? "0 8px 18px rgba(37, 99, 235, 0.10)" : "none",
                   }}
                 >
                   <div
@@ -462,8 +458,7 @@ export default function OrientacoesPage() {
           style={{
             borderRadius: "28px",
             padding: "28px",
-            background:
-              "linear-gradient(180deg, rgba(239, 246, 255, 0.95), rgba(255, 255, 255, 0.95))",
+            backgroundColor: "#f8fbff",
             border: "1px solid #bfdbfe",
             minHeight: "100%",
           }}
@@ -571,8 +566,7 @@ export default function OrientacoesPage() {
           style={{
             ...glassCardStyle,
             padding: "26px",
-            background:
-              "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(239, 246, 255, 0.95))",
+            backgroundColor: "#ffffff",
           }}
         >
           <p
@@ -692,8 +686,7 @@ export default function OrientacoesPage() {
           style={{
             ...glassCardStyle,
             padding: "26px",
-            background:
-              "linear-gradient(135deg, rgba(254, 242, 242, 0.96), rgba(255, 255, 255, 0.96))",
+            backgroundColor: "#fffafa",
             border: "1px solid #fecaca",
           }}
         >
@@ -775,12 +768,12 @@ export default function OrientacoesPage() {
         style={{
           ...glassCardStyle,
           padding: "24px",
+          marginBottom: "48px",
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           gap: "18px",
           alignItems: "center",
-          background:
-            "linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(255, 255, 255, 0.96))",
+          backgroundColor: "#f0fdf4",
           border: "1px solid #a7f3d0",
         }}
       >
@@ -826,6 +819,8 @@ export default function OrientacoesPage() {
           </p>
         </div>
       </section>
+
+      <div style={{ height: "120px", flexShrink: 0 }} />
     </div>
   );
 }

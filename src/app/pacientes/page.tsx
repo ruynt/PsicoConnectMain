@@ -6,6 +6,7 @@ type PatientSummary = {
   id: string;
   name: string;
   email: string;
+  profileImageUrl?: string | null;
   totalAppointments: number;
   scheduledAppointments: number;
   cancelledAppointments: number;
@@ -165,6 +166,15 @@ export default function PatientsPage() {
     }).format(date);
   }
 
+  function getInitials(name: string) {
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase())
+      .join("") || "P";
+  }
+
   function closeLinkModal() {
     setIsLinkModalOpen(false);
     setPatientEmailToLink("");
@@ -249,10 +259,11 @@ export default function PatientsPage() {
 
   const pageStyle = {
     padding: "36px",
+    paddingBottom: "160px",
     minHeight: "calc(100vh - 48px)",
     background:
       "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
-    borderRadius: "32px", 
+    borderRadius: "32px",
     overflow: "visible",
   };
 
@@ -741,23 +752,42 @@ export default function PatientsPage() {
                   }}
                 >
                   <div>
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        borderRadius: "16px",
-                        backgroundColor: "#eff6ff",
-                        color: "#1d4ed8",
-                        border: "1px solid #bfdbfe",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "20px",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      <i className="fa-solid fa-user"></i>
-                    </div>
+                    {patient.profileImageUrl ? (
+                      <img
+                        src={patient.profileImageUrl}
+                        alt={`Foto de ${patient.name}`}
+                        style={{
+                          width: "58px",
+                          height: "58px",
+                          borderRadius: "18px",
+                          objectFit: "cover",
+                          border: "2px solid #bfdbfe",
+                          boxShadow: "0 10px 22px rgba(15, 23, 42, 0.12)",
+                          marginBottom: "12px",
+                          backgroundColor: "#eff6ff",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "58px",
+                          height: "58px",
+                          borderRadius: "18px",
+                          backgroundColor: "#eff6ff",
+                          color: "#1d4ed8",
+                          border: "1px solid #bfdbfe",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "18px",
+                          fontWeight: 900,
+                          marginBottom: "12px",
+                        }}
+                      >
+                        {getInitials(patient.name)}
+                      </div>
+                    )}
 
                     <h2
                       style={{
@@ -976,6 +1006,8 @@ export default function PatientsPage() {
             ))}
           </div>
         )}
+
+        <div style={{ height: "96px" }} />
       </div>
 
       {isLinkModalOpen && (

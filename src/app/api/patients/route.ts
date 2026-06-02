@@ -46,6 +46,10 @@ export async function GET(req: NextRequest) {
           select: {
             name: true,
             email: true,
+            profileImageUrl: true,
+            phone: true,
+            city: true,
+            state: true,
           },
         },
         appointments: {
@@ -79,8 +83,14 @@ export async function GET(req: NextRequest) {
 
       return {
         id: patient.id,
-        name: patient.user.name,
+        name: patient.socialName?.trim() || patient.user.name,
+        civilName: patient.user.name,
+        socialName: patient.socialName,
         email: patient.user.email,
+        profileImageUrl: patient.user.profileImageUrl,
+        phone: patient.user.phone,
+        city: patient.user.city,
+        state: patient.user.state,
         totalAppointments: patient.appointments.length,
         scheduledAppointments: scheduledAppointments.length,
         cancelledAppointments: cancelledAppointments.length,
