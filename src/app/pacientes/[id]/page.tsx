@@ -155,6 +155,7 @@ type PatientTab =
   | "SUMMARY"
   | "APPOINTMENTS"
   | "NOTES"
+  | "PRONTUARIO"
   | "CHECKINS"
   | "TASKS"
   | "MATERIALS"
@@ -229,6 +230,11 @@ export default function PatientDetailsPage() {
   const [expandedSummaryId, setExpandedSummaryId] = useState("");
 
   const [noteToArchive, setNoteToArchive] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+
+  const [summaryToDelete, setSummaryToDelete] = useState<{
     id: string;
     title: string;
   } | null>(null);
@@ -889,18 +895,21 @@ export default function PatientDetailsPage() {
     }
   }
 
-  async function handleDeleteSavedSummary(summaryId: string) {
-    const confirmed = window.confirm(
-      "Tem certeza que deseja apagar este resumo salvo? Essa ação não pode ser desfeita.",
-    );
+  function handleDeleteSavedSummary(summaryId: string, title?: string | null) {
+    setSummaryToDelete({
+      id: summaryId,
+      title: title?.trim() || "Resumo para prontuário",
+    });
+  }
 
-    if (!confirmed) return;
+  async function confirmDeleteSavedSummary() {
+    if (!summaryToDelete) return;
 
     try {
-      setDeletingSummaryId(summaryId);
+      setDeletingSummaryId(summaryToDelete.id);
 
       const response = await fetch(
-        `/api/patients/${patientId}/summaries/${summaryId}`,
+        `/api/patients/${patientId}/summaries/${summaryToDelete.id}`,
         {
           method: "DELETE",
         },
@@ -912,15 +921,16 @@ export default function PatientDetailsPage() {
         throw new Error(data?.error || "Erro ao apagar resumo.");
       }
 
-      if (editingSummaryId === summaryId) {
+      if (editingSummaryId === summaryToDelete.id) {
         handleCancelEditSummary();
       }
 
-      if (expandedSummaryId === summaryId) {
+      if (expandedSummaryId === summaryToDelete.id) {
         setExpandedSummaryId("");
       }
 
       await loadSummaries();
+      setSummaryToDelete(null);
       showFeedback("success", "Resumo apagado com sucesso.");
     } catch (error: any) {
       showFeedback("error", error.message || "Erro ao apagar resumo.");
@@ -1809,6 +1819,11 @@ export default function PatientDetailsPage() {
               icon: "fa-solid fa-pen-to-square",
             },
             {
+              label: "Prontuário",
+              value: "PRONTUARIO",
+              icon: "fa-solid fa-file-lines",
+            },
+            {
               label: "Checklists",
               value: "CHECKINS",
               icon: "fa-solid fa-clipboard-check",
@@ -2363,6 +2378,723 @@ export default function PatientDetailsPage() {
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {activeTab === "PRONTUARIO" && (
+          <section style={cardStyle}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "16px",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                marginBottom: "18px",
+              }}
+            >
+              <div style={{ flex: 1, minWidth: "260px" }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    backgroundColor: "#eff6ff",
+                    color: "#1d4ed8",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "999px",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: 900,
+                    marginBottom: "10px",
+                  }}
+                >
+                  <i className="fa-solid fa-file-lines"></i>
+                  Área privada do psicólogo
+                </span>
+
+                <h2
+                  style={{
+                    fontSize: "28px",
+                    fontWeight: 900,
+                    color: "#111827",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Prontuário e resumos salvos
+                </h2>
+
+                <p
+                  style={{
+                    color: "#64748b",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  Gere, revise e salve resumos de apoio ao registro profissional
+                  a partir das anotações internas do paciente.
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: "12px",
+                marginBottom: "18px",
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "16px",
+                  padding: "14px",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#0f172a",
+                    fontWeight: 900,
+                    marginBottom: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <i className="fa-solid fa-user-lock"></i>
+                  Acesso restrito
+                </p>
+                <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+                  Estes resumos ficam disponíveis apenas para o psicólogo
+                  vinculado a este paciente.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  borderRadius: "16px",
+                  padding: "14px",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#9a3412",
+                    fontWeight: 900,
+                    marginBottom: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <i className="fa-solid fa-triangle-exclamation"></i>
+                  Revisão obrigatória
+                </p>
+                <p style={{ color: "#9a3412", margin: 0, lineHeight: 1.5 }}>
+                  O texto gerado por IA é apenas um rascunho e deve ser revisado
+                  antes de qualquer uso clínico ou registro formal.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "16px",
+                  padding: "14px",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#166534",
+                    fontWeight: 900,
+                    marginBottom: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <i className="fa-solid fa-eye-slash"></i>
+                  Invisível ao paciente
+                </p>
+                <p style={{ color: "#166534", margin: 0, lineHeight: 1.5 }}>
+                  O paciente não vê estes resumos na área dele e o PsicoBot do
+                  paciente não consulta este conteúdo.
+                </p>
+              </div>
+            </div>
+
+              <div
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.08))",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "18px",
+                  padding: "16px",
+                  marginBottom: "18px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "14px",
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: "240px" }}>
+                    <p
+                      style={{
+                        color: "#1e3a8a",
+                        fontWeight: 900,
+                        fontSize: "17px",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Resumo para prontuário com apoio de IA
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#1e40af",
+                        fontSize: "14px",
+                        lineHeight: 1.5,
+                        margin: 0,
+                      }}
+                    >
+                      Gere uma versão organizada das anotações ativas deste
+                      paciente. Revise e edite o texto antes de salvar. Os
+                      resumos salvos são privados do psicólogo e ficam reunidos
+                      nesta aba.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateProntuarioSummary}
+                    disabled={generatingSummary}
+                    style={{
+                      ...buttonPrimaryStyle,
+                      minWidth: "230px",
+                      opacity: generatingSummary ? 0.7 : 1,
+                      cursor: generatingSummary ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {generatingSummary
+                      ? "Gerando resumo..."
+                      : "Gerar resumo para prontuário"}
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: "#fff7ed",
+                    border: "1px solid #fed7aa",
+                    color: "#9a3412",
+                    borderRadius: "12px",
+                    padding: "12px",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Este recurso não substitui o julgamento clínico profissional,
+                  não deve gerar diagnósticos automaticamente e precisa ser
+                  revisado antes de uso em prontuário. O paciente não vê estes
+                  resumos, nem pela tela do paciente nem pelo PsicoBot.
+                </div>
+
+                {generatedSummary && (
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #dbeafe",
+                      borderRadius: "14px",
+                      padding: "16px",
+                      marginTop: "14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            color: "#111827",
+                            fontWeight: 900,
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Rascunho gerado para revisão
+                        </p>
+
+                        <p
+                          style={{
+                            color: "#6b7280",
+                            fontSize: "13px",
+                            margin: 0,
+                          }}
+                        >
+                          {summarySourceNotesCount > 0
+                            ? `${summarySourceNotesCount} anotações utilizadas`
+                            : "Anotações utilizadas"}
+                          {summaryGeneratedAt
+                            ? ` · Gerado em ${formatDate(summaryGeneratedAt)}`
+                            : ""}
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={handleCopyProntuarioSummary}
+                          style={buttonSecondaryStyle}
+                        >
+                          Copiar rascunho
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSaveGeneratedSummary}
+                          disabled={savingGeneratedSummary}
+                          style={{
+                            ...buttonPrimaryStyle,
+                            opacity: savingGeneratedSummary ? 0.7 : 1,
+                            cursor: savingGeneratedSummary
+                              ? "not-allowed"
+                              : "pointer",
+                          }}
+                        >
+                          {savingGeneratedSummary
+                            ? "Salvando..."
+                            : "Salvar resumo"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <textarea
+                      value={generatedSummary}
+                      onChange={(e) => setGeneratedSummary(e.target.value)}
+                      rows={14}
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "12px",
+                        padding: "14px",
+                        color: "#374151",
+                        lineHeight: 1.65,
+                        outline: "none",
+                        resize: "vertical",
+                        fontSize: "14px",
+                        fontFamily: "inherit",
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #dbeafe",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    marginTop: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <div>
+                      <p
+                        style={{
+                          color: "#111827",
+                          fontWeight: 900,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Resumos salvos
+                      </p>
+
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: "13px",
+                          margin: 0,
+                        }}
+                      >
+                        Resumos revisados e salvos pelo psicólogo. Eles não são
+                        exibidos para o paciente.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={loadSummaries}
+                      disabled={loadingSummaries}
+                      style={buttonSecondaryStyle}
+                    >
+                      {loadingSummaries ? "Atualizando..." : "Atualizar"}
+                    </button>
+                  </div>
+
+                  {summaryError && (
+                    <div
+                      style={{
+                        backgroundColor: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        borderRadius: "12px",
+                        padding: "12px 14px",
+                        marginBottom: "14px",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {summaryError}
+                    </div>
+                  )}
+
+                  {loadingSummaries ? (
+                    <p style={{ color: "#6b7280", margin: 0 }}>
+                      Carregando resumos salvos...
+                    </p>
+                  ) : summaries.length === 0 ? (
+                    <div
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "16px",
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontWeight: 800,
+                          color: "#111827",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        Nenhum resumo salvo
+                      </p>
+
+                      <p style={{ color: "#6b7280", margin: 0 }}>
+                        Gere um resumo, revise o texto e clique em “Salvar
+                        resumo” para manter uma versão nesta tela.
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "14px",
+                      }}
+                    >
+                      {summaries.map((summary) => {
+                        const isEditingSummary = editingSummaryId === summary.id;
+                        const isExpandedSummary = expandedSummaryId === summary.id;
+                        const previewText = summary.content
+                          .replace(/\s+/g, " ")
+                          .trim();
+
+                        return (
+                          <div
+                            key={summary.id}
+                            onClick={() => {
+                              if (!isEditingSummary) {
+                                setExpandedSummaryId(
+                                  isExpandedSummary ? "" : summary.id,
+                                );
+                              }
+                            }}
+                            style={{
+                              border: isExpandedSummary
+                                ? "1px solid #bfdbfe"
+                                : "1px solid #e5e7eb",
+                              borderRadius: "14px",
+                              padding: "13px 14px",
+                              backgroundColor: isExpandedSummary
+                                ? "#eff6ff"
+                                : "#f8fafc",
+                              cursor: isEditingSummary ? "default" : "pointer",
+                              transition: "0.18s ease",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: "12px",
+                                alignItems: "flex-start",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <div style={{ flex: 1, minWidth: "240px" }}>
+                                {isEditingSummary ? (
+                                  <input
+                                    type="text"
+                                    value={editingSummaryTitle}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) =>
+                                      setEditingSummaryTitle(e.target.value)
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      border: "1px solid #d1d5db",
+                                      borderRadius: "10px",
+                                      padding: "10px 12px",
+                                      fontWeight: 900,
+                                      color: "#111827",
+                                      outline: "none",
+                                      marginBottom: "8px",
+                                    }}
+                                  />
+                                ) : (
+                                  <p
+                                    style={{
+                                      color: "#111827",
+                                      fontWeight: 900,
+                                      marginBottom: "4px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                    }}
+                                  >
+                                    <i className="fa-solid fa-file-lines"></i>
+                                    {summary.title || "Resumo para prontuário"}
+                                  </p>
+                                )}
+
+                                <p
+                                  style={{
+                                    color: "#6b7280",
+                                    fontSize: "12px",
+                                    margin: 0,
+                                    lineHeight: 1.45,
+                                  }}
+                                >
+                                  Salvo em {formatDate(summary.createdAt)}
+                                  {summary.updatedAt !== summary.createdAt
+                                    ? ` · Atualizado em ${formatDate(
+                                        summary.updatedAt,
+                                      )}`
+                                    : ""}
+                                  {summary.sourceNotesCount
+                                    ? ` · ${summary.sourceNotesCount} anotações utilizadas`
+                                    : ""}
+                                </p>
+
+                                {!isEditingSummary && !isExpandedSummary && (
+                                  <p
+                                    style={{
+                                      color: "#475569",
+                                      fontSize: "13px",
+                                      lineHeight: 1.5,
+                                      marginTop: "8px",
+                                      marginBottom: 0,
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                    }}
+                                  >
+                                    {previewText || "Resumo sem conteúdo."}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                {isEditingSummary ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleUpdateSavedSummary(summary.id)
+                                      }
+                                      disabled={updatingSummaryId === summary.id}
+                                      style={{
+                                        ...buttonPrimaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      {updatingSummaryId === summary.id
+                                        ? "Salvando..."
+                                        : "Salvar"}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelEditSummary}
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedSummaryId(
+                                          isExpandedSummary ? "" : summary.id,
+                                        )
+                                      }
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      {isExpandedSummary ? "Ocultar" : "Ver resumo"}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleStartEditSummary(summary)
+                                      }
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      Editar
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopySavedSummary(summary.content)
+                                      }
+                                      style={{
+                                        ...buttonSecondaryStyle,
+                                        padding: "8px 11px",
+                                      }}
+                                    >
+                                      Copiar
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDeleteSavedSummary(
+                                          summary.id,
+                                          summary.title,
+                                        )
+                                      }
+                                      disabled={deletingSummaryId === summary.id}
+                                      style={{
+                                        backgroundColor: "#fef2f2",
+                                        color: "#b91c1c",
+                                        border: "1px solid #fecaca",
+                                        borderRadius: "10px",
+                                        padding: "8px 11px",
+                                        fontWeight: 800,
+                                        cursor:
+                                          deletingSummaryId === summary.id
+                                            ? "not-allowed"
+                                            : "pointer",
+                                        opacity:
+                                          deletingSummaryId === summary.id
+                                            ? 0.7
+                                            : 1,
+                                      }}
+                                    >
+                                      {deletingSummaryId === summary.id
+                                        ? "Apagando..."
+                                        : "Apagar"}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {isEditingSummary ? (
+                              <textarea
+                                value={editingSummaryContent}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  setEditingSummaryContent(e.target.value)
+                                }
+                                rows={12}
+                                style={{
+                                  width: "100%",
+                                  border: "1px solid #d1d5db",
+                                  borderRadius: "12px",
+                                  padding: "12px 14px",
+                                  fontSize: "14px",
+                                  outline: "none",
+                                  resize: "vertical",
+                                  color: "#374151",
+                                  lineHeight: 1.65,
+                                  fontFamily: "inherit",
+                                  marginTop: "12px",
+                                  backgroundColor: "#ffffff",
+                                }}
+                              />
+                            ) : isExpandedSummary ? (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  border: "1px solid #dbeafe",
+                                  borderRadius: "12px",
+                                  padding: "14px",
+                                  color: "#374151",
+                                  whiteSpace: "pre-wrap",
+                                  lineHeight: 1.65,
+                                  maxHeight: "360px",
+                                  overflow: "auto",
+                                  marginTop: "12px",
+                                }}
+                              >
+                                {summary.content}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+
           </section>
         )}
 
@@ -3680,10 +4412,29 @@ export default function PatientDetailsPage() {
                 {editingNoteId ? "Editar anotação" : "Nova anotação"}
               </h2>
 
-              <p style={{ color: "#6b7280", marginBottom: "18px" }}>
-                Estas anotações são internas e não ficam visíveis para o
-                paciente.
+              <p style={{ color: "#6b7280", marginBottom: "12px" }}>
+                Registre observações clínicas e informações de acompanhamento
+                do paciente.
               </p>
+
+              <div
+                style={{
+                  backgroundColor: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#1e40af",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  marginBottom: "18px",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  lineHeight: 1.5,
+                }}
+              >
+                <i className="fa-solid fa-lock" style={{ marginRight: "8px" }}></i>
+                Estas anotações são internas, ficam visíveis apenas para o
+                psicólogo e não aparecem para o paciente nem no PsicoBot do
+                paciente.
+              </div>
 
               {noteError && (
                 <div
@@ -3841,573 +4592,6 @@ export default function PatientDetailsPage() {
                 Histórico de registros criados pelo psicólogo para este
                 paciente.
               </p>
-
-              <div
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.08))",
-                  border: "1px solid #bfdbfe",
-                  borderRadius: "18px",
-                  padding: "16px",
-                  marginBottom: "18px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "14px",
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: "240px" }}>
-                    <p
-                      style={{
-                        color: "#1e3a8a",
-                        fontWeight: 900,
-                        fontSize: "17px",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      Resumo para prontuário com apoio de IA
-                    </p>
-
-                    <p
-                      style={{
-                        color: "#1e40af",
-                        fontSize: "14px",
-                        lineHeight: 1.5,
-                        margin: 0,
-                      }}
-                    >
-                      Gere uma versão organizada das anotações ativas deste
-                      paciente. Revise e edite o texto antes de salvar. Resumos
-                      salvos ficam visíveis apenas para o psicólogo nesta tela.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleGenerateProntuarioSummary}
-                    disabled={generatingSummary || notes.length === 0}
-                    style={{
-                      ...buttonPrimaryStyle,
-                      minWidth: "230px",
-                      opacity:
-                        generatingSummary || notes.length === 0 ? 0.7 : 1,
-                      cursor:
-                        generatingSummary || notes.length === 0
-                          ? "not-allowed"
-                          : "pointer",
-                    }}
-                  >
-                    {generatingSummary
-                      ? "Gerando resumo..."
-                      : "Gerar resumo para prontuário"}
-                  </button>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "#fff7ed",
-                    border: "1px solid #fed7aa",
-                    color: "#9a3412",
-                    borderRadius: "12px",
-                    padding: "12px",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Este recurso não substitui o julgamento clínico profissional,
-                  não deve gerar diagnósticos automaticamente e precisa ser
-                  revisado antes de uso em prontuário. O paciente não vê estes
-                  resumos, nem pela tela do paciente nem pelo PsicoBot.
-                </div>
-
-                {generatedSummary && (
-                  <div
-                    style={{
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #dbeafe",
-                      borderRadius: "14px",
-                      padding: "16px",
-                      marginTop: "14px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      <div>
-                        <p
-                          style={{
-                            color: "#111827",
-                            fontWeight: 900,
-                            marginBottom: "4px",
-                          }}
-                        >
-                          Rascunho gerado para revisão
-                        </p>
-
-                        <p
-                          style={{
-                            color: "#6b7280",
-                            fontSize: "13px",
-                            margin: 0,
-                          }}
-                        >
-                          {summarySourceNotesCount > 0
-                            ? `${summarySourceNotesCount} anotações utilizadas`
-                            : "Anotações utilizadas"}
-                          {summaryGeneratedAt
-                            ? ` · Gerado em ${formatDate(summaryGeneratedAt)}`
-                            : ""}
-                        </p>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "10px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={handleCopyProntuarioSummary}
-                          style={buttonSecondaryStyle}
-                        >
-                          Copiar rascunho
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleSaveGeneratedSummary}
-                          disabled={savingGeneratedSummary}
-                          style={{
-                            ...buttonPrimaryStyle,
-                            opacity: savingGeneratedSummary ? 0.7 : 1,
-                            cursor: savingGeneratedSummary
-                              ? "not-allowed"
-                              : "pointer",
-                          }}
-                        >
-                          {savingGeneratedSummary
-                            ? "Salvando..."
-                            : "Salvar resumo"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <textarea
-                      value={generatedSummary}
-                      onChange={(e) => setGeneratedSummary(e.target.value)}
-                      rows={14}
-                      style={{
-                        width: "100%",
-                        backgroundColor: "#f8fafc",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        padding: "14px",
-                        color: "#374151",
-                        lineHeight: 1.65,
-                        outline: "none",
-                        resize: "vertical",
-                        fontSize: "14px",
-                        fontFamily: "inherit",
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #dbeafe",
-                    borderRadius: "14px",
-                    padding: "16px",
-                    marginTop: "14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div>
-                      <p
-                        style={{
-                          color: "#111827",
-                          fontWeight: 900,
-                          marginBottom: "4px",
-                        }}
-                      >
-                        Resumos salvos
-                      </p>
-
-                      <p
-                        style={{
-                          color: "#6b7280",
-                          fontSize: "13px",
-                          margin: 0,
-                        }}
-                      >
-                        Resumos revisados e salvos pelo psicólogo. Eles não são
-                        exibidos para o paciente.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={loadSummaries}
-                      disabled={loadingSummaries}
-                      style={buttonSecondaryStyle}
-                    >
-                      {loadingSummaries ? "Atualizando..." : "Atualizar"}
-                    </button>
-                  </div>
-
-                  {summaryError && (
-                    <div
-                      style={{
-                        backgroundColor: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        color: "#b91c1c",
-                        borderRadius: "12px",
-                        padding: "12px 14px",
-                        marginBottom: "14px",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {summaryError}
-                    </div>
-                  )}
-
-                  {loadingSummaries ? (
-                    <p style={{ color: "#6b7280", margin: 0 }}>
-                      Carregando resumos salvos...
-                    </p>
-                  ) : summaries.length === 0 ? (
-                    <div
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "14px",
-                        padding: "16px",
-                        backgroundColor: "#f8fafc",
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontWeight: 800,
-                          color: "#111827",
-                          marginBottom: "6px",
-                        }}
-                      >
-                        Nenhum resumo salvo
-                      </p>
-
-                      <p style={{ color: "#6b7280", margin: 0 }}>
-                        Gere um resumo, revise o texto e clique em “Salvar
-                        resumo” para manter uma versão nesta tela.
-                      </p>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "14px",
-                      }}
-                    >
-                      {summaries.map((summary) => {
-                        const isEditingSummary = editingSummaryId === summary.id;
-                        const isExpandedSummary = expandedSummaryId === summary.id;
-                        const previewText = summary.content
-                          .replace(/\s+/g, " ")
-                          .trim();
-
-                        return (
-                          <div
-                            key={summary.id}
-                            onClick={() => {
-                              if (!isEditingSummary) {
-                                setExpandedSummaryId(
-                                  isExpandedSummary ? "" : summary.id,
-                                );
-                              }
-                            }}
-                            style={{
-                              border: isExpandedSummary
-                                ? "1px solid #bfdbfe"
-                                : "1px solid #e5e7eb",
-                              borderRadius: "14px",
-                              padding: "13px 14px",
-                              backgroundColor: isExpandedSummary
-                                ? "#eff6ff"
-                                : "#f8fafc",
-                              cursor: isEditingSummary ? "default" : "pointer",
-                              transition: "0.18s ease",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: "12px",
-                                alignItems: "flex-start",
-                                flexWrap: "wrap",
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: "240px" }}>
-                                {isEditingSummary ? (
-                                  <input
-                                    type="text"
-                                    value={editingSummaryTitle}
-                                    onClick={(e) => e.stopPropagation()}
-                                    onChange={(e) =>
-                                      setEditingSummaryTitle(e.target.value)
-                                    }
-                                    style={{
-                                      width: "100%",
-                                      border: "1px solid #d1d5db",
-                                      borderRadius: "10px",
-                                      padding: "10px 12px",
-                                      fontWeight: 900,
-                                      color: "#111827",
-                                      outline: "none",
-                                      marginBottom: "8px",
-                                    }}
-                                  />
-                                ) : (
-                                  <p
-                                    style={{
-                                      color: "#111827",
-                                      fontWeight: 900,
-                                      marginBottom: "4px",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "8px",
-                                    }}
-                                  >
-                                    <i className="fa-solid fa-file-lines"></i>
-                                    {summary.title || "Resumo para prontuário"}
-                                  </p>
-                                )}
-
-                                <p
-                                  style={{
-                                    color: "#6b7280",
-                                    fontSize: "12px",
-                                    margin: 0,
-                                    lineHeight: 1.45,
-                                  }}
-                                >
-                                  Salvo em {formatDate(summary.createdAt)}
-                                  {summary.updatedAt !== summary.createdAt
-                                    ? ` · Atualizado em ${formatDate(
-                                        summary.updatedAt,
-                                      )}`
-                                    : ""}
-                                  {summary.sourceNotesCount
-                                    ? ` · ${summary.sourceNotesCount} anotações utilizadas`
-                                    : ""}
-                                </p>
-
-                                {!isEditingSummary && !isExpandedSummary && (
-                                  <p
-                                    style={{
-                                      color: "#475569",
-                                      fontSize: "13px",
-                                      lineHeight: 1.5,
-                                      marginTop: "8px",
-                                      marginBottom: 0,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      display: "-webkit-box",
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: "vertical",
-                                    }}
-                                  >
-                                    {previewText || "Resumo sem conteúdo."}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  display: "flex",
-                                  gap: "8px",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {isEditingSummary ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleUpdateSavedSummary(summary.id)
-                                      }
-                                      disabled={updatingSummaryId === summary.id}
-                                      style={{
-                                        ...buttonPrimaryStyle,
-                                        padding: "8px 11px",
-                                      }}
-                                    >
-                                      {updatingSummaryId === summary.id
-                                        ? "Salvando..."
-                                        : "Salvar"}
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={handleCancelEditSummary}
-                                      style={{
-                                        ...buttonSecondaryStyle,
-                                        padding: "8px 11px",
-                                      }}
-                                    >
-                                      Cancelar
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setExpandedSummaryId(
-                                          isExpandedSummary ? "" : summary.id,
-                                        )
-                                      }
-                                      style={{
-                                        ...buttonSecondaryStyle,
-                                        padding: "8px 11px",
-                                      }}
-                                    >
-                                      {isExpandedSummary ? "Ocultar" : "Ver resumo"}
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleStartEditSummary(summary)
-                                      }
-                                      style={{
-                                        ...buttonSecondaryStyle,
-                                        padding: "8px 11px",
-                                      }}
-                                    >
-                                      Editar
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleCopySavedSummary(summary.content)
-                                      }
-                                      style={{
-                                        ...buttonSecondaryStyle,
-                                        padding: "8px 11px",
-                                      }}
-                                    >
-                                      Copiar
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteSavedSummary(summary.id)
-                                      }
-                                      disabled={deletingSummaryId === summary.id}
-                                      style={{
-                                        backgroundColor: "#fef2f2",
-                                        color: "#b91c1c",
-                                        border: "1px solid #fecaca",
-                                        borderRadius: "10px",
-                                        padding: "8px 11px",
-                                        fontWeight: 800,
-                                        cursor:
-                                          deletingSummaryId === summary.id
-                                            ? "not-allowed"
-                                            : "pointer",
-                                        opacity:
-                                          deletingSummaryId === summary.id
-                                            ? 0.7
-                                            : 1,
-                                      }}
-                                    >
-                                      {deletingSummaryId === summary.id
-                                        ? "Apagando..."
-                                        : "Apagar"}
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-
-                            {isEditingSummary ? (
-                              <textarea
-                                value={editingSummaryContent}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) =>
-                                  setEditingSummaryContent(e.target.value)
-                                }
-                                rows={12}
-                                style={{
-                                  width: "100%",
-                                  border: "1px solid #d1d5db",
-                                  borderRadius: "12px",
-                                  padding: "12px 14px",
-                                  fontSize: "14px",
-                                  outline: "none",
-                                  resize: "vertical",
-                                  color: "#374151",
-                                  lineHeight: 1.65,
-                                  fontFamily: "inherit",
-                                  marginTop: "12px",
-                                  backgroundColor: "#ffffff",
-                                }}
-                              />
-                            ) : isExpandedSummary ? (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  backgroundColor: "#ffffff",
-                                  border: "1px solid #dbeafe",
-                                  borderRadius: "12px",
-                                  padding: "14px",
-                                  color: "#374151",
-                                  whiteSpace: "pre-wrap",
-                                  lineHeight: 1.65,
-                                  maxHeight: "360px",
-                                  overflow: "auto",
-                                  marginTop: "12px",
-                                }}
-                              >
-                                {summary.content}
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
 
               <div
                 style={{
@@ -4736,6 +4920,119 @@ export default function PatientDetailsPage() {
           </div>
         </div>
       )}
+
+      {summaryToDelete && (
+        <div
+          onClick={() => {
+            if (deletingSummaryId !== summaryToDelete.id) {
+              setSummaryToDelete(null);
+            }
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            zIndex: 1002,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "500px",
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              padding: "28px",
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "16px",
+                backgroundColor: "#fef2f2",
+                color: "#dc2626",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "22px",
+                marginBottom: "16px",
+              }}
+            >
+              <i className="fa-solid fa-triangle-exclamation"></i>
+            </div>
+
+            <h2
+              style={{
+                fontSize: "26px",
+                fontWeight: 800,
+                color: "#111827",
+                marginBottom: "10px",
+              }}
+            >
+              Apagar resumo salvo?
+            </h2>
+
+            <p
+              style={{
+                color: "#4b5563",
+                marginBottom: "18px",
+                lineHeight: 1.5,
+              }}
+            >
+              O resumo <strong>{summaryToDelete.title}</strong> será apagado
+              permanentemente desta tela. Essa ação não poderá ser desfeita.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSummaryToDelete(null)}
+                style={buttonSecondaryStyle}
+                disabled={deletingSummaryId === summaryToDelete.id}
+              >
+                Voltar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmDeleteSavedSummary}
+                disabled={deletingSummaryId === summaryToDelete.id}
+                style={{
+                  backgroundColor: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  cursor:
+                    deletingSummaryId === summaryToDelete.id
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity: deletingSummaryId === summaryToDelete.id ? 0.7 : 1,
+                }}
+              >
+                {deletingSummaryId === summaryToDelete.id
+                  ? "Apagando..."
+                  : "Confirmar exclusão"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

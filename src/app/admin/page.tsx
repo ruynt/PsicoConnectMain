@@ -1,5 +1,8 @@
+// src/app/admin/page.tsx
+
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type CrpVerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -143,6 +146,21 @@ export default function AdminPage() {
     });
   }, [data, searchTerm, statusFilter]);
 
+  const pendingPsychologists = useMemo(() => {
+    return (data?.psychologists || []).filter(
+      (psychologist) => psychologist.crpVerificationStatus === "PENDING",
+    );
+  }, [data]);
+
+  const latestPsychologists = useMemo(() => {
+    return [...(data?.psychologists || [])]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 3);
+  }, [data]);
+
   function showFeedback(type: "success" | "error", message: string) {
     setFeedback({ type, message });
 
@@ -267,7 +285,7 @@ export default function AdminPage() {
 
   const pageStyle = {
     padding: "36px",
-    paddingBottom: "72px",
+    paddingBottom: "120px",
     minHeight: "calc(100vh - 48px)",
     background: "#ffffff",
     overflow: "visible",
@@ -376,50 +394,110 @@ export default function AdminPage() {
           }}
         />
 
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "rgba(255, 255, 255, 0.16)",
-              border: "1px solid rgba(255, 255, 255, 0.24)",
-              borderRadius: "999px",
-              padding: "7px 12px",
-              fontSize: "13px",
-              fontWeight: 900,
-              marginBottom: "14px",
-              color: "#ffffff",
-            }}
-          >
-            <i className="fa-solid fa-user-shield"></i>
-            Área administrativa
-          </span>
+        <div
+          style={{
+            position: "absolute",
+            right: "140px",
+            bottom: "-120px",
+            width: "220px",
+            height: "220px",
+            borderRadius: "999px",
+            backgroundColor: "rgba(255, 255, 255, 0.10)",
+          }}
+        />
 
-          <h1
-            style={{
-              color: "#ffffff",
-              fontSize: "44px",
-              fontWeight: 900,
-              lineHeight: 1.05,
-              marginBottom: "10px",
-            }}
-          >
-            Administração do PsicoConnect
-          </h1>
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "24px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: "320px" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.24)",
+                borderRadius: "999px",
+                padding: "7px 12px",
+                fontSize: "13px",
+                fontWeight: 900,
+                marginBottom: "14px",
+                color: "#ffffff",
+              }}
+            >
+              <i className="fa-solid fa-user-shield"></i>
+              Área administrativa
+            </span>
 
-          <p
+            <h1
+              style={{
+                color: "#ffffff",
+                fontSize: "44px",
+                fontWeight: 900,
+                lineHeight: 1.05,
+                marginBottom: "10px",
+              }}
+            >
+              Administração do PsicoConnect
+            </h1>
+
+            <p
+              style={{
+                color: "#dbeafe",
+                fontSize: "18px",
+                maxWidth: "920px",
+                margin: 0,
+                lineHeight: 1.6,
+              }}
+            >
+              Acompanhe cadastros, valide CRPs e mantenha o acesso profissional
+              do sistema seguro antes da liberação completa da plataforma.
+            </p>
+          </div>
+
+          <div
             style={{
-              color: "#dbeafe",
-              fontSize: "18px",
-              maxWidth: "920px",
-              margin: 0,
-              lineHeight: 1.6,
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
             }}
           >
-            Gerencie verificações de CRP, acompanhe cadastros profissionais e
-            aprove ou rejeite acessos de psicólogos à plataforma.
-          </p>
+            <Link
+              href="/admin/usuarios"
+              style={{
+                ...primaryButtonStyle,
+                background: "#ffffff",
+                color: "#001e5e",
+                boxShadow: "0 10px 24px rgba(15, 23, 42, 0.16)",
+              }}
+            >
+              <i className="fa-solid fa-users-gear"></i>
+              Gerenciar usuários
+            </Link>
+
+            <button
+              type="button"
+              onClick={loadAdminData}
+              style={{
+                ...primaryButtonStyle,
+                background: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.32)",
+                boxShadow: "none",
+              }}
+            >
+              <i className="fa-solid fa-rotate-right"></i>
+              Atualizar dados
+            </button>
+          </div>
         </div>
       </section>
 
@@ -465,12 +543,188 @@ export default function AdminPage() {
               marginBottom: "22px",
             }}
           >
-            <MetricCard label="Usuários" value={data.stats.totalUsers} icon="fa-users" />
-            <MetricCard label="Pacientes" value={data.stats.totalPatients} icon="fa-user" />
-            <MetricCard label="Psicólogos" value={data.stats.totalPsychologists} icon="fa-user-doctor" />
-            <MetricCard label="Pendentes" value={data.stats.pendingPsychologists} icon="fa-hourglass-half" />
-            <MetricCard label="Aprovados" value={data.stats.approvedPsychologists} icon="fa-circle-check" />
-            <MetricCard label="Rejeitados" value={data.stats.rejectedPsychologists} icon="fa-circle-xmark" />
+            <MetricCard
+              label="Usuários"
+              value={data.stats.totalUsers}
+              icon="fa-users"
+              color="#1d4ed8"
+              background="#eff6ff"
+              border="#bfdbfe"
+            />
+            <MetricCard
+              label="Pacientes"
+              value={data.stats.totalPatients}
+              icon="fa-user"
+              color="#0891b2"
+              background="#ecfeff"
+              border="#a5f3fc"
+            />
+            <MetricCard
+              label="Psicólogos"
+              value={data.stats.totalPsychologists}
+              icon="fa-user-doctor"
+              color="#7c3aed"
+              background="#f5f3ff"
+              border="#ddd6fe"
+            />
+            <MetricCard
+              label="Pendentes"
+              value={data.stats.pendingPsychologists}
+              icon="fa-hourglass-half"
+              color="#92400e"
+              background="#fffbeb"
+              border="#fde68a"
+            />
+            <MetricCard
+              label="Aprovados"
+              value={data.stats.approvedPsychologists}
+              icon="fa-circle-check"
+              color="#047857"
+              background="#ecfdf5"
+              border="#a7f3d0"
+            />
+            <MetricCard
+              label="Rejeitados"
+              value={data.stats.rejectedPsychologists}
+              icon="fa-circle-xmark"
+              color="#b91c1c"
+              background="#fef2f2"
+              border="#fecaca"
+            />
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
+              gap: "18px",
+              marginBottom: "22px",
+            }}
+          >
+            <section
+              style={{
+                ...cardStyle,
+                background:
+                  pendingPsychologists.length > 0
+                    ? "linear-gradient(135deg, #fff7ed, #ffffff)"
+                    : "linear-gradient(135deg, #ecfdf5, #ffffff)",
+                border:
+                  pendingPsychologists.length > 0
+                    ? "1px solid #fed7aa"
+                    : "1px solid #a7f3d0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: "260px" }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      backgroundColor:
+                        pendingPsychologists.length > 0 ? "#ffedd5" : "#dcfce7",
+                      color:
+                        pendingPsychologists.length > 0 ? "#9a3412" : "#166534",
+                      borderRadius: "999px",
+                      padding: "6px 11px",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <i
+                      className={
+                        pendingPsychologists.length > 0
+                          ? "fa-solid fa-triangle-exclamation"
+                          : "fa-solid fa-circle-check"
+                      }
+                    ></i>
+                    {pendingPsychologists.length > 0
+                      ? "Atenção necessária"
+                      : "Tudo certo"}
+                  </span>
+
+                  <h2
+                    style={{
+                      color: "#001e5e",
+                      fontSize: "26px",
+                      fontWeight: 900,
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {pendingPsychologists.length > 0
+                      ? `${pendingPsychologists.length} CRP(s) aguardando análise`
+                      : "Nenhum CRP pendente no momento"}
+                  </h2>
+
+                  <p style={{ color: "#5272a6", margin: 0, lineHeight: 1.6 }}>
+                    Antes de liberar o acesso completo do psicólogo, consulte o
+                    registro informado e aprove ou rejeite a solicitação com um
+                    motivo claro quando necessário.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("PENDING")}
+                  style={{
+                    ...secondaryButtonStyle,
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <i className="fa-solid fa-filter"></i>
+                  Ver pendentes
+                </button>
+              </div>
+            </section>
+
+            <section style={cardStyle}>
+              <h2
+                style={{
+                  color: "#001e5e",
+                  fontSize: "22px",
+                  fontWeight: 900,
+                  marginBottom: "12px",
+                }}
+              >
+                Ações rápidas
+              </h2>
+
+              <div style={{ display: "grid", gap: "10px" }}>
+                <Link href="/admin/usuarios" style={quickActionStyle}>
+                  <span>
+                    <i className="fa-solid fa-users-gear"></i>
+                  </span>
+                  Gerenciar usuários cadastrados
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("PENDING")}
+                  style={quickActionStyle}
+                >
+                  <span>
+                    <i className="fa-solid fa-hourglass-half"></i>
+                  </span>
+                  Filtrar CRPs pendentes
+                </button>
+
+                <button type="button" onClick={loadAdminData} style={quickActionStyle}>
+                  <span>
+                    <i className="fa-solid fa-rotate-right"></i>
+                  </span>
+                  Atualizar painel administrativo
+                </button>
+              </div>
+            </section>
           </div>
 
           <section style={cardStyle}>
@@ -501,10 +755,20 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <button type="button" onClick={loadAdminData} style={secondaryButtonStyle}>
-                <i className="fa-solid fa-rotate-right"></i>
-                Atualizar
-              </button>
+              <div
+                style={{
+                  backgroundColor: "#f8fbff",
+                  border: "1px solid #dbe7ff",
+                  borderRadius: "16px",
+                  padding: "12px 14px",
+                  color: "#5272a6",
+                  fontWeight: 900,
+                  fontSize: "13px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {filteredPsychologists.length} resultado(s)
+              </div>
             </div>
 
             <div
@@ -553,9 +817,9 @@ export default function AdminPage() {
                       onClick={() => setStatusFilter(status)}
                       style={{
                         ...secondaryButtonStyle,
-                        backgroundColor: statusFilter === status ? "#1d4ed8" : "#eff6ff",
+                        backgroundColor: statusFilter === status ? "#001e5e" : "#eff6ff",
                         color: statusFilter === status ? "#ffffff" : "#1d4ed8",
-                        borderColor: statusFilter === status ? "#1d4ed8" : "#bfdbfe",
+                        borderColor: statusFilter === status ? "#001e5e" : "#bfdbfe",
                       }}
                     >
                       {status === "ALL" ? "Todos" : statusLabels[status]}
@@ -734,6 +998,8 @@ export default function AdminPage() {
               </div>
             )}
           </section>
+
+          <div style={{ height: "80px" }} />
         </>
       )}
 
@@ -902,7 +1168,21 @@ export default function AdminPage() {
     </div>
   );
 
-  function MetricCard({ label, value, icon }: { label: string; value: number; icon: string }) {
+  function MetricCard({
+    label,
+    value,
+    icon,
+    color,
+    background,
+    border,
+  }: {
+    label: string;
+    value: number;
+    icon: string;
+    color: string;
+    background: string;
+    border: string;
+  }) {
     return (
       <div style={{ ...cardStyle, padding: "18px" }}>
         <div
@@ -942,9 +1222,9 @@ export default function AdminPage() {
               width: "42px",
               height: "42px",
               borderRadius: "14px",
-              backgroundColor: "#eff6ff",
-              color: "#1d4ed8",
-              border: "1px solid #bfdbfe",
+              backgroundColor: background,
+              color,
+              border: `1px solid ${border}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -967,3 +1247,19 @@ export default function AdminPage() {
     );
   }
 }
+
+const quickActionStyle = {
+  width: "100%",
+  border: "1px solid #dbe7ff",
+  backgroundColor: "#f8fbff",
+  color: "#001e5e",
+  borderRadius: "16px",
+  padding: "13px 14px",
+  fontWeight: 900,
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  textAlign: "left",
+} as const;

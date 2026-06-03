@@ -22,7 +22,7 @@ export default function LandingPage() {
           <nav className="landing-menu">
             <a href="#inicio">Início</a>
             <a href="#como-funciona">Como funciona</a>
-            <a href="#sobre">Sobre Nós</a>
+            <a href="#sobre">Sobre</a>
           </nav>
 
           <Link href="/login" className="landing-login-btn">
@@ -52,57 +52,69 @@ export default function LandingPage() {
       <section className="landing-intro-section">
         <h2>Descubra como funciona!</h2>
         <p>
-          Conecte-se à sua saúde mental de maneira simples, organizada e
-          acessível.
+          O PsicoConnect organiza o acompanhamento psicológico em um ambiente
+          digital com consultas, tarefas, materiais, mensagens e apoio por IA.
         </p>
       </section>
 
       <section id="como-funciona" className="landing-cards-section">
         <div className="landing-card-block">
-          <div className="landing-icon-circle">
-            <i className="fa-regular fa-calendar-check"></i>
+          <div className="landing-icon-circle" style={{ backgroundColor: "#ffffff" }}>
+            <i className="fa-regular fa-calendar-check" style={{ color: "#528cff" }}></i>
           </div>
           <h3>Para Pacientes</h3>
           <p>
-            Encontre um profissional, organize seus atendimentos e acompanhe sua
-            jornada com mais praticidade.
+            Acompanhe seu vínculo com o psicólogo, veja suas consultas futuras e
+            acesse tarefas, materiais e mensagens enviados pelo profissional.
           </p>
           <ul>
-            <li>Encontre seu profissional</li>
-            <li>Agende sua consulta</li>
-            <li>Tenha mais organização</li>
+            <li>Visualize psicólogos vinculados</li>
+            <li>Acompanhe consultas agendadas</li>
+            <li>Acesse tarefas e materiais recebidos</li>
           </ul>
         </div>
 
         <div className="landing-card-block">
-          <div className="landing-icon-circle">
-            <i className="fa-solid fa-desktop"></i>
+          <div className="landing-icon-circle" style={{ backgroundColor: "#ffffff" }}>
+            <img
+              src="/psicobot_icon_white.png"
+              alt=""
+              aria-hidden="true"
+              style={{
+                width: "42px",
+                height: "42px",
+                objectFit: "contain",
+                filter:
+                  "brightness(0) saturate(100%) invert(53%) sepia(94%) saturate(2690%) hue-rotate(202deg) brightness(101%) contrast(101%)",
+              }}
+            />
           </div>
-          <h3>Comunicação</h3>
+          <h3>PsicoBot</h3>
           <p>
-            Facilite a interação entre psicólogo e paciente por meio de uma
-            plataforma académica intuitiva.
+            Use o assistente para tirar dúvidas sobre o sistema, consultar
+            informações permitidas e receber apoio na organização do
+            acompanhamento.
           </p>
           <ul>
-            <li>Centralização das informações</li>
-            <li>Mais clareza na comunicação</li>
-            <li>Experiência simples de usar</li>
+            <li>Respostas diferentes por tipo de usuário</li>
+            <li>Consulta segura a dados autorizados</li>
+            <li>IA como apoio, não como substituição clínica</li>
           </ul>
         </div>
 
         <div className="landing-card-block">
-          <div className="landing-icon-circle">
-            <i className="fa-regular fa-clipboard"></i>
+          <div className="landing-icon-circle" style={{ backgroundColor: "#ffffff" }}>
+            <i className="fa-regular fa-clipboard" style={{ color: "#528cff" }}></i>
           </div>
           <h3>Para Psicólogos</h3>
           <p>
-            Organize seus pacientes, acompanhe atendimentos e tenha uma visão
-            mais clara da sua rotina profissional.
+            Gerencie pacientes vinculados, consultas, tarefas, materiais,
+            mensagens, anotações internas e resumos privados para prontuário.
           </p>
           <ul>
-            <li>Cadastre-se na plataforma</li>
-            <li>Gerencie seus pacientes</li>
-            <li>Otimize sua organização</li>
+            <li>Organize pacientes e agenda</li>
+            <li>Registre anotações internas</li>
+            <li>Revise e salve resumos privados</li>
           </ul>
         </div>
       </section>
@@ -113,32 +125,38 @@ export default function LandingPage() {
             <span className="landing-section-tag">Sobre o projeto</span>
             <h2>PsicoConnect</h2>
             <p>
-              O PsicoConnect é uma plataforma académica desenvolvida com foco em
-              tecnologia e saúde mental, buscando aproximar pacientes e
-              psicólogos por meio de uma experiência digital mais simples, clara
-              e organizada.
+              O PsicoConnect é uma aplicação web acadêmica desenvolvida para
+              apoiar a prática psicológica por meio da organização de
+              informações, comunicação entre psicólogo e paciente e recursos de
+              inteligência artificial integrados ao sistema.
             </p>
             <p>
-              O projeto foi pensado para apoiar a comunicação, a organização de
-              atendimentos e a modernização da experiência em contextos de
-              cuidado e acompanhamento psicológico.
+              A plataforma não substitui o trabalho do psicólogo. O PsicoBot e
+              os resumos gerados por IA funcionam apenas como apoio à
+              organização das informações, sempre exigindo revisão profissional
+              antes de qualquer uso clínico ou registro formal.
+            </p>
+            <p>
+              O acesso aos dados respeita o papel do usuário: pacientes acessam
+              apenas suas próprias informações, psicólogos acessam somente
+              pacientes vinculados e administradores atuam na gestão de usuários.
             </p>
           </div>
 
           <div className="landing-about-highlights">
             <div className="landing-highlight-box">
               <i className="fa-solid fa-user-doctor"></i>
-              <span>Conexão entre pacientes e psicólogos</span>
+              <span>Vínculo seguro entre pacientes e psicólogos</span>
             </div>
 
             <div className="landing-highlight-box">
               <i className="fa-solid fa-calendar-days"></i>
-              <span>Mais organização da rotina de atendimentos</span>
+              <span>Consultas, tarefas e materiais em um só lugar</span>
             </div>
 
             <div className="landing-highlight-box">
-              <i className="fa-solid fa-comments"></i>
-              <span>Comunicação mais simples e centralizada</span>
+              <i className="fa-solid fa-lock"></i>
+              <span>IA com controle de acesso e revisão profissional</span>
             </div>
           </div>
         </div>
@@ -148,13 +166,13 @@ export default function LandingPage() {
         <div className="landing-footer-content">
           <div className="landing-footer-brand">
             <strong>PsicoConnect</strong>
-            <span>Projeto académico de tecnologia e saúde mental.</span>
+            <span>Projeto acadêmico de tecnologia e saúde mental.</span>
           </div>
 
           <div className="landing-footer-links">
             <a href="#inicio">Início</a>
             <a href="#como-funciona">Como funciona</a>
-            <a href="#sobre">Sobre nós</a>
+            <a href="#sobre">Sobre</a>
           </div>
         </div>
 

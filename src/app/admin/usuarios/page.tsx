@@ -205,6 +205,39 @@ export default function AdminUsersPage() {
 
   const users = useMemo(() => data?.users || [], [data]);
 
+  const crpQuickStats = useMemo(() => {
+    const psychologists = users.filter((user) => user.role === "PSYCHOLOGIST");
+
+    return {
+      pending: psychologists.filter(
+        (user) => user.psychologist?.crpVerificationStatus === "PENDING",
+      ).length,
+      approved: psychologists.filter(
+        (user) => user.psychologist?.crpVerificationStatus === "APPROVED",
+      ).length,
+      rejected: psychologists.filter(
+        (user) => user.psychologist?.crpVerificationStatus === "REJECTED",
+      ).length,
+    };
+  }, [users]);
+
+  const hasActiveFilters =
+    search.trim() || roleFilter !== "ALL" || crpFilter !== "ALL";
+
+  function applyQuickFilter(
+    nextRoleFilter: "ALL" | Role,
+    nextCrpFilter: "ALL" | CrpVerificationStatus = "ALL",
+  ) {
+    setRoleFilter(nextRoleFilter);
+    setCrpFilter(nextCrpFilter);
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setRoleFilter("ALL");
+    setCrpFilter("ALL");
+  }
+
   function showFeedback(type: "success" | "error", message: string) {
     setFeedback({ type, message });
 
@@ -494,6 +527,23 @@ export default function AdminUsersPage() {
     fontSize: "13px",
   } as const;
 
+  const quickFilterButtonStyle = (active: boolean) =>
+    ({
+      border: active ? "1px solid #001e5e" : "1px solid #dbe7ff",
+      backgroundColor: active ? "#001e5e" : "#ffffff",
+      color: active ? "#ffffff" : "#001e5e",
+      borderRadius: "999px",
+      padding: "9px 12px",
+      fontSize: "13px",
+      fontWeight: 900,
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "8px",
+      whiteSpace: "nowrap",
+      boxShadow: active ? "0 10px 24px rgba(0, 30, 94, 0.16)" : "none",
+    }) as const;
+
   if (loading) {
     return (
       <div
@@ -628,41 +678,274 @@ export default function AdminUsersPage() {
             display: "grid",
             gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
             gap: "16px",
+            marginBottom: "16px",
+          }}
+        >
+          {[
+            {
+              label: "Usuários",
+              value: data?.stats.totalUsers || 0,
+              description: "Contas cadastradas",
+              icon: "fa-solid fa-users",
+              bg: "#eff6ff",
+              color: "#1d4ed8",
+            },
+            {
+              label: "Admins",
+              value: data?.stats.adminUsers || 0,
+              description: "Acesso administrativo",
+              icon: "fa-solid fa-user-shield",
+              bg: "#f8fbff",
+              color: "#001e5e",
+            },
+            {
+              label: "Psicólogos",
+              value: data?.stats.psychologistUsers || 0,
+              description: "Contas profissionais",
+              icon: "fa-solid fa-user-doctor",
+              bg: "#f5f3ff",
+              color: "#6d28d9",
+            },
+            {
+              label: "Pacientes",
+              value: data?.stats.patientUsers || 0,
+              description: "Contas de acompanhamento",
+              icon: "fa-solid fa-user",
+              bg: "#ecfdf5",
+              color: "#047857",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                ...cardStyle,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "14px",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    color: "#5272a6",
+                    fontSize: "13px",
+                    fontWeight: 900,
+                    marginBottom: "8px",
+                  }}
+                >
+                  {item.label}
+                </p>
+                <p
+                  style={{
+                    color: "#001e5e",
+                    fontSize: "34px",
+                    fontWeight: 900,
+                    margin: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  {item.value}
+                </p>
+                <p
+                  style={{
+                    color: "#5272a6",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    margin: "8px 0 0",
+                  }}
+                >
+                  {item.description}
+                </p>
+              </div>
+
+              <span
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "16px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: item.bg,
+                  color: item.color,
+                  fontSize: "18px",
+                }}
+              >
+                <i className={item.icon}></i>
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: "16px",
             marginBottom: "20px",
           }}
         >
           {[
-            ["Usuários", data?.stats.totalUsers || 0],
-            ["Admins", data?.stats.adminUsers || 0],
-            ["Psicólogos", data?.stats.psychologistUsers || 0],
-            ["Pacientes", data?.stats.patientUsers || 0],
-          ].map(([label, value]) => (
-            <div key={String(label)} style={cardStyle}>
-              <p
+            {
+              label: "CRPs pendentes",
+              value: crpQuickStats.pending,
+              bg: "#fffbeb",
+              color: "#92400e",
+              icon: "fa-solid fa-clock",
+            },
+            {
+              label: "CRPs aprovados",
+              value: crpQuickStats.approved,
+              bg: "#ecfdf5",
+              color: "#047857",
+              icon: "fa-solid fa-circle-check",
+            },
+            {
+              label: "CRPs rejeitados",
+              value: crpQuickStats.rejected,
+              bg: "#fef2f2",
+              color: "#b91c1c",
+              icon: "fa-solid fa-circle-xmark",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                ...cardStyle,
+                padding: "18px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: item.bg,
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    color: item.color,
+                    fontSize: "13px",
+                    fontWeight: 900,
+                    marginBottom: "6px",
+                  }}
+                >
+                  {item.label}
+                </p>
+                <p
+                  style={{
+                    color: item.color,
+                    fontSize: "28px",
+                    fontWeight: 900,
+                    margin: 0,
+                  }}
+                >
+                  {item.value}
+                </p>
+              </div>
+              <span
                 style={{
-                  color: "#5272a6",
-                  fontSize: "13px",
-                  fontWeight: 900,
-                  marginBottom: "8px",
+                  color: item.color,
+                  fontSize: "20px",
+                  opacity: 0.9,
                 }}
               >
-                {label}
-              </p>
-              <p
-                style={{
-                  color: "#001e5e",
-                  fontSize: "34px",
-                  fontWeight: 900,
-                  margin: 0,
-                }}
-              >
-                {value}
-              </p>
+                <i className={item.icon}></i>
+              </span>
             </div>
           ))}
         </div>
 
         <section style={{ ...cardStyle, marginBottom: "20px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+              marginBottom: "16px",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  color: "#001e5e",
+                  fontSize: "24px",
+                  fontWeight: 900,
+                  marginBottom: "6px",
+                }}
+              >
+                Filtros e busca
+              </h2>
+              <p style={{ color: "#5272a6", margin: 0 }}>
+                Encontre usuários por nome, e-mail, papel de acesso ou dados do
+                CRP.
+              </p>
+            </div>
+
+            {hasActiveFilters && (
+              <button type="button" onClick={clearFilters} style={secondaryButtonStyle}>
+                Limpar filtros
+              </button>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+              marginBottom: "14px",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => applyQuickFilter("ALL", "ALL")}
+              style={quickFilterButtonStyle(roleFilter === "ALL" && crpFilter === "ALL")}
+            >
+              <i className="fa-solid fa-layer-group"></i>
+              Todos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyQuickFilter("PATIENT", "ALL")}
+              style={quickFilterButtonStyle(roleFilter === "PATIENT")}
+            >
+              <i className="fa-solid fa-user"></i>
+              Pacientes
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyQuickFilter("PSYCHOLOGIST", "ALL")}
+              style={quickFilterButtonStyle(roleFilter === "PSYCHOLOGIST" && crpFilter === "ALL")}
+            >
+              <i className="fa-solid fa-user-doctor"></i>
+              Psicólogos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyQuickFilter("ADMIN", "ALL")}
+              style={quickFilterButtonStyle(roleFilter === "ADMIN")}
+            >
+              <i className="fa-solid fa-user-shield"></i>
+              Admins
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyQuickFilter("PSYCHOLOGIST", "PENDING")}
+              style={quickFilterButtonStyle(
+                roleFilter === "PSYCHOLOGIST" && crpFilter === "PENDING",
+              )}
+            >
+              <i className="fa-solid fa-clock"></i>
+              CRP pendente
+            </button>
+          </div>
+
           <div
             style={{
               display: "grid",
@@ -721,7 +1004,7 @@ export default function AdminUsersPage() {
               Lista de usuários
             </h2>
             <p style={{ color: "#5272a6", margin: 0 }}>
-              Mostrando até 100 usuários conforme os filtros selecionados.
+              {users.length} usuário(s) encontrado(s) conforme os filtros selecionados.
             </p>
           </div>
 

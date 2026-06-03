@@ -15,6 +15,11 @@ type SessionUser = {
   role?: string;
 };
 
+type ChatHistoryItem = {
+  sender?: string;
+  text?: string;
+};
+
 type BotIntent =
   | "ADMIN_USER_SUMMARY"
   | "ADMIN_PENDING_CRP"
@@ -394,6 +399,138 @@ function detectIntent(message: string, role: UserRole): BotIntent {
   return "FALLBACK";
 }
 
+function isPsychologistPatientIntent(intent: BotIntent) {
+  return [
+    "PSYCHOLOGIST_PATIENT_SUMMARY",
+    "PSYCHOLOGIST_PATIENT_APPOINTMENTS",
+    "PSYCHOLOGIST_PATIENT_TASKS",
+    "PSYCHOLOGIST_PATIENT_MATERIALS",
+    "PSYCHOLOGIST_PATIENT_CHECKINS",
+    "PSYCHOLOGIST_PATIENT_MESSAGES",
+  ].includes(intent);
+}
+
+function normalizeHistory(value: unknown): ChatHistoryItem[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const record = item as Record<string, unknown>;
+      const sender = typeof record.sender === "string" ? record.sender : "";
+      const text = typeof record.text === "string" ? record.text.trim() : "";
+
+      if (!sender || !text) return null;
+
+      return { sender, text };
+    })
+    .filter(Boolean) as ChatHistoryItem[];
+}
+
+function canUseMessageAsPatientName(message: string) {
+  const text = normalizeText(message);
+
+  if (!text || text.length > 80) return false;
+
+  const words = text.split(" ").filter(Boolean);
+
+  if (words.length > 5) return false;
+
+  const blockedTerms = [
+    "como",
+    "quando",
+    "onde",
+    "porque",
+    "por que",
+    "qual",
+    "quais",
+    "fale",
+    "explique",
+    "explica",
+    "sobre",
+    "ansiedade",
+    "depressao",
+    "depressão",
+    "tdah",
+    "autismo",
+    "tea",
+    "transtorno",
+    "sintoma",
+    "sintomas",
+    "terapia",
+    "psicologia",
+    "psicologico",
+    "psicológico",
+    "psicologica",
+    "psicológica",
+  ];
+
+  if (hasAny(text, blockedTerms)) return false;
+
+  return true;
+}
+
+function getPendingPsychologistIntentFromHistory(history: ChatHistoryItem[]) {
+  for (let index = history.length - 1; index >= 0; index--) {
+    const item = history[index];
+
+    if (!item || item.sender !== "user") continue;
+
+    const previousMessage =
+      typeof item.text === "string" ? item.text.trim() : "";
+
+    if (!previousMessage) continue;
+
+    const previousIntent = detectIntent(previousMessage, "PSYCHOLOGIST");
+
+    if (!isPsychologistPatientIntent(previousIntent)) continue;
+
+    const previousSearchTerm = cleanPatientSearchTerm(previousMessage);
+
+    if (!previousSearchTerm) {
+      return previousIntent;
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
+function buildMessageFromPendingPsychologistIntent(
+  intent: BotIntent,
+  patientName: string,
+) {
+  const name = patientName.trim();
+
+  if (intent === "PSYCHOLOGIST_PATIENT_SUMMARY") {
+    return `resuma o paciente ${name}`;
+  }
+
+  if (intent === "PSYCHOLOGIST_PATIENT_APPOINTMENTS") {
+    return `consultas de ${name}`;
+  }
+
+  if (intent === "PSYCHOLOGIST_PATIENT_TASKS") {
+    return `tarefas de ${name}`;
+  }
+
+  if (intent === "PSYCHOLOGIST_PATIENT_MATERIALS") {
+    return `materiais de ${name}`;
+  }
+
+  if (intent === "PSYCHOLOGIST_PATIENT_CHECKINS") {
+    return `checklists de ${name}`;
+  }
+
+  if (intent === "PSYCHOLOGIST_PATIENT_MESSAGES") {
+    return `mensagens de ${name}`;
+  }
+
+  return name;
+}
+
 function compactText(value: string | null | undefined, maxLength = 260) {
   const text = value?.trim();
 
@@ -537,7 +674,7 @@ async function getLinkedPatientForPsychologist(
   if (links.length === 0) {
     return {
       error:
-        "Não encontrei um paciente com esse nome vinculado ao seu perfil profissional. Confira o nome ou acesse a tela Pacientes.",
+        "Não encontrei um paciente com esse nome vinculado ao seu perfil profissional. Confira se o nome foi digitado corretamente ou acesse a tela Pacientes para consultar a lista de vínculos ativos.",
       patient: null,
     };
   }
@@ -597,7 +734,7 @@ async function listPsychologistPatients(psychologistId: string) {
   });
 
   if (links.length === 0) {
-    return "Você ainda não possui pacientes vinculados ativos no sistema.";
+    return "Você ainda não possui pacientes vinculados ativos no sistema. Quando um paciente for vinculado ao seu perfil, ele aparecerá na tela Pacientes e também poderá ser consultado por aqui.";
   }
 
   const items = links
@@ -775,7 +912,7 @@ async function listPsychologistPatientAppointments(
   });
 
   if (appointments.length === 0) {
-    return "Não há consultas futuras agendadas com esse paciente.";
+    return "Não encontrei consultas futuras agendadas com esse paciente. Consultas canceladas ou que já passaram da data não aparecem nessa listagem.";
   }
 
   const items = appointments
@@ -801,7 +938,7 @@ async function listPsychologistPatientTasks(
   });
 
   if (tasks.length === 0) {
-    return "Não há tarefas terapêuticas registradas para esse paciente.";
+    return "Não encontrei tarefas terapêuticas registradas para esse paciente. Você pode criar uma nova tarefa pela tela do paciente, na aba Tarefas.";
   }
 
   const items = tasks
@@ -831,7 +968,7 @@ async function listPsychologistPatientMaterials(
   });
 
   if (materials.length === 0) {
-    return "Não há materiais psicoeducativos enviados para esse paciente.";
+    return "Não encontrei materiais psicoeducativos enviados para esse paciente. Você pode enviar um novo material pela tela do paciente, na aba Materiais.";
   }
 
   const items = materials
@@ -868,7 +1005,7 @@ async function listPsychologistPatientCheckins(
   });
 
   if (checkins.length === 0) {
-    return "Não há checklists pré-sessão respondidos por esse paciente.";
+    return "Não encontrei checklists pré-sessão respondidos por esse paciente. Eles aparecerão aqui quando o paciente responder antes de uma consulta.";
   }
 
   const items = checkins
@@ -903,7 +1040,7 @@ async function listPsychologistPatientMessages(
   });
 
   if (messages.length === 0) {
-    return "Não há mensagens registradas com esse paciente.";
+    return "Não encontrei mensagens registradas com esse paciente. Você pode usar a aba Mensagens da tela do paciente para iniciar uma comunicação assíncrona.";
   }
 
   const items = messages
@@ -947,7 +1084,7 @@ async function listPsychologistAppointments(psychologistId: string) {
   });
 
   if (appointments.length === 0) {
-    return "Você não possui consultas futuras agendadas no momento.";
+    return "Você não possui consultas futuras agendadas no momento. Consultas canceladas ou que já passaram da data não aparecem nessa resposta.";
   }
 
   const items = appointments
@@ -1021,7 +1158,7 @@ async function listAdminPendingCrpRequests() {
   });
 
   if (psychologists.length === 0) {
-    return "Não há solicitações de CRP pendentes no momento.";
+    return "Não há solicitações de CRP pendentes no momento. Quando um psicólogo se cadastrar ou reenviar os dados profissionais, a solicitação aparecerá na área administrativa.";
   }
 
   const items = psychologists
@@ -1065,7 +1202,7 @@ async function listAdminRecentUsers() {
   });
 
   if (users.length === 0) {
-    return "Ainda não há usuários cadastrados no sistema.";
+    return "Ainda não há usuários cadastrados no sistema. Quando novos cadastros forem realizados, eles aparecerão nesta visão administrativa.";
   }
 
   const roleLabels: Record<string, string> = {
@@ -1270,7 +1407,7 @@ async function listPatientAppointments(patientId: string) {
   });
 
   if (appointments.length === 0) {
-    return "Você não possui consultas futuras agendadas no momento.";
+    return "Você não possui consultas futuras agendadas no momento. Consultas canceladas ou que já passaram da data não aparecem nessa resposta.";
   }
 
   const items = appointments
@@ -1302,7 +1439,7 @@ async function listPatientTasks(patientId: string) {
   });
 
   if (tasks.length === 0) {
-    return "Você ainda não possui tarefas terapêuticas registradas.";
+    return "Você ainda não possui tarefas terapêuticas registradas no momento. Quando seu psicólogo enviar uma tarefa, ela aparecerá aqui e também na tela Tarefas e materiais.";
   }
 
   const items = tasks
@@ -1338,7 +1475,7 @@ async function listPatientMaterials(patientId: string) {
   });
 
   if (materials.length === 0) {
-    return "Você ainda não recebeu materiais psicoeducativos pelo sistema.";
+    return "Você ainda não recebeu materiais psicoeducativos pelo sistema. Quando seu psicólogo enviar um material, ele aparecerá aqui e na tela Tarefas e materiais.";
   }
 
   const items = materials
@@ -1373,7 +1510,7 @@ async function listPatientPsychologists(patientId: string) {
   });
 
   if (links.length === 0) {
-    return "Você ainda não possui psicólogos vinculados no sistema. Se isso estiver incorreto, fale com a clínica, administrador ou profissional responsável.";
+    return "Você ainda não possui psicólogos vinculados no sistema. Se isso estiver incorreto, fale com a clínica, administrador ou profissional responsável para confirmar o vínculo do seu cadastro.";
   }
 
   const items = links
@@ -1406,7 +1543,7 @@ async function listPatientMessages(patientId: string) {
   });
 
   if (messages.length === 0) {
-    return "Você ainda não possui mensagens registradas no sistema.";
+    return "Você ainda não possui mensagens registradas no sistema. Quando houver uma mensagem sua ou do psicólogo, ela aparecerá aqui e na tela Mensagens.";
   }
 
   const items = messages
@@ -1474,7 +1611,11 @@ async function forwardToRag(message: string, role: UserRole) {
   } catch (error) {
     console.error("Erro ao encaminhar mensagem para o backend RAG:", error);
 
-    return "Não consegui conectar ao backend de IA agora. Verifique se o servidor do PsicoBot está rodando na porta 8000 e tente novamente.";
+    return [
+      "Não consegui conectar ao backend de IA agora.",
+      "",
+      "Para perguntas sobre dados do sistema, continuo usando as informações internas do PsicoConnect. Para perguntas informativas ou clínicas, verifique se o backend do PsicoBot/RAG está rodando na porta 8000 e tente novamente.",
+    ].join("\n");
   }
 }
 
@@ -1482,6 +1623,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const message = typeof body.message === "string" ? body.message.trim() : "";
+    const history = normalizeHistory(body.history);
 
     if (!message) {
       return NextResponse.json(
@@ -1500,7 +1642,24 @@ export async function POST(req: Request) {
     }
 
     const role = getRole(user.role);
-    const intent = detectIntent(message, role);
+    let effectiveMessage = message;
+    let intent = detectIntent(message, role);
+
+    if (
+      role === "PSYCHOLOGIST" &&
+      intent === "FALLBACK" &&
+      canUseMessageAsPatientName(message)
+    ) {
+      const pendingIntent = getPendingPsychologistIntentFromHistory(history);
+
+      if (pendingIntent) {
+        intent = pendingIntent;
+        effectiveMessage = buildMessageFromPendingPsychologistIntent(
+          pendingIntent,
+          message,
+        );
+      }
+    }
 
     if (role === "ADMIN" && intent !== "FALLBACK") {
       const reply = await handleAdminIntent(intent);
@@ -1519,7 +1678,7 @@ export async function POST(req: Request) {
       const reply = await handlePsychologistIntent(
         intent,
         user.psychologist.id,
-        message,
+        effectiveMessage,
       );
 
       return NextResponse.json({ reply });

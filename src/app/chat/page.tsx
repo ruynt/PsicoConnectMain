@@ -105,6 +105,23 @@ const formatTimestamp = () =>
     minute: "2-digit",
   });
 
+
+function getRoleWelcomeMessage(role: string) {
+  if (role === "ADMIN") {
+    return "Olá! Sou o PsicoBot. Posso ajudar com usuários, CRPs pendentes, usuários recentes e orientações sobre a área administrativa do PsicoConnect.";
+  }
+
+  if (role === "PSYCHOLOGIST") {
+    return "Olá! Sou o PsicoBot. Posso ajudar a consultar seus pacientes vinculados, próximas consultas, tarefas, materiais, checklists, mensagens e também responder dúvidas sobre o uso do PsicoConnect.";
+  }
+
+  if (role === "PATIENT") {
+    return "Olá! Sou o PsicoBot. Posso ajudar você a acompanhar suas consultas, tarefas, materiais, mensagens, psicólogos vinculados e explicar como usar o PsicoConnect.";
+  }
+
+  return "Olá! Sou o PsicoBot, assistente virtual da PsicoConnect. Posso ajudar com o uso do sistema e dúvidas informativas.";
+}
+
 export default function ChatBotPage() {
   const { data: session } = useSession();
 
@@ -123,8 +140,7 @@ export default function ChatBotPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: Date.now(),
-      text:
-        "Olá! Sou o PsicoBot, assistente virtual da PsicoConnect. Estou aqui para ajudar com o uso do sistema, dados do acompanhamento permitidos para seu perfil e dúvidas informativas.",
+      text: getRoleWelcomeMessage(userRole),
       sender: "bot",
       timestamp: formatTimestamp(),
     },
@@ -137,6 +153,38 @@ export default function ChatBotPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+
+  useEffect(() => {
+    setMessages((currentMessages) => {
+      if (currentMessages.length !== 1 || currentMessages[0]?.sender !== "bot") {
+        return currentMessages;
+      }
+
+      return [
+        {
+          ...currentMessages[0],
+          text: getRoleWelcomeMessage(userRole),
+        },
+      ];
+    });
+  }, [userRole]);
+
+  function resetConversation() {
+    if (isLoading) return;
+
+    setMessages([
+      {
+        id: Date.now(),
+        text: getRoleWelcomeMessage(userRole),
+        sender: "bot",
+        timestamp: formatTimestamp(),
+      },
+    ]);
+    setInput("");
+
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
 
   const scrollToBottom = (smooth = true) => {
     const chatElement = chatMessagesRef.current;
@@ -215,6 +263,11 @@ export default function ChatBotPage() {
     setIsLoading(true);
 
     try {
+      const recentHistory = [...messages, userMessage].slice(-8).map((message) => ({
+        sender: message.sender,
+        text: message.text,
+      }));
+
       const response = await fetch(CHAT_API_URL, {
         method: "POST",
         headers: {
@@ -223,6 +276,7 @@ export default function ChatBotPage() {
         body: JSON.stringify({
           message: currentInput,
           role: userRole,
+          history: recentHistory,
         }),
       });
 
@@ -267,6 +321,17 @@ export default function ChatBotPage() {
             <h2>Assistente PsicoConnect</h2>
             <p>Como posso te ajudar hoje?</p>
           </div>
+
+          <button
+            type="button"
+            className="clear-chat-button"
+            onClick={resetConversation}
+            disabled={isLoading}
+            title="Limpar conversa desta sessão"
+          >
+            <i className="fa-solid fa-rotate-left" />
+            Limpar conversa
+          </button>
         </header>
 
         <div className="chat-content-wrapper">
@@ -438,6 +503,7 @@ export default function ChatBotPage() {
           min-width: 0;
           display: flex;
           flex-direction: column;
+          flex: 1;
         }
 
         .chat-header-title h2 {
@@ -460,6 +526,33 @@ export default function ChatBotPage() {
           margin-top: 2px;
           white-space: normal;
           word-break: break-word;
+        }
+
+        .clear-chat-button {
+          border: 1px solid #d6e4ff;
+          background: #f7faff;
+          color: #1c4bb3;
+          border-radius: 14px;
+          padding: 10px 12px;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition: 0.18s ease;
+          white-space: nowrap;
+        }
+
+        .clear-chat-button:hover:not(:disabled) {
+          background: #eaf2ff;
+          border-color: #bfd5ff;
+          color: #001e5e;
+        }
+
+        .clear-chat-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .chat-content-wrapper {
