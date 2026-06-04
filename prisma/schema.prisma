@@ -49,6 +49,11 @@ model Psychologist {
   targetAudience    String?
   instagramUrl      String?
 
+  googleAccessToken        String?
+  googleRefreshToken       String?
+  googleAccessTokenExpires DateTime?
+  googleCalendarEmail      String?
+
   user User @relation(fields: [userId], references: [id])
 
   appointments Appointment[]

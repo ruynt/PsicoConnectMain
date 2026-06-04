@@ -1,47 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import prisma from "./prisma";
-
-async function refreshGoogleAccessToken(token: any) {
-  try {
-    const response = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        grant_type: "refresh_token",
-        refresh_token: token.googleRefreshToken,
-      }),
-    });
-
-    const refreshedTokens = await response.json();
-
-    if (!response.ok) {
-      throw refreshedTokens;
-    }
-
-    return {
-      ...token,
-      googleAccessToken: refreshedTokens.access_token,
-      googleAccessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
-      googleRefreshToken:
-        refreshedTokens.refresh_token ?? token.googleRefreshToken,
-    };
-  } catch (error) {
-    console.error("Erro ao renovar token do Google:", error);
-
-    return {
-      ...token,
-      error: "RefreshGoogleAccessTokenError",
-    };
-  }
-}
 
 export const authConfig: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -113,31 +74,9 @@ export const authConfig: NextAuthOptions = {
         };
       },
     }),
-
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope:
-            "openid email profile https://www.googleapis.com/auth/calendar.events",
-          access_type: "offline",
-          prompt: "consent",
-        },
-      },
-    }),
   ],
   callbacks: {
-    async jwt({ token, user, account, trigger, session }) {
-      if (trigger === "update" && (session as any)?.disconnectGoogle) {
-        delete (token as any).googleAccessToken;
-        delete (token as any).googleRefreshToken;
-        delete (token as any).googleAccessTokenExpires;
-        delete (token as any).error;
-
-        return token;
-      }
-
+    async jwt({ token, user }) {
       if (user?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email },
@@ -171,29 +110,6 @@ export const authConfig: NextAuthOptions = {
         token.crpVerifiedAt = (user as any).crpVerifiedAt;
       }
 
-      if (account?.provider === "google") {
-        token.googleAccessToken = account.access_token;
-        token.googleRefreshToken =
-          account.refresh_token ?? token.googleRefreshToken;
-        token.googleAccessTokenExpires = account.expires_at
-          ? account.expires_at * 1000
-          : Date.now() + 3600 * 1000;
-
-        return token;
-      }
-
-      if (
-        token.googleAccessToken &&
-        token.googleAccessTokenExpires &&
-        Date.now() < Number(token.googleAccessTokenExpires)
-      ) {
-        return token;
-      }
-
-      if (token.googleRefreshToken) {
-        return await refreshGoogleAccessToken(token);
-      }
-
       return token;
     },
 
@@ -204,10 +120,6 @@ export const authConfig: NextAuthOptions = {
         (session.user as any).crpVerificationStatus =
           token.crpVerificationStatus;
         (session.user as any).crpVerifiedAt = token.crpVerifiedAt;
-        (session.user as any).googleAccessToken = token.googleAccessToken;
-        (session.user as any).googleAccessTokenExpires =
-          token.googleAccessTokenExpires;
-        (session.user as any).error = token.error;
       }
 
       return session;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import prisma from "../../../../lib/prisma";
 
 async function refreshGoogleAccessToken(refreshToken: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -26,7 +27,10 @@ async function refreshGoogleAccessToken(refreshToken: string) {
     );
   }
 
-  return data.access_token as string;
+  return {
+    accessToken: data.access_token as string,
+    expiresAt: new Date(Date.now() + Number(data.expires_in || 3600) * 1000),
+  };
 }
 
 async function fetchGoogleEvents(accessToken: string) {
@@ -60,6 +64,41 @@ async function fetchGoogleEvents(accessToken: string) {
   return { response, data };
 }
 
+async function getValidGoogleAccessToken(psychologist: {
+  id: string;
+  googleAccessToken: string | null;
+  googleRefreshToken: string | null;
+  googleAccessTokenExpires: Date | null;
+}) {
+  const expiresAt = psychologist.googleAccessTokenExpires?.getTime() || 0;
+  const tokenIsValid =
+    psychologist.googleAccessToken && expiresAt > Date.now() + 60 * 1000;
+
+  if (tokenIsValid) {
+    return psychologist.googleAccessToken as string;
+  }
+
+  if (!psychologist.googleRefreshToken) {
+    return null;
+  }
+
+  const refreshed = await refreshGoogleAccessToken(
+    psychologist.googleRefreshToken,
+  );
+
+  await prisma.psychologist.update({
+    where: {
+      id: psychologist.id,
+    },
+    data: {
+      googleAccessToken: refreshed.accessToken,
+      googleAccessTokenExpires: refreshed.expiresAt,
+    },
+  });
+
+  return refreshed.accessToken;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const token = await getToken({
@@ -67,23 +106,59 @@ export async function GET(req: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET,
     });
 
-    const googleAccessToken = (token as any)?.googleAccessToken;
-    const googleRefreshToken = (token as any)?.googleRefreshToken;
+    if (!token || token.role !== "PSYCHOLOGIST") {
+      return NextResponse.json(
+        { error: "Acesso não autorizado.", events: [] },
+        { status: 403 },
+      );
+    }
 
-    if (!token || !googleAccessToken) {
+    const psychologist = await prisma.psychologist.findUnique({
+      where: {
+        userId: String(token.id),
+      },
+      select: {
+        id: true,
+        googleAccessToken: true,
+        googleRefreshToken: true,
+        googleAccessTokenExpires: true,
+      },
+    });
+
+    if (!psychologist) {
+      return NextResponse.json(
+        { error: "Psicólogo não encontrado.", events: [] },
+        { status: 404 },
+      );
+    }
+
+    const googleAccessToken = await getValidGoogleAccessToken(psychologist);
+
+    if (!googleAccessToken) {
       return NextResponse.json(
         { error: "Google Calendar não conectado.", events: [] },
         { status: 401 },
       );
     }
 
-    let accessTokenToUse = googleAccessToken;
+    let { response, data } = await fetchGoogleEvents(googleAccessToken);
 
-    let { response, data } = await fetchGoogleEvents(accessTokenToUse);
+    if (response.status === 401 && psychologist.googleRefreshToken) {
+      const refreshed = await refreshGoogleAccessToken(
+        psychologist.googleRefreshToken,
+      );
 
-    if (response.status === 401 && googleRefreshToken) {
-      accessTokenToUse = await refreshGoogleAccessToken(googleRefreshToken);
-      ({ response, data } = await fetchGoogleEvents(accessTokenToUse));
+      await prisma.psychologist.update({
+        where: {
+          id: psychologist.id,
+        },
+        data: {
+          googleAccessToken: refreshed.accessToken,
+          googleAccessTokenExpires: refreshed.expiresAt,
+        },
+      });
+
+      ({ response, data } = await fetchGoogleEvents(refreshed.accessToken));
     }
 
     if (!response.ok) {

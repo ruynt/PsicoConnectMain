@@ -28,7 +28,10 @@ async function refreshGoogleAccessToken(refreshToken: string) {
     );
   }
 
-  return data.access_token as string;
+  return {
+    accessToken: data.access_token as string,
+    expiresAt: new Date(Date.now() + Number(data.expires_in || 3600) * 1000),
+  };
 }
 
 async function deleteGoogleEvent(accessToken: string, googleEventId: string) {
@@ -62,6 +65,41 @@ async function deleteGoogleEvent(accessToken: string, googleEventId: string) {
     response,
     data,
   };
+}
+
+async function getValidGoogleAccessToken(psychologist: {
+  id: string;
+  googleAccessToken: string | null;
+  googleRefreshToken: string | null;
+  googleAccessTokenExpires: Date | null;
+}) {
+  const expiresAt = psychologist.googleAccessTokenExpires?.getTime() || 0;
+  const tokenIsValid =
+    psychologist.googleAccessToken && expiresAt > Date.now() + 60 * 1000;
+
+  if (tokenIsValid) {
+    return psychologist.googleAccessToken as string;
+  }
+
+  if (!psychologist.googleRefreshToken) {
+    return null;
+  }
+
+  const refreshed = await refreshGoogleAccessToken(
+    psychologist.googleRefreshToken,
+  );
+
+  await prisma.psychologist.update({
+    where: {
+      id: psychologist.id,
+    },
+    data: {
+      googleAccessToken: refreshed.accessToken,
+      googleAccessTokenExpires: refreshed.expiresAt,
+    },
+  });
+
+  return refreshed.accessToken;
 }
 
 export async function POST(req: NextRequest) {
@@ -153,36 +191,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const googleAccessToken = (token as any)?.googleAccessToken;
-    const googleRefreshToken = (token as any)?.googleRefreshToken;
+    if (appointment.googleEventId) {
+      const googleAccessToken = await getValidGoogleAccessToken(psychologist);
 
-    if (appointment.googleEventId && googleAccessToken) {
-      let accessTokenToUse = googleAccessToken;
-
-      let { response, data } = await deleteGoogleEvent(
-        accessTokenToUse,
-        appointment.googleEventId,
-      );
-
-      if (response.status === 401 && googleRefreshToken) {
-        accessTokenToUse = await refreshGoogleAccessToken(googleRefreshToken);
-
-        ({ response, data } = await deleteGoogleEvent(
-          accessTokenToUse,
+      if (googleAccessToken) {
+        let { response, data } = await deleteGoogleEvent(
+          googleAccessToken,
           appointment.googleEventId,
-        ));
-      }
-
-      if (!response.ok && response.status !== 404) {
-        return NextResponse.json(
-          {
-            error:
-              data?.error?.message ||
-              "Erro ao cancelar evento no Google Calendar.",
-            details: data,
-          },
-          { status: response.status },
         );
+
+        if (response.status === 401 && psychologist.googleRefreshToken) {
+          const refreshed = await refreshGoogleAccessToken(
+            psychologist.googleRefreshToken,
+          );
+
+          await prisma.psychologist.update({
+            where: {
+              id: psychologist.id,
+            },
+            data: {
+              googleAccessToken: refreshed.accessToken,
+              googleAccessTokenExpires: refreshed.expiresAt,
+            },
+          });
+
+          ({ response, data } = await deleteGoogleEvent(
+            refreshed.accessToken,
+            appointment.googleEventId,
+          ));
+        }
+
+        if (!response.ok && response.status !== 404) {
+          return NextResponse.json(
+            {
+              error:
+                data?.error?.message ||
+                "Erro ao cancelar evento no Google Calendar.",
+              details: data,
+            },
+            { status: response.status },
+          );
+        }
       }
     }
 

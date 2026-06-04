@@ -28,7 +28,10 @@ async function refreshGoogleAccessToken(refreshToken: string) {
     );
   }
 
-  return data.access_token as string;
+  return {
+    accessToken: data.access_token as string,
+    expiresAt: new Date(Date.now() + Number(data.expires_in || 3600) * 1000),
+  };
 }
 
 async function createGoogleEvent(accessToken: string, payload: any) {
@@ -49,6 +52,41 @@ async function createGoogleEvent(accessToken: string, payload: any) {
   return { response, data };
 }
 
+async function getValidGoogleAccessToken(psychologist: {
+  id: string;
+  googleAccessToken: string | null;
+  googleRefreshToken: string | null;
+  googleAccessTokenExpires: Date | null;
+}) {
+  const expiresAt = psychologist.googleAccessTokenExpires?.getTime() || 0;
+  const tokenIsValid =
+    psychologist.googleAccessToken && expiresAt > Date.now() + 60 * 1000;
+
+  if (tokenIsValid) {
+    return psychologist.googleAccessToken as string;
+  }
+
+  if (!psychologist.googleRefreshToken) {
+    return null;
+  }
+
+  const refreshed = await refreshGoogleAccessToken(
+    psychologist.googleRefreshToken,
+  );
+
+  await prisma.psychologist.update({
+    where: {
+      id: psychologist.id,
+    },
+    data: {
+      googleAccessToken: refreshed.accessToken,
+      googleAccessTokenExpires: refreshed.expiresAt,
+    },
+  });
+
+  return refreshed.accessToken;
+}
+
 export async function POST(req: NextRequest) {
   const token = await getToken({
     req,
@@ -59,16 +97,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Acesso não autorizado." },
       { status: 403 },
-    );
-  }
-
-  const googleAccessToken = (token as any)?.googleAccessToken;
-  const googleRefreshToken = (token as any)?.googleRefreshToken;
-
-  if (!googleAccessToken) {
-    return NextResponse.json(
-      { error: "Google Calendar não conectado." },
-      { status: 401 },
     );
   }
 
@@ -126,6 +154,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const googleAccessToken = await getValidGoogleAccessToken(psychologist);
+
+    if (!googleAccessToken) {
+      return NextResponse.json(
+        {
+          error:
+            "Google Calendar não conectado. Conecte sua agenda antes de criar uma consulta sincronizada.",
+        },
+        { status: 401 },
+      );
+    }
+
     const patient = await prisma.patient.findUnique({
       where: {
         id: patientId,
@@ -176,18 +216,28 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    let accessTokenToUse = googleAccessToken;
-
     let { response, data } = await createGoogleEvent(
-      accessTokenToUse,
+      googleAccessToken,
       googlePayload,
     );
 
-    if (response.status === 401 && googleRefreshToken) {
-      accessTokenToUse = await refreshGoogleAccessToken(googleRefreshToken);
+    if (response.status === 401 && psychologist.googleRefreshToken) {
+      const refreshed = await refreshGoogleAccessToken(
+        psychologist.googleRefreshToken,
+      );
+
+      await prisma.psychologist.update({
+        where: {
+          id: psychologist.id,
+        },
+        data: {
+          googleAccessToken: refreshed.accessToken,
+          googleAccessTokenExpires: refreshed.expiresAt,
+        },
+      });
 
       ({ response, data } = await createGoogleEvent(
-        accessTokenToUse,
+        refreshed.accessToken,
         googlePayload,
       ));
     }

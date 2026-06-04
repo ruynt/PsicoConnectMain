@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -120,17 +120,20 @@ const dangerButtonStyle = {
 
 export default function AgendaPage() {
   const router = useRouter();
-  const { data: session, status, update } = useSession();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const patientIdFromUrl = searchParams.get("patientId");
 
-  const googleConnected = Boolean((session?.user as any)?.googleAccessToken);
   const userRole = (session?.user as any)?.role;
   const isPsychologist = userRole === "PSYCHOLOGIST";
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [eventsError, setEventsError] = useState("");
+
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleCalendarEmail, setGoogleCalendarEmail] = useState("");
+  const [loadingGoogleStatus, setLoadingGoogleStatus] = useState(false);
 
   const [patients, setPatients] = useState<PatientOption[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
@@ -278,12 +281,50 @@ export default function AgendaPage() {
     }
   }
 
+  async function loadGoogleStatus() {
+    if (status !== "authenticated" || !isPsychologist) {
+      setGoogleConnected(false);
+      setGoogleCalendarEmail("");
+      return;
+    }
+
+    try {
+      setLoadingGoogleStatus(true);
+
+      const response = await fetch("/api/google-calendar/status", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setGoogleConnected(false);
+        setGoogleCalendarEmail("");
+        return;
+      }
+
+      setGoogleConnected(Boolean(data.connected));
+      setGoogleCalendarEmail(data.calendarEmail || "");
+    } catch (error) {
+      console.error("Erro ao carregar status do Google Calendar:", error);
+      setGoogleConnected(false);
+      setGoogleCalendarEmail("");
+    } finally {
+      setLoadingGoogleStatus(false);
+    }
+  }
+
+
   useEffect(() => {
     loadEvents();
   }, [status, isPsychologist, googleConnected, appointmentStatusFilter]);
 
   useEffect(() => {
     loadPatients();
+  }, [status, isPsychologist]);
+
+  useEffect(() => {
+    loadGoogleStatus();
   }, [status, isPsychologist]);
 
   useEffect(() => {
@@ -523,19 +564,35 @@ export default function AgendaPage() {
   }
 
 
+  function handleConnectGoogle() {
+    window.location.href = "/api/google-calendar/connect";
+  }
+
   async function handleDisconnectGoogle() {
     try {
       setDisconnectingGoogle(true);
 
-      await update({
-        disconnectGoogle: true,
+      const response = await fetch("/api/google-calendar/disconnect", {
+        method: "POST",
       });
 
-      showFeedback("success", "Google Calendar desconectado desta sessão.");
-    } catch {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Não foi possível desconectar o Google Calendar.",
+        );
+      }
+
+      setGoogleConnected(false);
+      setGoogleCalendarEmail("");
+      await loadGoogleStatus();
+
+      showFeedback("success", "Google Calendar desconectado com sucesso.");
+    } catch (error: any) {
       showFeedback(
         "error",
-        "Não foi possível desconectar o Google Calendar. Tente sair e entrar novamente.",
+        error?.message || "Não foi possível desconectar o Google Calendar.",
       );
     } finally {
       setDisconnectingGoogle(false);
@@ -1900,6 +1957,22 @@ export default function AgendaPage() {
                     Google Calendar conectado
                   </div>
 
+                  {googleCalendarEmail && (
+                    <p
+                      style={{
+                        color: "#64748b",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        lineHeight: 1.4,
+                        margin: 0,
+                        textAlign: "center",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      Conta conectada: {googleCalendarEmail}
+                    </p>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleDisconnectGoogle}
@@ -1929,7 +2002,7 @@ export default function AgendaPage() {
                 <button
                   type="button"
                   style={{ ...buttonSecondaryStyle, width: "100%" }}
-                  onClick={() => signIn("google", { callbackUrl: "/agenda" })}
+                  onClick={handleConnectGoogle}
                 >
                   <i className="fa-brands fa-google"></i>
                   Conectar com Google Calendar
