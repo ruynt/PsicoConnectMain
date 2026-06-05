@@ -147,7 +147,7 @@ export default function MeusPsicologosPage() {
 
   const pageStyle = {
     padding: "36px",
-    paddingBottom: "72px",
+    paddingBottom: "150px",
     minHeight: "calc(100vh - 48px)",
     background:
       "radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 32%), #f8fafc",
@@ -214,8 +214,9 @@ export default function MeusPsicologosPage() {
   }
 
   return (
-    <div style={pageStyle}>
+    <div className="meus-psicologos-page" style={pageStyle}>
       <section
+        className="meus-psicologos-hero"
         style={{
           background:
             "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
@@ -253,6 +254,7 @@ export default function MeusPsicologosPage() {
         />
 
         <div
+          className="meus-psicologos-hero-content"
           style={{
             position: "relative",
             zIndex: 1,
@@ -371,6 +373,7 @@ export default function MeusPsicologosPage() {
         </section>
       ) : (
         <div
+          className="meus-psicologos-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
@@ -395,6 +398,7 @@ export default function MeusPsicologosPage() {
             return (
               <article
                 key={psychologist.id}
+                className="meus-psicologos-card"
                 style={{
                   ...cardStyle,
                   padding: 0,
@@ -402,6 +406,7 @@ export default function MeusPsicologosPage() {
                 }}
               >
                 <div
+                  className="meus-psicologos-card-header"
                   style={{
                     background:
                       "linear-gradient(135deg, rgba(37, 99, 235, 0.09), rgba(96, 165, 250, 0.13))",
@@ -409,6 +414,7 @@ export default function MeusPsicologosPage() {
                   }}
                 >
                   <div
+                    className="meus-psicologos-profile-row"
                     style={{
                       display: "flex",
                       gap: "16px",
@@ -417,6 +423,7 @@ export default function MeusPsicologosPage() {
                   >
                     {psychologist.profileImageUrl ? (
                       <img
+                        className="meus-psicologos-avatar"
                         src={psychologist.profileImageUrl}
                         alt={`Foto de ${psychologist.name}`}
                         style={{
@@ -431,6 +438,7 @@ export default function MeusPsicologosPage() {
                       />
                     ) : (
                       <div
+                        className="meus-psicologos-avatar meus-psicologos-avatar-placeholder"
                         style={{
                           width: "78px",
                           height: "78px",
@@ -525,6 +533,7 @@ export default function MeusPsicologosPage() {
                   </div>
 
                   <div
+                    className="meus-psicologos-actions"
                     style={{
                       display: "flex",
                       flexWrap: "wrap",
@@ -568,6 +577,25 @@ export default function MeusPsicologosPage() {
                       </span>
                     )}
 
+                    {instagramUrl && (
+                      <a
+                        href={instagramUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="meus-psicologos-instagram-button"
+                        style={{
+                          ...secondaryButtonStyle,
+                          padding: "10px 14px",
+                        }}
+                      >
+                        <i
+                          className="fa-brands fa-instagram"
+                          style={{ marginRight: "8px" }}
+                        ></i>
+                        Instagram
+                      </a>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => togglePsychologistDetails(psychologist.id)}
@@ -591,12 +619,14 @@ export default function MeusPsicologosPage() {
 
                 {isExpanded && (
                   <div
+                    className="meus-psicologos-details"
                     style={{
                       padding: "22px",
                       borderTop: "1px solid #dbeafe",
                     }}
                   >
                     <div
+                      className="meus-psicologos-info-grid"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -630,6 +660,7 @@ export default function MeusPsicologosPage() {
                     </div>
 
                     <div
+                      className="meus-psicologos-extra-grid"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "1fr",
@@ -696,20 +727,7 @@ export default function MeusPsicologosPage() {
                       </div>
                     )}
 
-                    {instagramUrl && (
-                      <a
-                        href={instagramUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={secondaryButtonStyle}
-                      >
-                        <i
-                          className="fa-brands fa-instagram"
-                          style={{ marginRight: "8px" }}
-                        ></i>
-                        @{instagramUser}
-                      </a>
-                    )}
+
                   </div>
                 )}
               </article>
@@ -717,6 +735,199 @@ export default function MeusPsicologosPage() {
           })}
         </div>
       )}
+
+
+      <style>{`
+        .meus-psicologos-instagram-button {
+          color: #1d4ed8;
+        }
+
+        @media (max-width: 1180px) {
+          .meus-psicologos-page {
+            padding: 28px !important;
+            padding-bottom: 130px !important;
+          }
+
+          .meus-psicologos-grid {
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+          }
+
+          .meus-psicologos-hero {
+            padding: 26px !important;
+          }
+
+          .meus-psicologos-hero-content h1 {
+            font-size: 38px !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .meus-psicologos-page {
+            padding: 20px !important;
+            padding-bottom: 120px !important;
+          }
+
+          .meus-psicologos-hero {
+            padding: 22px !important;
+            border-radius: 24px !important;
+            margin-bottom: 18px !important;
+          }
+
+          .meus-psicologos-hero-content h1 {
+            font-size: 32px !important;
+          }
+
+          .meus-psicologos-hero-content p:first-of-type {
+            font-size: 15px !important;
+            line-height: 1.5 !important;
+          }
+
+          .meus-psicologos-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .meus-psicologos-page {
+            padding: 14px !important;
+            padding-bottom: 110px !important;
+          }
+
+          .meus-psicologos-hero {
+            padding: 18px !important;
+            border-radius: 22px !important;
+          }
+
+          .meus-psicologos-hero-content {
+            max-width: 100% !important;
+          }
+
+          .meus-psicologos-hero-content > span {
+            padding: 5px 10px !important;
+            font-size: 11px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .meus-psicologos-hero-content h1 {
+            font-size: 25px !important;
+            line-height: 1.12 !important;
+            margin-bottom: 0 !important;
+          }
+
+          .meus-psicologos-hero-content p:first-of-type {
+            display: none !important;
+          }
+
+          .meus-psicologos-hero-content p:last-of-type {
+            margin-top: 8px !important;
+            font-size: 12px !important;
+          }
+
+          .meus-psicologos-card-header {
+            padding: 16px !important;
+          }
+
+          .meus-psicologos-profile-row {
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+
+          .meus-psicologos-avatar {
+            width: 62px !important;
+            height: 62px !important;
+            border-radius: 18px !important;
+            flex: 0 0 62px !important;
+          }
+
+          .meus-psicologos-profile-row h2 {
+            font-size: 20px !important;
+            line-height: 1.15 !important;
+            margin-bottom: 6px !important;
+          }
+
+          .meus-psicologos-profile-row p {
+            font-size: 12px !important;
+          }
+
+          .meus-psicologos-actions {
+            gap: 8px !important;
+            margin-top: 14px !important;
+          }
+
+          .meus-psicologos-actions a,
+          .meus-psicologos-actions button,
+          .meus-psicologos-actions span {
+            flex: 1 1 calc(50% - 8px) !important;
+            justify-content: center !important;
+            padding: 9px 10px !important;
+            font-size: 12px !important;
+            border-radius: 12px !important;
+            white-space: nowrap !important;
+          }
+
+          .meus-psicologos-actions button {
+            flex-basis: 100% !important;
+          }
+
+          .meus-psicologos-details {
+            padding: 16px !important;
+          }
+
+          .meus-psicologos-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+
+          .meus-psicologos-extra-grid {
+            gap: 10px !important;
+          }
+
+          .meus-psicologos-info-box {
+            padding: 12px !important;
+            border-radius: 14px !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .meus-psicologos-page {
+            padding: 12px !important;
+            padding-bottom: 100px !important;
+          }
+
+          .meus-psicologos-hero-content h1 {
+            font-size: 23px !important;
+          }
+
+          .meus-psicologos-profile-row {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+
+          .meus-psicologos-profile-row > div:last-child {
+            width: 100% !important;
+          }
+
+          .meus-psicologos-profile-row > div:last-child > div {
+            justify-content: center !important;
+          }
+
+          .meus-psicologos-avatar {
+            width: 72px !important;
+            height: 72px !important;
+            flex-basis: 72px !important;
+          }
+
+          .meus-psicologos-actions a,
+          .meus-psicologos-actions button,
+          .meus-psicologos-actions span {
+            flex-basis: 100% !important;
+          }
+        }
+      `}</style>
+
+      <div style={{ height: "90px" }} aria-hidden="true" />
     </div>
   );
 }
@@ -732,6 +943,7 @@ function InfoBox({
 }) {
   return (
     <div
+      className="meus-psicologos-info-box"
       style={{
         backgroundColor: "#f8fafc",
         border: "1px solid #e2e8f0",

@@ -88,7 +88,7 @@ const emptyForm: ProfileForm = {
 const pageStyle: CSSProperties = {
   minHeight: "calc(100vh - 48px)",
   padding: "36px",
-  paddingBottom: "72px",
+  paddingBottom: "120px",
   background: "transparent",
   overflow: "visible",
 };
@@ -687,8 +687,8 @@ export default function PerfilPage() {
   if (!profile) return null;
 
   return (
-    <main style={pageStyle}>
-      <section style={heroStyle}>
+    <main className="profile-page" style={pageStyle}>
+      <section className="profile-hero" style={heroStyle}>
         <div
           style={{
             position: "absolute",
@@ -794,9 +794,10 @@ export default function PerfilPage() {
       ) : null}
 
       {!editing ? (
-        <section style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "30px" }}>
+        <section className="profile-view-card" style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+          <div className="profile-view-inner" style={{ padding: "30px" }}>
             <div
+              className="profile-summary-header"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -808,6 +809,7 @@ export default function PerfilPage() {
               }}
             >
               <div
+                className="profile-person-block"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -865,6 +867,7 @@ export default function PerfilPage() {
               </div>
 
               <div
+                className="profile-actions-block"
                 style={{
                   display: "flex",
                   flexDirection: "column",
@@ -927,6 +930,7 @@ export default function PerfilPage() {
             </div>
 
             <div
+              className="profile-content-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1.1fr 0.9fr",
@@ -934,7 +938,7 @@ export default function PerfilPage() {
                 alignItems: "start",
               }}
             >
-              <section style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              <section className="profile-left-column" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
                 <div style={softCardStyle}>
                   <p
                     style={{
@@ -967,6 +971,7 @@ export default function PerfilPage() {
                     </p>
 
                     <div
+                      className="profile-info-grid"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -1012,6 +1017,7 @@ export default function PerfilPage() {
                     </p>
 
                     <div
+                      className="profile-info-grid"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -1055,7 +1061,7 @@ export default function PerfilPage() {
                 ) : null}
               </section>
 
-              <aside style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              <aside className="profile-right-aside" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
                 <div style={cardStyle}>
                   <h3 style={sectionTitleStyle}>Contato</h3>
                   <p style={sectionDescriptionStyle}>
@@ -1084,8 +1090,9 @@ export default function PerfilPage() {
           </div>
         </section>
       ) : (
-        <form onSubmit={handleSubmit}>
+        <form className="profile-edit-form" onSubmit={handleSubmit}>
           <section
+            className="profile-edit-header"
             style={{
               ...cardStyle,
               marginBottom: "22px",
@@ -1137,6 +1144,7 @@ export default function PerfilPage() {
           </section>
 
           <div
+            className="profile-edit-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "340px minmax(0, 1fr)",
@@ -1144,7 +1152,7 @@ export default function PerfilPage() {
               alignItems: "start",
             }}
           >
-            <aside style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <aside className="profile-edit-aside" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <section style={cardStyle}>
                 <div
                   style={{
@@ -1231,19 +1239,6 @@ export default function PerfilPage() {
                     style={{ display: "none" }}
                   />
 
-                  <p
-                    style={{
-                      color: "#64748b",
-                      fontSize: "12px",
-                      lineHeight: 1.45,
-                      fontWeight: 700,
-                      marginTop: "8px",
-                      marginBottom: 0,
-                    }}
-                  >
-                    A imagem será enviada para o Cloudinary e ficará salva no perfil.
-                  </p>
-
                   {imageUploadError ? (
                     <p
                       style={{
@@ -1290,7 +1285,7 @@ export default function PerfilPage() {
               </section>
             </aside>
 
-            <section style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+            <section className="profile-edit-sections" style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
               <section style={cardStyle}>
                 <div
                   style={{
@@ -1329,6 +1324,7 @@ export default function PerfilPage() {
                 </div>
 
                 <div
+                  className="profile-form-grid"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -1586,6 +1582,229 @@ export default function PerfilPage() {
           </div>
         </form>
       )}
+
+      <style>{`
+        .profile-page,
+        .profile-page * {
+          min-width: 0;
+        }
+
+        .profile-page a,
+        .profile-page button,
+        .profile-page label {
+          max-width: 100%;
+        }
+
+        .profile-page input,
+        .profile-page textarea,
+        .profile-page select {
+          max-width: 100%;
+        }
+
+        @media (max-width: 1180px) {
+          .profile-page {
+            padding: 28px !important;
+            padding-bottom: 110px !important;
+          }
+
+          .profile-content-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .profile-right-aside {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .profile-edit-grid {
+            grid-template-columns: 300px minmax(0, 1fr) !important;
+            gap: 20px !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .profile-page {
+            padding: 20px !important;
+            padding-bottom: 105px !important;
+          }
+
+          .profile-hero {
+            padding: 24px !important;
+            border-radius: 24px !important;
+            margin-bottom: 20px !important;
+          }
+
+          .profile-hero h1 {
+            font-size: 34px !important;
+            line-height: 1.08 !important;
+          }
+
+          .profile-hero p {
+            font-size: 16px !important;
+            max-width: 640px !important;
+          }
+
+          .profile-view-inner {
+            padding: 24px !important;
+          }
+
+          .profile-summary-header {
+            align-items: flex-start !important;
+          }
+
+          .profile-actions-block {
+            align-items: flex-start !important;
+            width: 100% !important;
+            padding-bottom: 0 !important;
+          }
+
+          .profile-actions-block > button,
+          .profile-actions-block a {
+            width: auto !important;
+          }
+
+          .profile-edit-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .profile-edit-aside {
+            order: 2;
+          }
+
+          .profile-edit-sections {
+            order: 1;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .profile-page {
+            padding: 14px !important;
+            padding-bottom: 100px !important;
+          }
+
+          .profile-hero {
+            padding: 18px !important;
+            border-radius: 22px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .profile-hero span {
+            padding: 5px 10px !important;
+            font-size: 12px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .profile-hero h1 {
+            font-size: 28px !important;
+            margin-bottom: 0 !important;
+          }
+
+          .profile-hero p {
+            display: none !important;
+          }
+
+          .profile-view-inner {
+            padding: 18px !important;
+          }
+
+          .profile-summary-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 18px !important;
+          }
+
+          .profile-person-block {
+            min-width: 0 !important;
+            width: 100% !important;
+            align-items: center !important;
+          }
+
+          .profile-person-block h2 {
+            font-size: 28px !important;
+            line-height: 1.12 !important;
+          }
+
+          .profile-person-block > div:first-child {
+            width: 108px !important;
+            height: 108px !important;
+            border-radius: 26px !important;
+            flex: 0 0 108px !important;
+          }
+
+          .profile-actions-block,
+          .profile-actions-block > div {
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+            width: 100% !important;
+          }
+
+          .profile-actions-block > button,
+          .profile-actions-block a {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+
+          .profile-info-grid,
+          .profile-form-grid,
+          .profile-right-aside {
+            grid-template-columns: 1fr !important;
+          }
+
+          .profile-edit-header {
+            align-items: stretch !important;
+          }
+
+          .profile-edit-header > div:last-child {
+            width: 100% !important;
+          }
+
+          .profile-edit-header button {
+            flex: 1 1 150px !important;
+            justify-content: center !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .profile-page {
+            padding: 12px !important;
+            padding-bottom: 96px !important;
+          }
+
+          .profile-hero {
+            padding: 16px !important;
+            border-radius: 20px !important;
+          }
+
+          .profile-hero h1 {
+            font-size: 25px !important;
+          }
+
+          .profile-view-inner,
+          .profile-page section[style*="padding: 24px"],
+          .profile-page section[style*="padding:24px"] {
+            padding: 16px !important;
+          }
+
+          .profile-person-block {
+            flex-direction: column !important;
+            text-align: center !important;
+          }
+
+          .profile-person-block > div:last-child {
+            padding-bottom: 0 !important;
+          }
+
+          .profile-person-block h2 {
+            font-size: 26px !important;
+          }
+
+          .profile-person-block p,
+          .profile-person-block span {
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

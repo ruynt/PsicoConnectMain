@@ -198,6 +198,32 @@ function AuthGuard({ children }: PropsWithChildren) {
             position: relative;
           }
 
+          .menu-toggle-button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            line-height: 1 !important;
+            padding: 0 !important;
+          }
+
+          .menu-toggle-button i {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 1em !important;
+            height: 1em !important;
+            line-height: 1 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .menu-toggle-button i::before {
+            display: block !important;
+            line-height: 1 !important;
+            margin: 0 !important;
+          }
+
           .sidebar .sidebar-nav a:hover,
           .sidebar .sidebar-nav a.active,
           .sidebar .sidebar-nav a.active:hover {
@@ -236,6 +262,7 @@ function AuthGuard({ children }: PropsWithChildren) {
               style={{
                 transform: "scale(0.9)",
                 transformOrigin: "left center",
+                marginLeft: "10px",
               }}
             >
               <Link

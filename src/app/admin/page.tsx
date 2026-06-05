@@ -205,6 +205,39 @@ export default function AdminPage() {
     return `https://cadastro.cfp.org.br/?q=${query}`;
   }
 
+  async function copyCfpSearchNumber(psychologist: AdminPsychologist) {
+    const crpNumber = getCrpNumberForSearch(psychologist);
+
+    if (!crpNumber || crpNumber === "--") {
+      showFeedback("error", "Não foi possível copiar o número do CRP.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(crpNumber);
+      showFeedback("success", `Número ${crpNumber} copiado para consulta no CFP.`);
+    } catch {
+      const temporaryInput = document.createElement("textarea");
+      temporaryInput.value = crpNumber;
+      temporaryInput.style.position = "fixed";
+      temporaryInput.style.left = "-9999px";
+
+      document.body.appendChild(temporaryInput);
+      temporaryInput.focus();
+      temporaryInput.select();
+
+      try {
+        document.execCommand("copy");
+        showFeedback("success", `Número ${crpNumber} copiado para consulta no CFP.`);
+      } catch {
+        showFeedback("error", "Não foi possível copiar o número do CRP.");
+      } finally {
+        document.body.removeChild(temporaryInput);
+      }
+    }
+  }
+
+
   function openRejectModal(psychologist: AdminPsychologist) {
     setFeedback(null);
     setRejectionTarget(psychologist);
@@ -368,8 +401,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={pageStyle}>
+    <div className="admin-page" style={pageStyle}>
       <section
+        className="admin-hero"
         style={{
           background:
             "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
@@ -407,6 +441,7 @@ export default function AdminPage() {
         />
 
         <div
+          className="admin-hero-content"
           style={{
             position: "relative",
             zIndex: 1,
@@ -417,7 +452,7 @@ export default function AdminPage() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: "320px" }}>
+          <div className="admin-hero-text" style={{ flex: 1, minWidth: "320px" }}>
             <span
               style={{
                 display: "inline-flex",
@@ -464,6 +499,7 @@ export default function AdminPage() {
           </div>
 
           <div
+            className="admin-hero-actions"
             style={{
               display: "flex",
               gap: "10px",
@@ -536,6 +572,7 @@ export default function AdminPage() {
       {data && (
         <>
           <div
+            className="admin-metric-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
@@ -594,6 +631,7 @@ export default function AdminPage() {
           </div>
 
           <div
+            className="admin-overview-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
@@ -602,6 +640,7 @@ export default function AdminPage() {
             }}
           >
             <section
+              className="admin-status-card"
               style={{
                 ...cardStyle,
                 background:
@@ -686,7 +725,7 @@ export default function AdminPage() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section className="admin-actions-card" style={cardStyle}>
               <h2
                 style={{
                   color: "#001e5e",
@@ -727,8 +766,9 @@ export default function AdminPage() {
             </section>
           </div>
 
-          <section style={cardStyle}>
+          <section className="admin-verification-card" style={cardStyle}>
             <div
+              className="admin-verification-header"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr auto",
@@ -772,6 +812,7 @@ export default function AdminPage() {
             </div>
 
             <div
+              className="admin-filter-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(260px, 1fr) auto",
@@ -781,6 +822,7 @@ export default function AdminPage() {
               }}
             >
               <div
+                className="admin-search-box"
                 style={{
                   border: "1px solid #dbe7ff",
                   borderRadius: "16px",
@@ -808,7 +850,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <div className="admin-filter-buttons" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                 {(["PENDING", "APPROVED", "REJECTED", "ALL"] as const).map(
                   (status) => (
                     <button
@@ -843,7 +885,7 @@ export default function AdminPage() {
                 Nenhum psicólogo encontrado para este filtro.
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div className="admin-psychologist-list" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 {filteredPsychologists.map((psychologist) => {
                   const selectedStatus = statusStyles[psychologist.crpVerificationStatus];
                   const isUpdating = updatingId === psychologist.id;
@@ -853,6 +895,7 @@ export default function AdminPage() {
                   return (
                     <article
                       key={psychologist.id}
+                      className="admin-psychologist-card"
                       style={{
                         border: "1px solid #e6edf7",
                         borderRadius: "20px",
@@ -901,6 +944,7 @@ export default function AdminPage() {
                         </div>
 
                         <div
+                          className="admin-info-grid"
                           style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
@@ -912,10 +956,22 @@ export default function AdminPage() {
                           <InfoItem label="E-mail" value={psychologist.user.email} />
                           <InfoItem label="Estado" value={getCrpState(psychologist)} />
                           <InfoItem label="Regional" value={`CRP-${getCrpRegion(psychologist)}`} />
-                          <InfoItem
-                            label="Número para consulta CFP"
-                            value={getCrpNumberForSearch(psychologist)}
-                          />
+                          <div className="admin-copy-info-item">
+                            <p style={{ margin: 0 }}>
+                              <strong>Número para consulta CFP:</strong>{" "}
+                              {getCrpNumberForSearch(psychologist)}
+                            </p>
+
+                            <button
+                              type="button"
+                              className="admin-copy-button"
+                              onClick={() => copyCfpSearchNumber(psychologist)}
+                              title="Copiar número para consulta no CFP"
+                            >
+                              <i className="fa-regular fa-copy"></i>
+                              Copiar
+                            </button>
+                          </div>
                           <InfoItem label="CRP completo" value={psychologist.crp} />
                           <InfoItem label="Cadastro" value={formatDate(psychologist.user.createdAt)} />
                           <InfoItem
@@ -940,6 +996,7 @@ export default function AdminPage() {
                       </div>
 
                       <div
+                        className="admin-psychologist-actions"
                         style={{
                           display: "flex",
                           gap: "10px",
@@ -1002,6 +1059,495 @@ export default function AdminPage() {
           <div style={{ height: "80px" }} />
         </>
       )}
+
+      <style>{`
+        .admin-page {
+          width: 100%;
+        }
+
+        .admin-hero,
+        .admin-status-card,
+        .admin-actions-card,
+        .admin-verification-card,
+        .admin-psychologist-card {
+          min-width: 0;
+        }
+
+        .admin-hero h1,
+        .admin-hero h1 *,
+        .admin-hero p,
+        .admin-hero span {
+          color: #ffffff !important;
+        }
+
+        .admin-metric-card {
+          min-width: 0;
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .admin-metric-card:hover {
+          transform: translateY(-1px);
+        }
+
+        .admin-filter-buttons button,
+        .admin-hero-actions a,
+        .admin-hero-actions button,
+        .admin-psychologist-actions a,
+        .admin-psychologist-actions button {
+          min-width: 0;
+        }
+
+        @media (max-width: 1180px) {
+          .admin-page {
+            padding: 28px !important;
+            padding-bottom: 130px !important;
+          }
+
+          .admin-hero {
+            padding: 28px !important;
+          }
+
+          .admin-hero-content {
+            align-items: flex-start !important;
+          }
+
+          .admin-metric-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+          }
+
+          .admin-overview-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .admin-filter-row {
+            grid-template-columns: 1fr !important;
+          }
+
+          .admin-filter-buttons {
+            width: 100% !important;
+          }
+
+          .admin-filter-buttons button {
+            flex: 1 1 150px !important;
+          }
+
+          .admin-psychologist-card {
+            grid-template-columns: 1fr !important;
+          }
+
+          .admin-psychologist-actions {
+            min-width: 0 !important;
+            justify-content: flex-start !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .admin-page {
+            padding: 20px !important;
+            padding-bottom: 130px !important;
+          }
+
+          .admin-hero {
+            padding: 24px !important;
+            border-radius: 24px !important;
+            margin-bottom: 18px !important;
+          }
+
+          .admin-hero-content {
+            gap: 18px !important;
+          }
+
+          .admin-hero-text {
+            min-width: 0 !important;
+          }
+
+          .admin-hero h1 {
+            font-size: 34px !important;
+            line-height: 1.08 !important;
+          }
+
+          .admin-hero p {
+            font-size: 15px !important;
+            line-height: 1.45 !important;
+          }
+
+          .admin-hero-actions {
+            width: 100% !important;
+            justify-content: flex-start !important;
+          }
+
+          .admin-hero-actions a,
+          .admin-hero-actions button {
+            flex: 1 1 220px !important;
+          }
+
+          .admin-metric-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+            margin-bottom: 18px !important;
+          }
+
+          .admin-metric-card {
+            padding: 13px !important;
+            border-radius: 18px !important;
+          }
+
+          .admin-status-card,
+          .admin-actions-card,
+          .admin-verification-card {
+            padding: 20px !important;
+            border-radius: 20px !important;
+          }
+
+          .admin-status-card h2,
+          .admin-actions-card h2,
+          .admin-verification-card h2 {
+            font-size: 23px !important;
+            line-height: 1.12 !important;
+          }
+
+          .admin-status-card p,
+          .admin-verification-card p {
+            font-size: 14px !important;
+            line-height: 1.45 !important;
+          }
+
+          .admin-search-box {
+            padding: 11px 13px !important;
+          }
+
+          .admin-filter-buttons {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .admin-filter-buttons button {
+            width: 100% !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+          }
+
+          .admin-info-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 9px 14px !important;
+          }
+
+          .admin-psychologist-card {
+            padding: 16px !important;
+            border-radius: 18px !important;
+          }
+
+          .admin-psychologist-actions {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            width: 100% !important;
+          }
+
+          .admin-psychologist-actions a,
+          .admin-psychologist-actions button {
+            width: 100% !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .admin-page {
+            padding: 16px !important;
+            padding-bottom: 120px !important;
+          }
+
+          .admin-hero {
+            padding: 18px !important;
+            border-radius: 22px !important;
+          }
+
+          .admin-hero span {
+            font-size: 12px !important;
+            padding: 6px 10px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .admin-hero h1 {
+            font-size: 27px !important;
+            line-height: 1.08 !important;
+            margin-bottom: 8px !important;
+          }
+
+          .admin-hero p {
+            display: none !important;
+          }
+
+          .admin-hero-actions {
+            gap: 8px !important;
+          }
+
+          .admin-hero-actions a,
+          .admin-hero-actions button {
+            flex: 1 1 100% !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+            border-radius: 13px !important;
+          }
+
+          .admin-metric-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .admin-metric-card {
+            min-height: 104px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+          }
+
+          .admin-metric-card > div {
+            height: 100% !important;
+            flex-direction: column-reverse !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+          }
+
+          .admin-metric-card p:first-child {
+            font-size: 11px !important;
+            line-height: 1.12 !important;
+            margin-bottom: 6px !important;
+          }
+
+          .admin-metric-card p:last-child {
+            font-size: 24px !important;
+          }
+
+          .admin-metric-card > div > div:last-child {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 10px !important;
+            font-size: 13px !important;
+          }
+
+          .admin-status-card,
+          .admin-actions-card,
+          .admin-verification-card {
+            padding: 16px !important;
+            border-radius: 18px !important;
+          }
+
+          .admin-status-card h2,
+          .admin-actions-card h2,
+          .admin-verification-card h2 {
+            font-size: 21px !important;
+          }
+
+          .admin-status-card p,
+          .admin-verification-card p {
+            font-size: 13px !important;
+          }
+
+          .admin-verification-header {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+
+          .admin-verification-header > div:last-child {
+            width: fit-content !important;
+            white-space: normal !important;
+          }
+
+          .admin-search-box input {
+            font-size: 13px !important;
+          }
+
+          .admin-filter-buttons {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .admin-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 7px !important;
+            font-size: 13px !important;
+          }
+
+          .admin-psychologist-card h3 {
+            font-size: 18px !important;
+          }
+
+          .admin-psychologist-actions {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .admin-metric-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .admin-metric-card {
+            min-height: 96px !important;
+          }
+
+          .admin-filter-buttons {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        /* Ajuste final: métricas em colunas e botão copiar CFP */
+        .admin-copy-info-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin: 0;
+          min-width: 0;
+        }
+
+        .admin-copy-info-item p {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .admin-copy-button {
+          border: 1px solid #bfdbfe;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border-radius: 999px;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 900;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          flex-shrink: 0;
+          transition: 0.18s ease;
+        }
+
+        .admin-copy-button:hover {
+          background: #dbeafe;
+          border-color: #93c5fd;
+        }
+
+        @media (max-width: 900px) {
+          .chat-main-wrapper .admin-page .admin-metric-grid,
+          .admin-page .admin-metric-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card,
+          .admin-page .admin-metric-card {
+            width: auto !important;
+            min-width: 0 !important;
+            min-height: 98px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card > div,
+          .admin-page .admin-metric-card > div {
+            height: 100% !important;
+            flex-direction: column-reverse !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card p:first-child,
+          .admin-page .admin-metric-card p:first-child {
+            font-size: 11px !important;
+            line-height: 1.12 !important;
+            margin-bottom: 4px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card p:last-child,
+          .admin-page .admin-metric-card p:last-child {
+            font-size: 24px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card > div > div:last-child,
+          .admin-page .admin-metric-card > div > div:last-child {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 10px !important;
+            font-size: 13px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .chat-main-wrapper .admin-page .admin-metric-grid,
+          .admin-page .admin-metric-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card,
+          .admin-page .admin-metric-card {
+            min-height: 88px !important;
+            padding: 9px !important;
+            border-radius: 15px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card p:first-child,
+          .admin-page .admin-metric-card p:first-child {
+            font-size: 10.5px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card p:last-child,
+          .admin-page .admin-metric-card p:last-child {
+            font-size: 22px !important;
+          }
+
+          .admin-copy-info-item {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 7px;
+          }
+
+          .admin-copy-button {
+            width: fit-content;
+            padding: 6px 9px;
+            font-size: 11.5px;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .chat-main-wrapper .admin-page .admin-metric-grid,
+          .admin-page .admin-metric-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 7px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card,
+          .admin-page .admin-metric-card {
+            min-height: 82px !important;
+            padding: 8px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card p:first-child,
+          .admin-page .admin-metric-card p:first-child {
+            font-size: 9.5px !important;
+            line-height: 1.05 !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card p:last-child,
+          .admin-page .admin-metric-card p:last-child {
+            font-size: 20px !important;
+          }
+
+          .chat-main-wrapper .admin-page .admin-metric-card > div > div:last-child,
+          .admin-page .admin-metric-card > div > div:last-child {
+            width: 26px !important;
+            height: 26px !important;
+            border-radius: 9px !important;
+            font-size: 11px !important;
+          }
+        }
+
+      `}</style>
 
       {rejectionTarget && (
         <div
@@ -1184,7 +1730,7 @@ export default function AdminPage() {
     border: string;
   }) {
     return (
-      <div style={{ ...cardStyle, padding: "18px" }}>
+      <div className="admin-metric-card" style={{ ...cardStyle, padding: "18px" }}>
         <div
           style={{
             display: "flex",

@@ -199,6 +199,7 @@ export default function AguardandoVerificacaoPage() {
 
   return (
     <main
+      className="verification-page-shell"
       style={{
         minHeight: "100vh",
         background:
@@ -210,6 +211,7 @@ export default function AguardandoVerificacaoPage() {
       }}
     >
       <section
+        className="verification-card"
         style={{
           width: "100%",
           maxWidth: "820px",
@@ -222,6 +224,7 @@ export default function AguardandoVerificacaoPage() {
         }}
       >
         <div
+          className="verification-icon-card"
           style={{
             width: "72px",
             height: "72px",
@@ -256,6 +259,7 @@ export default function AguardandoVerificacaoPage() {
         ) : (
           <>
             <span
+              className="verification-status-badge"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -279,6 +283,7 @@ export default function AguardandoVerificacaoPage() {
             </span>
 
             <h1
+              className="verification-title"
               style={{
                 color: "#001e5e",
                 fontSize: "38px",
@@ -295,6 +300,7 @@ export default function AguardandoVerificacaoPage() {
             </h1>
 
             <p
+              className="verification-description"
               style={{
                 color: "#5272a6",
                 fontSize: "17px",
@@ -312,6 +318,7 @@ export default function AguardandoVerificacaoPage() {
 
             {error && (
               <div
+                className="verification-feedback"
                 style={{
                   backgroundColor: "#fef2f2",
                   border: "1px solid #fecaca",
@@ -330,6 +337,7 @@ export default function AguardandoVerificacaoPage() {
 
             {success && (
               <div
+                className="verification-feedback"
                 style={{
                   backgroundColor: "#f0fdf4",
                   border: "1px solid #bbf7d0",
@@ -348,6 +356,7 @@ export default function AguardandoVerificacaoPage() {
 
             {isRejected && data?.psychologist.crpRejectionReason && (
               <div
+                className="verification-rejection-box"
                 style={{
                   backgroundColor: "#fff7ed",
                   border: "1px solid #fed7aa",
@@ -385,6 +394,7 @@ export default function AguardandoVerificacaoPage() {
 
             {isRejected ? (
               <form
+                className="verification-resubmit-form"
                 onSubmit={handleSubmit}
                 style={{
                   backgroundColor: "#f8fbff",
@@ -417,9 +427,9 @@ export default function AguardandoVerificacaoPage() {
                 </div>
 
                 <div
+                  className="verification-crp-grid"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
                     gap: "14px",
                     marginBottom: "16px",
                   }}
@@ -463,6 +473,7 @@ export default function AguardandoVerificacaoPage() {
                 </div>
 
                 <div
+                  className="verification-crp-preview"
                   style={{
                     backgroundColor: "#ffffff",
                     border: "1px solid #dbe7ff",
@@ -479,6 +490,7 @@ export default function AguardandoVerificacaoPage() {
                 </div>
 
                 <button
+                  className="verification-submit-button"
                   type="submit"
                   disabled={isSaving}
                   style={{
@@ -501,6 +513,7 @@ export default function AguardandoVerificacaoPage() {
               </form>
             ) : (
               <div
+                className="verification-next-steps"
                 style={{
                   backgroundColor: "#f8fbff",
                   border: "1px solid #dbe7ff",
@@ -522,6 +535,7 @@ export default function AguardandoVerificacaoPage() {
                 </h2>
 
                 <ul
+                  className="verification-steps-list"
                   style={{
                     listStyle: "none",
                     display: "flex",
@@ -552,6 +566,7 @@ export default function AguardandoVerificacaoPage() {
             )}
 
             <p
+              className="verification-support-note"
               style={{
                 color: "#64748b",
                 fontSize: "14px",
@@ -560,10 +575,11 @@ export default function AguardandoVerificacaoPage() {
               }}
             >
               Caso acredite que os dados estão corretos e mesmo assim não consiga
-              reenviar, entre em contato com a equipe responsável pelo projeto.
+              reenviar, entre em contato com o suporte.
             </p>
 
             <button
+              className="verification-logout-button"
               type="button"
               onClick={() => signOut({ callbackUrl: "/login" })}
               style={{
@@ -582,6 +598,271 @@ export default function AguardandoVerificacaoPage() {
             </button>
           </>
         )}
+
+        <style>{`
+          .verification-page-shell,
+          .verification-page-shell * {
+            min-width: 0;
+            box-sizing: border-box;
+          }
+
+          .verification-crp-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .verification-card input,
+          .verification-card select {
+            min-height: 44px;
+          }
+
+          @media (max-width: 900px) {
+            .verification-page-shell {
+              align-items: flex-start !important;
+              padding: 22px !important;
+            }
+
+            .verification-card {
+              max-width: 720px !important;
+              padding: 32px !important;
+              border-radius: 24px !important;
+            }
+
+            .verification-icon-card {
+              width: 64px !important;
+              height: 64px !important;
+              border-radius: 20px !important;
+              font-size: 26px !important;
+              margin-bottom: 18px !important;
+            }
+
+            .verification-status-badge {
+              font-size: 12px !important;
+              padding: 7px 12px !important;
+              margin-bottom: 15px !important;
+            }
+
+            .verification-title {
+              font-size: 32px !important;
+              line-height: 1.1 !important;
+              margin-bottom: 12px !important;
+            }
+
+            .verification-description {
+              font-size: 15px !important;
+              line-height: 1.6 !important;
+              margin-bottom: 20px !important;
+            }
+
+            .verification-rejection-box,
+            .verification-resubmit-form,
+            .verification-next-steps {
+              padding: 18px !important;
+              border-radius: 18px !important;
+              margin-bottom: 20px !important;
+            }
+
+            .verification-crp-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 12px !important;
+            }
+
+            .verification-card input,
+            .verification-card select {
+              padding: 10px 12px !important;
+              font-size: 14px !important;
+              border-radius: 12px !important;
+            }
+
+            .verification-crp-preview {
+              padding: 12px 14px !important;
+              font-size: 13px !important;
+            }
+
+            .verification-submit-button,
+            .verification-logout-button {
+              padding: 12px 18px !important;
+              font-size: 14px !important;
+              border-radius: 13px !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .verification-page-shell {
+              min-height: 100dvh !important;
+              padding: 16px !important;
+              justify-content: flex-start !important;
+            }
+
+            .verification-card {
+              padding: 22px !important;
+              border-radius: 22px !important;
+              text-align: left !important;
+            }
+
+            .verification-icon-card {
+              width: 56px !important;
+              height: 56px !important;
+              border-radius: 18px !important;
+              font-size: 23px !important;
+              margin: 0 0 16px 0 !important;
+            }
+
+            .verification-status-badge {
+              align-self: flex-start !important;
+              font-size: 11.5px !important;
+              padding: 7px 10px !important;
+              margin-bottom: 14px !important;
+              max-width: 100% !important;
+            }
+
+            .verification-title {
+              font-size: 27px !important;
+              line-height: 1.08 !important;
+              margin-bottom: 10px !important;
+            }
+
+            .verification-description {
+              font-size: 14px !important;
+              line-height: 1.55 !important;
+              max-width: none !important;
+              margin: 0 0 18px 0 !important;
+            }
+
+            .verification-feedback {
+              padding: 12px 13px !important;
+              border-radius: 14px !important;
+              font-size: 13px !important;
+              margin-bottom: 14px !important;
+            }
+
+            .verification-rejection-box,
+            .verification-resubmit-form,
+            .verification-next-steps {
+              padding: 15px !important;
+              border-radius: 16px !important;
+              margin-bottom: 16px !important;
+            }
+
+            .verification-rejection-box h2,
+            .verification-resubmit-form h2,
+            .verification-next-steps h2 {
+              font-size: 17px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .verification-rejection-box p,
+            .verification-next-steps li,
+            .verification-crp-preview,
+            .verification-support-note {
+              font-size: 13px !important;
+              line-height: 1.5 !important;
+            }
+
+            .verification-crp-grid {
+              grid-template-columns: 1fr !important;
+              gap: 12px !important;
+              margin-bottom: 14px !important;
+            }
+
+            .verification-card label {
+              font-size: 12px !important;
+              margin-bottom: 6px !important;
+            }
+
+            .verification-card input,
+            .verification-card select {
+              min-height: 40px !important;
+              padding: 8px 10px !important;
+              font-size: 13px !important;
+              border-radius: 11px !important;
+            }
+
+            .verification-crp-preview {
+              padding: 11px 12px !important;
+              border-radius: 13px !important;
+              margin-bottom: 14px !important;
+            }
+
+            .verification-submit-button,
+            .verification-logout-button {
+              width: 100% !important;
+              padding: 11px 14px !important;
+              font-size: 13.5px !important;
+              border-radius: 12px !important;
+            }
+
+            .verification-support-note {
+              margin-bottom: 16px !important;
+            }
+          }
+
+          @media (max-width: 420px) {
+            .verification-page-shell {
+              padding: 12px !important;
+            }
+
+            .verification-card {
+              padding: 18px !important;
+              border-radius: 20px !important;
+            }
+
+            .verification-title {
+              font-size: 24px !important;
+            }
+
+            .verification-description {
+              font-size: 13.5px !important;
+            }
+
+            .verification-icon-card {
+              width: 52px !important;
+              height: 52px !important;
+              border-radius: 16px !important;
+              font-size: 21px !important;
+            }
+
+            .verification-rejection-box,
+            .verification-resubmit-form,
+            .verification-next-steps {
+              padding: 13px !important;
+            }
+
+            .verification-status-badge {
+              white-space: normal !important;
+              line-height: 1.25 !important;
+            }
+          }
+
+          /* Ajuste final: centralizar ícone e status no mobile */
+          @media (max-width: 640px) {
+            .verification-icon-card {
+              margin: 0 auto 16px auto !important;
+            }
+
+            .verification-status-badge {
+              display: flex !important;
+              width: fit-content !important;
+              max-width: 100% !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              justify-content: center !important;
+              text-align: center !important;
+            }
+          }
+
+          @media (max-width: 420px) {
+            .verification-icon-card {
+              margin: 0 auto 14px auto !important;
+            }
+
+            .verification-status-badge {
+              margin-left: auto !important;
+              margin-right: auto !important;
+            }
+          }
+
+        `}</style>
+
       </section>
     </main>
   );

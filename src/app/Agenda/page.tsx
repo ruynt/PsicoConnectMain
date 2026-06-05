@@ -160,6 +160,9 @@ export default function AgendaPage() {
   );
   const [paymentNotes, setPaymentNotes] = useState<Record<string, string>>({});
   const [expandedPaymentId, setExpandedPaymentId] = useState("");
+  const [expandedAppointmentIds, setExpandedAppointmentIds] = useState<string[]>(
+    [],
+  );
 
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
@@ -533,6 +536,14 @@ export default function AgendaPage() {
     setTimeout(() => {
       setFeedback(null);
     }, 5000);
+  }
+
+  function toggleAppointmentDetails(appointmentId: string) {
+    setExpandedAppointmentIds((currentIds) =>
+      currentIds.includes(appointmentId)
+        ? currentIds.filter((id) => id !== appointmentId)
+        : [...currentIds, appointmentId],
+    );
   }
 
   function resetForm() {
@@ -937,7 +948,7 @@ export default function AgendaPage() {
 
   if (status === "unauthenticated") {
     return (
-      <div style={pageStyle}>
+      <div className="agenda-page" style={pageStyle}>
         <section style={cardStyle}>
           <h1
             style={{
@@ -1011,6 +1022,7 @@ export default function AgendaPage() {
     <>
       <div style={pageStyle}>
         <section
+          className="agenda-hero"
           style={{
             background:
               "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
@@ -1150,9 +1162,9 @@ export default function AgendaPage() {
         )}
 
         <div
+          className="agenda-summary-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             gap: "20px",
             marginBottom: "28px",
           }}
@@ -1191,6 +1203,7 @@ export default function AgendaPage() {
           ].map((item) => (
             <div
               key={item.title}
+              className="agenda-summary-card"
               style={{
                 ...cardStyle,
                 minHeight: "150px",
@@ -1256,13 +1269,14 @@ export default function AgendaPage() {
         </div>
 
         <div
+          className="agenda-layout-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "1.4fr 1fr",
             gap: "20px",
           }}
         >
-          <section style={cardStyle}>
+          <section className="agenda-appointments-section" style={cardStyle}>
             <div
               style={{
                 display: "flex",
@@ -1379,10 +1393,15 @@ export default function AgendaPage() {
                   const isGoogleSynced = Boolean(event.googleEventId || event.htmlLink);
                   const isCancelled = event.status === "CANCELLED";
                   const isExpandedPayment = expandedPaymentId === appointmentId;
+                  const isAppointmentExpanded =
+                    expandedAppointmentIds.includes(appointmentId);
 
                   return (
                     <article
                       key={event.id}
+                      className={`agenda-appointment-card ${
+                        isAppointmentExpanded ? "expanded" : "collapsed"
+                      }`}
                       style={{
                         border: isCancelled ? "1px solid #fecaca" : "1px solid #e5e7eb",
                         borderRadius: "18px",
@@ -1390,88 +1409,42 @@ export default function AgendaPage() {
                         backgroundColor: isCancelled ? "#fff7f7" : "#f8fafc",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "14px",
-                          flexWrap: "wrap",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <h3
-                            style={{
-                              fontSize: "19px",
-                              fontWeight: 900,
-                              color: "#111827",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            {event.title || "Consulta"}
-                          </h3>
+                      <div className="agenda-appointment-summary">
+                        <div className="agenda-appointment-summary-text">
+                          <h3>{event.title || "Consulta"}</h3>
 
-                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                            {renderBadge(
-                              isCancelled ? "Cancelada" : "Agendada",
-                              isCancelled
-                                ? {
-                                    backgroundColor: "#fef2f2",
-                                    color: "#b91c1c",
-                                    border: "1px solid #fecaca",
-                                  }
-                                : {
-                                    backgroundColor: "#ecfdf5",
-                                    color: "#065f46",
-                                    border: "1px solid #a7f3d0",
-                                  },
-                              isCancelled
-                                ? "fa-solid fa-circle-xmark"
-                                : "fa-solid fa-circle-check",
-                            )}
+                          <div className="agenda-appointment-summary-meta">
+                            <span>
+                              <i className="fa-solid fa-user"></i>
+                              {event.patientName || "Paciente não informado"}
+                            </span>
 
-                            {renderBadge(
-                              isGoogleSynced
-                                ? "Sistema + Google Calendar"
-                                : "Somente no sistema",
-                              isGoogleSynced
-                                ? {
-                                    backgroundColor: "#eef2ff",
-                                    color: "#3730a3",
-                                    border: "1px solid #c7d2fe",
-                                  }
-                                : {
-                                    backgroundColor: "#ffffff",
-                                    color: "#475569",
-                                    border: "1px solid #e2e8f0",
-                                  },
-                              isGoogleSynced ? "fa-brands fa-google" : "fa-solid fa-database",
-                            )}
-
-                            {renderBadge(
-                              getConfirmationLabel(event),
-                              getConfirmationStyle(event),
-                              isCancellationRequestPending(event)
-                                ? "fa-solid fa-clock"
-                                : event.confirmationStatus === "CONFIRMED"
-                                  ? "fa-solid fa-circle-check"
-                                  : "fa-solid fa-circle-info",
-                            )}
+                            <span>
+                              <i className="fa-solid fa-calendar-day"></i>
+                              {formatDate(event.start)}
+                            </span>
                           </div>
                         </div>
 
-                        {event.patientId && (
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/pacientes/${event.patientId}`)}
-                            style={{ ...buttonSecondaryStyle, padding: "10px 13px" }}
-                          >
-                            <i className="fa-solid fa-user"></i>
-                            Ver paciente
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="agenda-appointment-toggle"
+                          onClick={() => toggleAppointmentDetails(appointmentId)}
+                          aria-expanded={isAppointmentExpanded}
+                        >
+                          <i
+                            className={`fa-solid ${
+                              isAppointmentExpanded
+                                ? "fa-chevron-up"
+                                : "fa-chevron-down"
+                            }`}
+                          ></i>
+                          {isAppointmentExpanded ? "Ocultar" : "Detalhes"}
+                        </button>
                       </div>
 
+                      {isAppointmentExpanded && (
+                        <div className="agenda-appointment-details">
                       <div
                         style={{
                           display: "grid",
@@ -1908,6 +1881,8 @@ export default function AgendaPage() {
                           </button>
                         )}
                       </div>
+                        </div>
+                      )}
                     </article>
                   );
                 })}
@@ -1915,8 +1890,8 @@ export default function AgendaPage() {
             )}
           </section>
 
-          <aside style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <section style={cardStyle}>
+          <aside className="agenda-integration-aside" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <section className="agenda-integration-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "28px",
@@ -2041,6 +2016,702 @@ export default function AgendaPage() {
 
         <div style={{ height: "90px" }} aria-hidden="true" />
       </div>
+
+
+        <style>{`
+          .agenda-page {
+            width: 100%;
+          }
+
+          .agenda-hero,
+          .agenda-summary-card,
+          .agenda-appointments-section,
+          .agenda-integration-card,
+          .agenda-appointment-card {
+            min-width: 0;
+          }
+
+          .agenda-hero h1,
+          .agenda-hero h1 *,
+          .agenda-hero p,
+          .agenda-hero span {
+            color: #ffffff !important;
+          }
+
+          .agenda-appointment-summary {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+          }
+
+          .agenda-appointment-summary-text {
+            min-width: 0;
+          }
+
+          .agenda-appointment-summary h3 {
+            font-size: 19px;
+            font-weight: 900;
+            color: #111827;
+            margin: 0 0 8px;
+            overflow-wrap: anywhere;
+          }
+
+          .agenda-appointment-summary-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 800;
+          }
+
+          .agenda-appointment-summary-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 6px 10px;
+            min-width: 0;
+          }
+
+          .agenda-appointment-summary-meta i {
+            color: #1d4ed8;
+            font-size: 12px;
+          }
+
+          .agenda-appointment-toggle {
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            white-space: nowrap;
+            transition: 0.18s ease;
+          }
+
+          .agenda-appointment-toggle:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+          }
+
+          .agenda-appointment-details {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #e2e8f0;
+          }
+
+          @media (max-width: 1180px) {
+            .agenda-page {
+              padding: 28px !important;
+              padding-bottom: 120px !important;
+            }
+
+            .agenda-summary-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 12px !important;
+              margin-bottom: 18px !important;
+            }
+
+            .agenda-layout-grid {
+              grid-template-columns: 1fr !important;
+              gap: 16px !important;
+            }
+
+            .agenda-integration-aside {
+              order: -1 !important;
+              display: grid !important;
+              grid-template-columns: minmax(0, 1fr) minmax(240px, 0.7fr) !important;
+              gap: 14px !important;
+            }
+
+            .agenda-integration-card {
+              padding: 20px !important;
+            }
+
+            .agenda-integration-card h2 {
+              font-size: 24px !important;
+              margin-bottom: 8px !important;
+            }
+
+            .agenda-integration-card p {
+              margin-bottom: 12px !important;
+            }
+          }
+
+          @media (max-width: 900px) {
+            .agenda-page {
+              padding: 20px !important;
+              padding-bottom: 110px !important;
+              border-radius: 24px !important;
+            }
+
+            .agenda-hero {
+              padding: 24px !important;
+              border-radius: 24px !important;
+              margin-bottom: 18px !important;
+            }
+
+            .agenda-hero h1 {
+              font-size: 34px !important;
+              line-height: 1.08 !important;
+            }
+
+            .agenda-hero p {
+              font-size: 15px !important;
+              line-height: 1.45 !important;
+            }
+
+            .agenda-hero button {
+              width: 100% !important;
+              padding: 11px 14px !important;
+              font-size: 13px !important;
+            }
+
+            .agenda-summary-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 9px !important;
+            }
+
+            .agenda-summary-card {
+              min-height: 112px !important;
+              padding: 12px !important;
+              border-radius: 17px !important;
+            }
+
+            .agenda-summary-card > div:first-child {
+              width: 34px !important;
+              height: 34px !important;
+              border-radius: 12px !important;
+              font-size: 15px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(3) {
+              font-size: 14px !important;
+              margin-bottom: 6px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(4) {
+              font-size: 18px !important;
+              line-height: 1.1 !important;
+              word-break: break-word !important;
+            }
+
+            .agenda-summary-card > div:last-child {
+              display: none !important;
+            }
+
+            .agenda-integration-aside {
+              grid-template-columns: 1fr !important;
+              gap: 12px !important;
+            }
+
+            .agenda-integration-card {
+              padding: 16px !important;
+              border-radius: 18px !important;
+            }
+
+            .agenda-integration-card p {
+              display: none !important;
+            }
+
+            .agenda-integration-card h2 {
+              font-size: 21px !important;
+              margin-bottom: 12px !important;
+            }
+
+            .agenda-appointments-section {
+              padding: 20px !important;
+              border-radius: 20px !important;
+            }
+
+            .agenda-appointments-section h2 {
+              font-size: 24px !important;
+              line-height: 1.12 !important;
+            }
+
+            .agenda-appointments-section > div:first-child p {
+              display: none !important;
+            }
+
+            .agenda-appointment-card {
+              padding: 14px !important;
+              border-radius: 16px !important;
+            }
+
+            .agenda-appointment-summary {
+              gap: 10px !important;
+            }
+
+            .agenda-appointment-summary h3 {
+              font-size: 17px !important;
+              margin-bottom: 7px !important;
+            }
+
+            .agenda-appointment-summary-meta {
+              gap: 6px !important;
+              font-size: 12px !important;
+            }
+
+            .agenda-appointment-summary-meta span {
+              padding: 5px 8px !important;
+            }
+
+            .agenda-appointment-toggle {
+              padding: 8px 10px !important;
+              font-size: 12px !important;
+            }
+
+            .agenda-appointment-details {
+              margin-top: 12px !important;
+              padding-top: 12px !important;
+            }
+
+            .agenda-appointment-details > div:first-child {
+              grid-template-columns: 1fr !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .agenda-page {
+              padding: 16px !important;
+              padding-bottom: 105px !important;
+              border-radius: 20px !important;
+            }
+
+            .agenda-hero {
+              padding: 18px !important;
+              border-radius: 22px !important;
+              margin-bottom: 14px !important;
+            }
+
+            .agenda-hero span {
+              font-size: 12px !important;
+              padding: 6px 10px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .agenda-hero h1 {
+              font-size: 28px !important;
+              line-height: 1.08 !important;
+              margin-bottom: 0 !important;
+            }
+
+            .agenda-hero p {
+              display: none !important;
+            }
+
+            .agenda-summary-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 8px !important;
+              margin-bottom: 14px !important;
+            }
+
+            .agenda-summary-card {
+              min-height: 92px !important;
+              padding: 10px !important;
+              border-radius: 15px !important;
+            }
+
+            .agenda-summary-card > div:first-child {
+              width: 28px !important;
+              height: 28px !important;
+              border-radius: 10px !important;
+              font-size: 13px !important;
+              margin-bottom: 8px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(3) {
+              font-size: 12px !important;
+              margin-bottom: 5px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(4) {
+              font-size: 16px !important;
+            }
+
+            .agenda-integration-aside {
+              gap: 10px !important;
+            }
+
+            .agenda-integration-card {
+              padding: 14px !important;
+              border-radius: 17px !important;
+            }
+
+            .agenda-integration-card h2 {
+              font-size: 19px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .agenda-integration-card button,
+            .agenda-integration-card > div > div,
+            .agenda-integration-card > div > button {
+              min-height: 40px !important;
+              padding: 9px 12px !important;
+              font-size: 12.5px !important;
+            }
+
+            .agenda-appointments-section {
+              padding: 16px !important;
+              border-radius: 18px !important;
+            }
+
+            .agenda-appointments-section h2 {
+              font-size: 22px !important;
+            }
+
+            .agenda-appointments-section > div:first-child {
+              margin-bottom: 12px !important;
+            }
+
+            .agenda-appointments-section > div:first-child button {
+              width: 100% !important;
+              padding: 9px 12px !important;
+              font-size: 12.5px !important;
+            }
+
+            .agenda-appointment-summary {
+              grid-template-columns: 1fr auto !important;
+              align-items: flex-start !important;
+            }
+
+            .agenda-appointment-summary h3 {
+              font-size: 16px !important;
+            }
+
+            .agenda-appointment-summary-meta {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+            }
+
+            .agenda-appointment-summary-meta span {
+              max-width: 100% !important;
+            }
+
+            .agenda-appointment-toggle {
+              width: 34px !important;
+              height: 34px !important;
+              padding: 0 !important;
+              font-size: 0 !important;
+              border-radius: 12px !important;
+              flex-shrink: 0 !important;
+            }
+
+            .agenda-appointment-toggle i {
+              font-size: 12px !important;
+            }
+
+            .agenda-appointment-details a,
+            .agenda-appointment-details button {
+              width: 100% !important;
+              justify-content: center !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .agenda-summary-card > div:nth-child(4) {
+              font-size: 15px !important;
+            }
+
+            .agenda-appointment-summary h3 {
+              font-size: 15px !important;
+            }
+          }
+
+          /* Ajuste final: cards superiores em colunas e seta centralizada */
+          @media (max-width: 900px) {
+            .chat-main-wrapper .agenda-page .agenda-summary-grid,
+            .agenda-page .agenda-summary-grid {
+              display: grid !important;
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 9px !important;
+              width: 100% !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .agenda-page .agenda-summary-card {
+              width: auto !important;
+              min-width: 0 !important;
+              min-height: 108px !important;
+              padding: 12px !important;
+              border-radius: 17px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(2),
+            .agenda-page .agenda-summary-card > div:nth-child(2) {
+              width: 34px !important;
+              height: 34px !important;
+              border-radius: 12px !important;
+              font-size: 15px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(3),
+            .agenda-page .agenda-summary-card > div:nth-child(3) {
+              font-size: 14px !important;
+              line-height: 1.1 !important;
+              margin-bottom: 6px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(4),
+            .agenda-page .agenda-summary-card > div:nth-child(4) {
+              font-size: 18px !important;
+              line-height: 1.08 !important;
+              word-break: break-word !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(5),
+            .agenda-page .agenda-summary-card > div:nth-child(5) {
+              display: none !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .chat-main-wrapper .agenda-page .agenda-summary-grid,
+            .agenda-page .agenda-summary-grid {
+              display: grid !important;
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 8px !important;
+              width: 100% !important;
+              margin-bottom: 14px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .agenda-page .agenda-summary-card {
+              width: auto !important;
+              min-width: 0 !important;
+              min-height: 90px !important;
+              padding: 10px !important;
+              border-radius: 15px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(2),
+            .agenda-page .agenda-summary-card > div:nth-child(2) {
+              width: 28px !important;
+              height: 28px !important;
+              border-radius: 10px !important;
+              font-size: 13px !important;
+              margin-bottom: 8px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(3),
+            .agenda-page .agenda-summary-card > div:nth-child(3) {
+              font-size: 12px !important;
+              line-height: 1.08 !important;
+              margin-bottom: 5px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(4),
+            .agenda-page .agenda-summary-card > div:nth-child(4) {
+              font-size: 16px !important;
+              line-height: 1.08 !important;
+            }
+
+            .agenda-appointment-toggle {
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              text-align: center !important;
+              line-height: 1 !important;
+            }
+
+            .agenda-appointment-toggle i {
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              width: 1em !important;
+              height: 1em !important;
+              line-height: 1 !important;
+              margin: 0 !important;
+              text-align: center !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .chat-main-wrapper .agenda-page .agenda-summary-grid,
+            .agenda-page .agenda-summary-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 7px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .agenda-page .agenda-summary-card {
+              min-height: 84px !important;
+              padding: 9px !important;
+            }
+
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(4),
+            .agenda-page .agenda-summary-card > div:nth-child(4) {
+              font-size: 15px !important;
+            }
+
+            .agenda-appointment-toggle {
+              width: 34px !important;
+              height: 34px !important;
+              min-width: 34px !important;
+              min-height: 34px !important;
+              padding: 0 !important;
+              border-radius: 12px !important;
+            }
+          }
+
+
+          /* Ajuste definitivo: agenda-summary-grid sem inline grid-template */
+          .agenda-summary-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+            width: 100% !important;
+          }
+
+          .agenda-summary-card {
+            width: auto !important;
+            min-width: 0 !important;
+          }
+
+          @media (max-width: 900px) {
+            .agenda-summary-grid {
+              display: grid !important;
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 9px !important;
+              width: 100% !important;
+            }
+
+            .agenda-summary-card {
+              min-height: 106px !important;
+              padding: 12px !important;
+              border-radius: 17px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(2) {
+              width: 34px !important;
+              height: 34px !important;
+              border-radius: 12px !important;
+              font-size: 15px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(3) {
+              font-size: 14px !important;
+              line-height: 1.1 !important;
+              margin-bottom: 6px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(4) {
+              font-size: 18px !important;
+              line-height: 1.08 !important;
+              word-break: break-word !important;
+            }
+
+            .agenda-summary-card > div:nth-child(5) {
+              display: none !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .agenda-summary-grid {
+              display: grid !important;
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 8px !important;
+              width: 100% !important;
+              margin-bottom: 14px !important;
+            }
+
+            .agenda-summary-card {
+              min-height: 88px !important;
+              padding: 10px !important;
+              border-radius: 15px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(2) {
+              width: 28px !important;
+              height: 28px !important;
+              border-radius: 10px !important;
+              font-size: 13px !important;
+              margin-bottom: 8px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(3) {
+              font-size: 12px !important;
+              line-height: 1.08 !important;
+              margin-bottom: 5px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(4) {
+              font-size: 16px !important;
+              line-height: 1.08 !important;
+            }
+
+            .agenda-appointment-toggle {
+              position: relative !important;
+              width: 34px !important;
+              height: 34px !important;
+              min-width: 34px !important;
+              min-height: 34px !important;
+              max-width: 34px !important;
+              max-height: 34px !important;
+              padding: 0 !important;
+              border-radius: 12px !important;
+              font-size: 0 !important;
+              gap: 0 !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              line-height: 1 !important;
+              overflow: hidden !important;
+            }
+
+            .agenda-appointment-toggle i {
+              position: absolute !important;
+              inset: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              font-size: 12px !important;
+              line-height: 1 !important;
+              text-align: center !important;
+            }
+
+            .agenda-appointment-toggle i::before {
+              display: block !important;
+              line-height: 1 !important;
+              margin: 0 !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .agenda-summary-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 7px !important;
+            }
+
+            .agenda-summary-card {
+              min-height: 82px !important;
+              padding: 9px !important;
+            }
+
+            .agenda-summary-card > div:nth-child(4) {
+              font-size: 15px !important;
+            }
+          }
+
+        `}</style>
+
 
       {appointmentToCancel && (
         <Modal onClose={closeCancelModal} maxWidth="520px" zIndex={1001}>

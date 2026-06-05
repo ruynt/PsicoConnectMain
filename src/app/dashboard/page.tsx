@@ -154,6 +154,8 @@ type MetricCardProps = {
   tone: "blue" | "green" | "amber" | "purple" | "red" | "slate";
 };
 
+type DashboardExpandableSection = "tasks" | "materials" | "checkins" | "notes";
+
 const tones = {
   blue: {
     bg: "#eff6ff",
@@ -202,6 +204,14 @@ export default function PsychologistDashboardPage() {
     message: string;
   } | null>(null);
   const [reviewingCancellationId, setReviewingCancellationId] = useState("");
+  const [expandedDashboardSections, setExpandedDashboardSections] = useState<
+    Record<DashboardExpandableSection, boolean>
+  >({
+    tasks: false,
+    materials: false,
+    checkins: false,
+    notes: false,
+  });
 
   async function loadDashboard() {
     try {
@@ -232,6 +242,13 @@ export default function PsychologistDashboardPage() {
     setTimeout(() => {
       setFeedback(null);
     }, 5000);
+  }
+
+  function toggleDashboardSection(section: DashboardExpandableSection) {
+    setExpandedDashboardSections((currentSections) => ({
+      ...currentSections,
+      [section]: !currentSections[section],
+    }));
   }
 
   async function handleReviewCancellation(
@@ -435,6 +452,7 @@ export default function PsychologistDashboardPage() {
 
     return (
       <div
+        className="dashboard-metric-card"
         style={{
           ...cardStyle,
           minHeight: "132px",
@@ -577,8 +595,9 @@ export default function PsychologistDashboardPage() {
   }
 
   return (
-    <div style={pageStyle}>
+    <div className="dashboard-page" style={pageStyle}>
       <section
+        className="dashboard-hero"
         style={{
           background: "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
           borderRadius: "28px",
@@ -727,6 +746,7 @@ export default function PsychologistDashboardPage() {
       )}
 
       <div
+        className="dashboard-metrics-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -799,6 +819,7 @@ export default function PsychologistDashboardPage() {
       )}
 
       <div
+        className="dashboard-metrics-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -1036,6 +1057,7 @@ export default function PsychologistDashboardPage() {
         }}
       >
         <div
+          className="dashboard-attention-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "1.3fr 0.9fr",
@@ -1375,6 +1397,7 @@ export default function PsychologistDashboardPage() {
       </section>
 
       <div
+        className="dashboard-main-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1.05fr 1fr",
@@ -1555,6 +1578,7 @@ export default function PsychologistDashboardPage() {
       </div>
 
       <div
+        className="dashboard-detail-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
@@ -1562,35 +1586,189 @@ export default function PsychologistDashboardPage() {
           marginBottom: "20px",
         }}
       >
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: "6px",
-            }}
-          >
-            Tarefas terapêuticas recentes
-          </h2>
-          <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
-            Últimas atividades criadas, concluídas ou atualizadas.
-          </p>
+        <section className="dashboard-collapsible-card" style={cardStyle}>
+          <div className="dashboard-collapsible-header">
+            <div>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Tarefas terapêuticas recentes
+              </h2>
+              <p style={{ color: "#64748b", marginTop: 0, marginBottom: 0 }}>
+                Últimas atividades criadas, concluídas ou atualizadas.
+              </p>
+              <span className="dashboard-section-count">
+                {data.recentTasks.length} tarefa(s) registrada(s)
+              </span>
+            </div>
 
-          {data.recentTasks.length === 0 ? (
-            <p style={{ color: "#64748b", margin: 0 }}>
-              Nenhuma tarefa terapêutica registrada recentemente.
-            </p>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            <button
+              type="button"
+              className="dashboard-toggle-button"
+              onClick={() => toggleDashboardSection("tasks")}
             >
-              {data.recentTasks.map((task) => {
-                const statusStyle = getTaskStatusStyle(task.status);
+              <i
+                className={`fa-solid ${
+                  expandedDashboardSections.tasks ? "fa-chevron-up" : "fa-chevron-down"
+                }`}
+              ></i>
+              {expandedDashboardSections.tasks ? "Ocultar detalhes" : "Exibir detalhes"}
+            </button>
+          </div>
 
-                return (
+          {expandedDashboardSections.tasks ? (
+            data.recentTasks.length === 0 ? (
+              <p style={{ color: "#64748b", margin: 0 }}>
+                Nenhuma tarefa terapêutica registrada recentemente.
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+              >
+                {data.recentTasks.map((task) => {
+                  const statusStyle = getTaskStatusStyle(task.status);
+
+                  return (
+                    <div
+                      key={task.id}
+                      className="dashboard-inner-item"
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "18px",
+                        padding: "16px",
+                        backgroundColor: "#f8fafc",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                          alignItems: "flex-start",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              color: "#0f172a",
+                              fontWeight: 900,
+                              marginBottom: "4px",
+                            }}
+                          >
+                            {task.title}
+                          </p>
+
+                          <p style={{ color: "#475569", margin: 0 }}>
+                            Paciente: {task.patientName}
+                          </p>
+                        </div>
+
+                        <span
+                          style={{
+                            ...statusStyle,
+                            borderRadius: "999px",
+                            padding: "5px 10px",
+                            fontSize: "12px",
+                            fontWeight: 900,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {getTaskStatusLabel(task.status)}
+                        </span>
+                      </div>
+
+                      {task.dueDate && (
+                        <p style={{ color: "#475569", marginBottom: "6px" }}>
+                          <strong>Prazo:</strong> {formatDateOnly(task.dueDate)}
+                        </p>
+                      )}
+
+                      {task.description && (
+                        <p style={{ color: "#475569", marginBottom: "12px" }}>
+                          {task.description}
+                        </p>
+                      )}
+
+                      <Link
+                        href={`/pacientes/${task.patientId}`}
+                        style={secondaryButtonStyle}
+                      >
+                        Ver paciente
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            <div className="dashboard-collapsed-summary">
+              <span>
+                <strong>{data.metrics.pendingTasksCount}</strong> pendente(s)
+              </span>
+              <span>
+                <strong>{data.metrics.completedTasksCount}</strong> concluída(s)
+              </span>
+              <span>
+                <strong>{data.metrics.dueSoonTasksCount}</strong> próximas do prazo
+              </span>
+            </div>
+          )}
+        </section>
+
+        <section className="dashboard-collapsible-card" style={cardStyle}>
+          <div className="dashboard-collapsible-header">
+            <div>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Materiais psicoeducativos recentes
+              </h2>
+              <p style={{ color: "#64748b", marginTop: 0, marginBottom: 0 }}>
+                Conteúdos enviados e status de visualização pelos pacientes.
+              </p>
+              <span className="dashboard-section-count">
+                {data.recentMaterials.length} material(is) recente(s)
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="dashboard-toggle-button"
+              onClick={() => toggleDashboardSection("materials")}
+            >
+              <i
+                className={`fa-solid ${
+                  expandedDashboardSections.materials ? "fa-chevron-up" : "fa-chevron-down"
+                }`}
+              ></i>
+              {expandedDashboardSections.materials ? "Ocultar detalhes" : "Exibir detalhes"}
+            </button>
+          </div>
+
+          {expandedDashboardSections.materials ? (
+            data.recentMaterials.length === 0 ? (
+              <p style={{ color: "#64748b", margin: 0 }}>
+                Nenhum material psicoeducativo enviado recentemente.
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+              >
+                {data.recentMaterials.map((material) => (
                   <div
-                    key={task.id}
+                    key={material.id}
+                    className="dashboard-inner-item"
                     style={{
                       border: "1px solid #e2e8f0",
                       borderRadius: "18px",
@@ -1608,6 +1786,24 @@ export default function PsychologistDashboardPage() {
                       }}
                     >
                       <div>
+                        {material.category && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              backgroundColor: "#eff6ff",
+                              color: "#1d4ed8",
+                              border: "1px solid #bfdbfe",
+                              borderRadius: "999px",
+                              padding: "4px 10px",
+                              fontSize: "12px",
+                              fontWeight: 900,
+                              marginBottom: "8px",
+                            }}
+                          >
+                            {material.category}
+                          </span>
+                        )}
+
                         <p
                           style={{
                             color: "#0f172a",
@@ -1615,17 +1811,23 @@ export default function PsychologistDashboardPage() {
                             marginBottom: "4px",
                           }}
                         >
-                          {task.title}
+                          {material.title}
                         </p>
 
                         <p style={{ color: "#475569", margin: 0 }}>
-                          Paciente: {task.patientName}
+                          Paciente: {material.patientName}
                         </p>
                       </div>
 
                       <span
                         style={{
-                          ...statusStyle,
+                          backgroundColor: material.viewedAt
+                            ? "#ecfdf5"
+                            : "#fef2f2",
+                          color: material.viewedAt ? "#065f46" : "#b91c1c",
+                          border: material.viewedAt
+                            ? "1px solid #a7f3d0"
+                            : "1px solid #fecaca",
                           borderRadius: "999px",
                           padding: "5px 10px",
                           fontSize: "12px",
@@ -1633,292 +1835,700 @@ export default function PsychologistDashboardPage() {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {getTaskStatusLabel(task.status)}
+                        {material.viewedAt ? "Visualizado" : "Não visualizado"}
                       </span>
                     </div>
 
-                    {task.dueDate && (
-                      <p style={{ color: "#475569", marginBottom: "6px" }}>
-                        <strong>Prazo:</strong> {formatDateOnly(task.dueDate)}
+                    {material.description && (
+                      <p style={{ color: "#475569", marginBottom: "10px" }}>
+                        {material.description}
                       </p>
                     )}
 
-                    {task.description && (
-                      <p style={{ color: "#475569", marginBottom: "12px" }}>
-                        {task.description}
-                      </p>
-                    )}
+                    <p
+                      style={{
+                        color: "#64748b",
+                        marginBottom: "12px",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Enviado em {formatDate(material.createdAt)}
+                      {material.viewedAt
+                        ? ` · Visualizado em ${formatDate(material.viewedAt)}`
+                        : ""}
+                    </p>
 
                     <Link
-                      href={`/pacientes/${task.patientId}`}
+                      href={`/pacientes/${material.patientId}`}
                       style={secondaryButtonStyle}
                     >
                       Ver paciente
                     </Link>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: "6px",
-            }}
-          >
-            Materiais psicoeducativos recentes
-          </h2>
-          <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
-            Conteúdos enviados e status de visualização pelos pacientes.
-          </p>
-
-          {data.recentMaterials.length === 0 ? (
-            <p style={{ color: "#64748b", margin: 0 }}>
-              Nenhum material psicoeducativo enviado recentemente.
-            </p>
+                ))}
+              </div>
+            )
           ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              {data.recentMaterials.map((material) => (
-                <div
-                  key={material.id}
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "18px",
-                    padding: "16px",
-                    backgroundColor: "#f8fafc",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "10px",
-                      alignItems: "flex-start",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    <div>
-                      {material.category && (
-                        <span
-                          style={{
-                            display: "inline-block",
-                            backgroundColor: "#eff6ff",
-                            color: "#1d4ed8",
-                            border: "1px solid #bfdbfe",
-                            borderRadius: "999px",
-                            padding: "4px 10px",
-                            fontSize: "12px",
-                            fontWeight: 900,
-                            marginBottom: "8px",
-                          }}
-                        >
-                          {material.category}
-                        </span>
-                      )}
-
-                      <p
-                        style={{
-                          color: "#0f172a",
-                          fontWeight: 900,
-                          marginBottom: "4px",
-                        }}
-                      >
-                        {material.title}
-                      </p>
-
-                      <p style={{ color: "#475569", margin: 0 }}>
-                        Paciente: {material.patientName}
-                      </p>
-                    </div>
-
-                    <span
-                      style={{
-                        backgroundColor: material.viewedAt
-                          ? "#ecfdf5"
-                          : "#fef2f2",
-                        color: material.viewedAt ? "#065f46" : "#b91c1c",
-                        border: material.viewedAt
-                          ? "1px solid #a7f3d0"
-                          : "1px solid #fecaca",
-                        borderRadius: "999px",
-                        padding: "5px 10px",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {material.viewedAt ? "Visualizado" : "Não visualizado"}
-                    </span>
-                  </div>
-
-                  {material.description && (
-                    <p style={{ color: "#475569", marginBottom: "10px" }}>
-                      {material.description}
-                    </p>
-                  )}
-
-                  <p
-                    style={{
-                      color: "#64748b",
-                      marginBottom: "12px",
-                      fontSize: "14px",
-                    }}
-                  >
-                    Enviado em {formatDate(material.createdAt)}
-                    {material.viewedAt
-                      ? ` · Visualizado em ${formatDate(material.viewedAt)}`
-                      : ""}
-                  </p>
-
-                  <Link
-                    href={`/pacientes/${material.patientId}`}
-                    style={secondaryButtonStyle}
-                  >
-                    Ver paciente
-                  </Link>
-                </div>
-              ))}
+            <div className="dashboard-collapsed-summary">
+              <span>
+                <strong>{data.metrics.materialsCount}</strong> enviados
+              </span>
+              <span>
+                <strong>{data.metrics.viewedMaterialsCount}</strong> visualizados
+              </span>
+              <span>
+                <strong>{data.metrics.unviewedMaterialsCount}</strong> pendentes
+              </span>
             </div>
           )}
         </section>
       </div>
 
       <div
+        className="dashboard-detail-grid dashboard-detail-grid-final"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}
       >
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: "6px",
-            }}
-          >
-            Checklists pré-sessão recentes
-          </h2>
-          <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
-            Respostas enviadas pelos pacientes antes dos atendimentos.
-          </p>
+        <section className="dashboard-collapsible-card" style={cardStyle}>
+          <div className="dashboard-collapsible-header">
+            <div>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Checklists pré-sessão recentes
+              </h2>
+              <p style={{ color: "#64748b", marginTop: 0, marginBottom: 0 }}>
+                Respostas enviadas pelos pacientes antes dos atendimentos.
+              </p>
+              <span className="dashboard-section-count">
+                {data.recentCheckins.length} checklist(s) recente(s)
+              </span>
+            </div>
 
-          {data.recentCheckins.length === 0 ? (
-            <p style={{ color: "#64748b", margin: 0 }}>
-              Nenhum checklist respondido recentemente.
-            </p>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            <button
+              type="button"
+              className="dashboard-toggle-button"
+              onClick={() => toggleDashboardSection("checkins")}
             >
-              {data.recentCheckins.map((checkin) => (
-                <div
-                  key={checkin.id}
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "18px",
-                    padding: "16px",
-                    backgroundColor: "#f8fafc",
-                  }}
-                >
-                  <p
+              <i
+                className={`fa-solid ${
+                  expandedDashboardSections.checkins ? "fa-chevron-up" : "fa-chevron-down"
+                }`}
+              ></i>
+              {expandedDashboardSections.checkins ? "Ocultar detalhes" : "Exibir detalhes"}
+            </button>
+          </div>
+
+          {expandedDashboardSections.checkins ? (
+            data.recentCheckins.length === 0 ? (
+              <p style={{ color: "#64748b", margin: 0 }}>
+                Nenhum checklist respondido recentemente.
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+              >
+                {data.recentCheckins.map((checkin) => (
+                  <div
+                    key={checkin.id}
+                    className="dashboard-inner-item"
                     style={{
-                      color: "#0f172a",
-                      fontWeight: 900,
-                      marginBottom: "6px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "18px",
+                      padding: "16px",
+                      backgroundColor: "#f8fafc",
                     }}
                   >
-                    {checkin.patientName}
-                  </p>
+                    <p
+                      style={{
+                        color: "#0f172a",
+                        fontWeight: 900,
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {checkin.patientName}
+                    </p>
 
-                  <p style={{ color: "#475569", marginBottom: "6px" }}>
-                    {checkin.appointmentTitle} ·{" "}
-                    {formatDate(checkin.appointmentDateTime)}
-                  </p>
+                    <p style={{ color: "#475569", marginBottom: "6px" }}>
+                      {checkin.appointmentTitle} ·{" "}
+                      {formatDate(checkin.appointmentDateTime)}
+                    </p>
 
-                  <p style={{ color: "#475569", marginBottom: "12px" }}>
-                    Humor: {checkin.moodLevel ?? "--"}/10 · Ansiedade:{" "}
-                    {checkin.anxietyLevel ?? "--"}/10 · Sono:{" "}
-                    {checkin.sleepLevel ?? "--"}/10
-                  </p>
+                    <p style={{ color: "#475569", marginBottom: "12px" }}>
+                      Humor: {checkin.moodLevel ?? "--"}/10 · Ansiedade:{" "}
+                      {checkin.anxietyLevel ?? "--"}/10 · Sono:{" "}
+                      {checkin.sleepLevel ?? "--"}/10
+                    </p>
 
-                  <Link
-                    href={`/pacientes/${checkin.patientId}`}
-                    style={secondaryButtonStyle}
-                  >
-                    Ver paciente
-                  </Link>
-                </div>
-              ))}
+                    <Link
+                      href={`/pacientes/${checkin.patientId}`}
+                      style={secondaryButtonStyle}
+                    >
+                      Ver paciente
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="dashboard-collapsed-summary">
+              <span>
+                <strong>{data.metrics.recentCheckinsCount}</strong> respostas recentes
+              </span>
+
             </div>
           )}
         </section>
 
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: "6px",
-            }}
-          >
-            Anotações recentes
-          </h2>
-          <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
-            Registros clínicos internos atualizados recentemente.
-          </p>
+        <section className="dashboard-collapsible-card" style={cardStyle}>
+          <div className="dashboard-collapsible-header">
+            <div>
+              <h2
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Anotações recentes
+              </h2>
+              <p style={{ color: "#64748b", marginTop: 0, marginBottom: 0 }}>
+                Registros clínicos internos atualizados recentemente.
+              </p>
+              <span className="dashboard-section-count">
+                {data.recentNotes.length} anotação(ões) recente(s)
+              </span>
+            </div>
 
-          {data.recentNotes.length === 0 ? (
-            <p style={{ color: "#64748b", margin: 0 }}>
-              Nenhuma anotação recente registrada.
-            </p>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            <button
+              type="button"
+              className="dashboard-toggle-button"
+              onClick={() => toggleDashboardSection("notes")}
             >
-              {data.recentNotes.map((note) => (
-                <div
-                  key={note.id}
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "18px",
-                    padding: "16px",
-                    backgroundColor: "#f8fafc",
-                  }}
-                >
-                  <p
+              <i
+                className={`fa-solid ${
+                  expandedDashboardSections.notes ? "fa-chevron-up" : "fa-chevron-down"
+                }`}
+              ></i>
+              {expandedDashboardSections.notes ? "Ocultar detalhes" : "Exibir detalhes"}
+            </button>
+          </div>
+
+          {expandedDashboardSections.notes ? (
+            data.recentNotes.length === 0 ? (
+              <p style={{ color: "#64748b", margin: 0 }}>
+                Nenhuma anotação recente registrada.
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+              >
+                {data.recentNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="dashboard-inner-item"
                     style={{
-                      color: "#0f172a",
-                      fontWeight: 900,
-                      marginBottom: "6px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "18px",
+                      padding: "16px",
+                      backgroundColor: "#f8fafc",
                     }}
                   >
-                    {note.title}
-                  </p>
+                    <p
+                      style={{
+                        color: "#0f172a",
+                        fontWeight: 900,
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {note.title}
+                    </p>
 
-                  <p style={{ color: "#475569", marginBottom: "12px" }}>
-                    Paciente: {note.patientName} · Atualizada em{" "}
-                    {formatDate(note.updatedAt)}
-                  </p>
+                    <p style={{ color: "#475569", marginBottom: "12px" }}>
+                      Paciente: {note.patientName} · Atualizada em{" "}
+                      {formatDate(note.updatedAt)}
+                    </p>
 
-                  <Link
-                    href={`/pacientes/${note.patientId}`}
-                    style={secondaryButtonStyle}
-                  >
-                    Ver paciente
-                  </Link>
-                </div>
-              ))}
+                    <Link
+                      href={`/pacientes/${note.patientId}`}
+                      style={secondaryButtonStyle}
+                    >
+                      Ver paciente
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="dashboard-collapsed-summary">
+              <span>
+                <strong>{data.metrics.recentNotesCount}</strong> registros recentes
+              </span>
+
             </div>
           )}
         </section>
       </div>
+
+
+      <style>{`
+        .dashboard-page {
+          width: 100%;
+        }
+
+        .dashboard-hero,
+        .dashboard-metric-card,
+        .dashboard-collapsible-card {
+          min-width: 0;
+        }
+
+        .dashboard-hero h1,
+        .dashboard-hero h1 *,
+        .dashboard-hero p,
+        .dashboard-hero span {
+          color: #ffffff !important;
+        }
+
+        .dashboard-collapsible-header {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 14px;
+          align-items: flex-start;
+          margin-bottom: 16px;
+        }
+
+        .dashboard-section-count {
+          display: inline-flex;
+          width: fit-content;
+          margin-top: 10px;
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          color: #1d4ed8;
+          border-radius: 999px;
+          padding: 5px 10px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .dashboard-toggle-button {
+          border: 1px solid #bfdbfe;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border-radius: 999px;
+          padding: 9px 12px;
+          font-size: 13px;
+          font-weight: 900;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          white-space: nowrap;
+          transition: 0.18s ease;
+        }
+
+        .dashboard-toggle-button:hover {
+          background: #dbeafe;
+          border-color: #93c5fd;
+        }
+
+        .dashboard-collapsed-summary {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .dashboard-collapsed-summary span {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          border-radius: 999px;
+          padding: 7px 10px;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
+
+        .dashboard-collapsed-summary strong {
+          color: #0f172a;
+          font-weight: 900;
+        }
+
+        @media (max-width: 1180px) {
+          .dashboard-page {
+            padding: 28px !important;
+            padding-bottom: 130px !important;
+          }
+
+          .dashboard-metrics-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+          }
+
+          .dashboard-attention-grid,
+          .dashboard-main-grid,
+          .dashboard-detail-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+
+          .dashboard-metric-card {
+            min-height: 116px !important;
+            padding: 16px !important;
+          }
+
+          .dashboard-metric-card p:last-child {
+            font-size: 12px !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .dashboard-page {
+            padding: 20px !important;
+            padding-bottom: 120px !important;
+            border-radius: 24px !important;
+          }
+
+          .dashboard-hero {
+            padding: 24px !important;
+            border-radius: 24px !important;
+            margin-bottom: 18px !important;
+          }
+
+          .dashboard-hero h1 {
+            font-size: 34px !important;
+            line-height: 1.08 !important;
+          }
+
+          .dashboard-hero p {
+            font-size: 15px !important;
+            line-height: 1.45 !important;
+          }
+
+          .dashboard-hero a {
+            flex: 1 1 170px !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+          }
+
+          .dashboard-metrics-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+            margin-bottom: 14px !important;
+          }
+
+          .dashboard-metric-card {
+            min-height: 96px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+          }
+
+          .dashboard-metric-card > div:nth-child(2) {
+            height: 100% !important;
+            flex-direction: column-reverse !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
+
+          .dashboard-metric-card p:first-child {
+            font-size: 10.5px !important;
+            line-height: 1.08 !important;
+            margin-bottom: 4px !important;
+          }
+
+          .dashboard-metric-card p:nth-child(2) {
+            font-size: 22px !important;
+          }
+
+          .dashboard-metric-card p:last-child {
+            display: none !important;
+          }
+
+          .dashboard-metric-card > div:nth-child(2) > div:last-child {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 10px !important;
+            font-size: 12px !important;
+          }
+
+          .dashboard-collapsible-card {
+            padding: 20px !important;
+            border-radius: 20px !important;
+          }
+
+          .dashboard-collapsible-header {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+
+          .dashboard-collapsible-card h2 {
+            font-size: 23px !important;
+            line-height: 1.12 !important;
+          }
+
+          .dashboard-collapsible-card p {
+            font-size: 14px !important;
+            line-height: 1.45 !important;
+          }
+
+          .dashboard-toggle-button {
+            width: fit-content !important;
+            padding: 8px 11px !important;
+            font-size: 12.5px !important;
+          }
+
+          .dashboard-inner-item {
+            padding: 14px !important;
+            border-radius: 16px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .dashboard-page {
+            padding: 16px !important;
+            padding-bottom: 110px !important;
+            border-radius: 20px !important;
+          }
+
+          .dashboard-hero {
+            padding: 18px !important;
+            border-radius: 22px !important;
+          }
+
+          .dashboard-hero span {
+            font-size: 12px !important;
+            padding: 6px 10px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .dashboard-hero h1 {
+            font-size: 28px !important;
+            line-height: 1.08 !important;
+            margin-bottom: 0 !important;
+          }
+
+          .dashboard-hero p {
+            display: none !important;
+          }
+
+          .dashboard-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+          }
+
+          .dashboard-metric-card {
+            min-height: 86px !important;
+            padding: 9px !important;
+            border-radius: 15px !important;
+          }
+
+          .dashboard-metric-card p:first-child {
+            font-size: 9.5px !important;
+            line-height: 1.05 !important;
+          }
+
+          .dashboard-metric-card p:nth-child(2) {
+            font-size: 21px !important;
+          }
+
+          .dashboard-metric-card > div:nth-child(2) > div:last-child {
+            width: 25px !important;
+            height: 25px !important;
+            border-radius: 9px !important;
+            font-size: 10.5px !important;
+          }
+
+          .dashboard-collapsible-card {
+            padding: 16px !important;
+            border-radius: 18px !important;
+          }
+
+          .dashboard-collapsible-card h2 {
+            font-size: 21px !important;
+          }
+
+          .dashboard-collapsible-card > .dashboard-collapsible-header > div > p {
+            display: none !important;
+          }
+
+          .dashboard-section-count {
+            font-size: 11.5px !important;
+            padding: 5px 9px !important;
+          }
+
+          .dashboard-toggle-button {
+            padding: 7px 10px !important;
+            font-size: 12px !important;
+          }
+
+          .dashboard-collapsed-summary {
+            flex-direction: column !important;
+            gap: 7px !important;
+          }
+
+          .dashboard-collapsed-summary span {
+            width: fit-content;
+            font-size: 12px !important;
+            padding: 6px 9px !important;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .dashboard-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .dashboard-metric-card {
+            min-height: 82px !important;
+          }
+
+          .dashboard-toggle-button {
+            width: 100% !important;
+          }
+        }
+
+        /* Ajuste final: métricas em colunas no mobile */
+        @media (max-width: 1180px) {
+          .chat-main-wrapper .dashboard-page .dashboard-metrics-grid,
+          .dashboard-page .dashboard-metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card,
+          .dashboard-page .dashboard-metric-card {
+            width: auto !important;
+            min-width: 0 !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .chat-main-wrapper .dashboard-page .dashboard-metrics-grid,
+          .dashboard-page .dashboard-metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card,
+          .dashboard-page .dashboard-metric-card {
+            width: auto !important;
+            min-width: 0 !important;
+            min-height: 94px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card > div:nth-child(2),
+          .dashboard-page .dashboard-metric-card > div:nth-child(2) {
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column-reverse !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card p:first-child,
+          .dashboard-page .dashboard-metric-card p:first-child {
+            font-size: 10px !important;
+            line-height: 1.08 !important;
+            margin-bottom: 4px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card p:nth-child(2),
+          .dashboard-page .dashboard-metric-card p:nth-child(2) {
+            font-size: 22px !important;
+            line-height: 1 !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card p:last-child,
+          .dashboard-page .dashboard-metric-card p:last-child {
+            display: none !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card > div:nth-child(2) > div:last-child,
+          .dashboard-page .dashboard-metric-card > div:nth-child(2) > div:last-child {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
+            border-radius: 10px !important;
+            font-size: 12px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .chat-main-wrapper .dashboard-page .dashboard-metrics-grid,
+          .dashboard-page .dashboard-metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card,
+          .dashboard-page .dashboard-metric-card {
+            width: auto !important;
+            min-width: 0 !important;
+            min-height: 84px !important;
+            padding: 9px !important;
+            border-radius: 15px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card p:first-child,
+          .dashboard-page .dashboard-metric-card p:first-child {
+            font-size: 9.3px !important;
+            line-height: 1.05 !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card p:nth-child(2),
+          .dashboard-page .dashboard-metric-card p:nth-child(2) {
+            font-size: 21px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card > div:nth-child(2) > div:last-child,
+          .dashboard-page .dashboard-metric-card > div:nth-child(2) > div:last-child {
+            width: 25px !important;
+            height: 25px !important;
+            min-width: 25px !important;
+            min-height: 25px !important;
+            border-radius: 9px !important;
+            font-size: 10.5px !important;
+          }
+
+          .dashboard-collapsed-summary span {
+            width: fit-content !important;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .chat-main-wrapper .dashboard-page .dashboard-metrics-grid,
+          .dashboard-page .dashboard-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 7px !important;
+          }
+
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card,
+          .dashboard-page .dashboard-metric-card {
+            min-height: 80px !important;
+            padding: 8px !important;
+          }
+        }
+
+      `}</style>
+
 
       <div aria-hidden="true" style={{ height: "96px" }} />
     </div>

@@ -157,6 +157,22 @@ export default function PatientHomePage() {
   const [cancelRequestReason, setCancelRequestReason] = useState("");
   const [cancelRequestError, setCancelRequestError] = useState("");
   const [savingCancelRequest, setSavingCancelRequest] = useState(false);
+  const [expandedPatientSections, setExpandedPatientSections] = useState({
+    appointment: false,
+    tasks: false,
+    materials: false,
+    summary: false,
+  });
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+
+  function togglePatientSection(
+    section: keyof typeof expandedPatientSections,
+  ) {
+    setExpandedPatientSections((previous) => ({
+      ...previous,
+      [section]: !previous[section],
+    }));
+  }
 
   async function loadAppointments() {
     try {
@@ -235,6 +251,19 @@ export default function PatientHomePage() {
 
   useEffect(() => {
     loadPageData();
+  }, []);
+
+  useEffect(() => {
+    function updateMobileLayout() {
+      setIsMobileLayout(window.innerWidth <= 640);
+    }
+
+    updateMobileLayout();
+    window.addEventListener("resize", updateMobileLayout);
+
+    return () => {
+      window.removeEventListener("resize", updateMobileLayout);
+    };
   }, []);
 
   const now = new Date();
@@ -612,7 +641,7 @@ export default function PatientHomePage() {
   const pageStyle = {
     padding: "36px",
     minHeight: "calc(100vh - 48px)",
-    paddingBottom: "72px",
+    paddingBottom: "150px",
     background:
       "radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 32%), #f8fafc",
     borderRadius: "32px",
@@ -644,8 +673,8 @@ export default function PatientHomePage() {
   } as const;
 
   const secondaryButtonStyle = {
-    backgroundColor: "#eff6ff",
-    color: "#1d4ed8",
+    backgroundColor: "#ffffff",
+    color: "#001e5e",
     border: "1px solid #bfdbfe",
     borderRadius: "14px",
     padding: "11px 16px",
@@ -669,21 +698,28 @@ export default function PatientHomePage() {
 
     return (
       <div
+        className="patient-metric-card"
         style={{
           ...cardStyle,
-          minHeight: "132px",
-          padding: "20px",
+          height: isMobileLayout ? "92px" : undefined,
+          minHeight: isMobileLayout ? "92px" : "132px",
+          padding: isMobileLayout ? "10px" : "20px",
+          borderRadius: isMobileLayout ? "16px" : "22px",
           position: "relative",
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: isMobileLayout ? "space-between" : "flex-start",
         }}
       >
         <div
+          className="patient-metric-bg"
           style={{
             position: "absolute",
-            right: "-24px",
-            top: "-24px",
-            width: "94px",
-            height: "94px",
+            right: isMobileLayout ? "-22px" : "-24px",
+            top: isMobileLayout ? "-22px" : "-24px",
+            width: isMobileLayout ? "58px" : "94px",
+            height: isMobileLayout ? "58px" : "94px",
             borderRadius: "999px",
             backgroundColor: selectedTone.bg,
           }}
@@ -691,7 +727,7 @@ export default function PatientHomePage() {
 
         <div
           style={{
-            display: "flex",
+            display: isMobileLayout ? "block" : "flex",
             justifyContent: "space-between",
             gap: "12px",
             alignItems: "flex-start",
@@ -701,20 +737,25 @@ export default function PatientHomePage() {
         >
           <div>
             <p
+              className="patient-metric-label"
               style={{
                 color: "#64748b",
-                fontSize: "13px",
+                fontSize: isMobileLayout ? "10.5px" : "13px",
+                lineHeight: isMobileLayout ? 1.1 : 1.2,
                 fontWeight: 800,
-                marginBottom: "8px",
+                marginBottom: isMobileLayout ? "5px" : "8px",
+                maxWidth: isMobileLayout ? "70px" : undefined,
+                overflowWrap: "anywhere",
               }}
             >
               {label}
             </p>
 
             <p
+              className="patient-metric-value"
               style={{
                 color: selectedTone.text,
-                fontSize: "36px",
+                fontSize: isMobileLayout ? "24px" : "36px",
                 fontWeight: 900,
                 lineHeight: 1,
                 margin: 0,
@@ -725,36 +766,46 @@ export default function PatientHomePage() {
           </div>
 
           <div
+            className="patient-metric-icon"
             style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "14px",
+              position: isMobileLayout ? "absolute" : "static",
+              right: isMobileLayout ? "0" : undefined,
+              bottom: isMobileLayout ? "-34px" : undefined,
+              width: isMobileLayout ? "28px" : "42px",
+              height: isMobileLayout ? "28px" : "42px",
+              minWidth: isMobileLayout ? "28px" : undefined,
+              minHeight: isMobileLayout ? "28px" : undefined,
+              borderRadius: isMobileLayout ? "10px" : "14px",
               backgroundColor: selectedTone.bg,
               border: `1px solid ${selectedTone.border}`,
               color: selectedTone.text,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "20px",
+              fontSize: isMobileLayout ? "13px" : "20px",
               flexShrink: 0,
+              zIndex: 2,
             }}
           >
             <i className={icon}></i>
           </div>
         </div>
 
-        <p
-          style={{
-            color: "#64748b",
-            fontSize: "13px",
-            marginTop: "12px",
-            marginBottom: 0,
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          {description}
-        </p>
+        {!isMobileLayout && (
+          <p
+            className="patient-metric-description"
+            style={{
+              color: "#64748b",
+              fontSize: "13px",
+              marginTop: "12px",
+              marginBottom: 0,
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {description}
+          </p>
+        )}
       </div>
     );
   }
@@ -782,6 +833,7 @@ export default function PatientHomePage() {
     <>
       <div style={pageStyle}>
         <section
+          className="patient-hero-section"
           style={{
             background:
               "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
@@ -819,6 +871,7 @@ export default function PatientHomePage() {
           />
 
           <div
+            className="patient-hero-main-row"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -828,7 +881,7 @@ export default function PatientHomePage() {
               zIndex: 1,
             }}
           >
-            <div>
+            <div className="patient-hero-copy">
               <span
                 style={{
                   display: "inline-flex",
@@ -874,7 +927,10 @@ export default function PatientHomePage() {
               </p>
             </div>
 
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <div
+              className="patient-hero-actions"
+              style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+            >
               <Link
                 href="/minhas-consultas"
                 style={{
@@ -1012,6 +1068,7 @@ export default function PatientHomePage() {
                     </div>
 
                     <span
+                      className="patient-status-pill"
                       style={{
                         backgroundColor: confirmationInfo.bg,
                         color: confirmationInfo.color,
@@ -1020,7 +1077,10 @@ export default function PatientHomePage() {
                         padding: "7px 12px",
                         fontSize: "12px",
                         fontWeight: 900,
-                        whiteSpace: "nowrap",
+                        whiteSpace: "normal",
+                        overflowWrap: "anywhere",
+                        textAlign: "center",
+                        maxWidth: "100%",
                       }}
                     >
                       {confirmationInfo.label}
@@ -1140,8 +1200,8 @@ export default function PatientHomePage() {
                           }
                           style={{
                             ...primaryButtonStyle,
-                            background: "linear-gradient(135deg, #059669, #22c55e)",
-                            boxShadow: "0 10px 24px rgba(34, 197, 94, 0.20)",
+                            background: "#001e5e",
+                            boxShadow: "0 10px 24px rgba(0, 30, 94, 0.22)",
                             opacity:
                               updatingAppointmentId === upcoming24hAppointment.id
                                 ? 0.7
@@ -1163,9 +1223,9 @@ export default function PatientHomePage() {
                         type="button"
                         onClick={() => openCancelRequestModal(upcoming24hAppointment)}
                         style={{
-                          backgroundColor: "#fff7ed",
-                          color: "#c2410c",
-                          border: "1px solid #fed7aa",
+                          backgroundColor: "#ffffff",
+                          color: "#92400e",
+                          border: "1px solid #fcd34d",
                           borderRadius: "14px",
                           padding: "11px 16px",
                           fontWeight: 900,
@@ -1185,9 +1245,9 @@ export default function PatientHomePage() {
                           updatingAppointmentId === upcoming24hAppointment.id
                         }
                         style={{
-                          backgroundColor: "#fff7ed",
-                          color: "#c2410c",
-                          border: "1px solid #fed7aa",
+                          backgroundColor: "#ffffff",
+                          color: "#92400e",
+                          border: "1px solid #fcd34d",
                           borderRadius: "14px",
                           padding: "11px 16px",
                           fontWeight: 900,
@@ -1219,15 +1279,18 @@ export default function PatientHomePage() {
         )}
 
         <div
+          className="patient-metrics-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-            gap: "18px",
-            marginBottom: "24px",
+            gridTemplateColumns: isMobileLayout
+              ? "repeat(3, minmax(0, 1fr))"
+              : "repeat(5, minmax(0, 1fr))",
+            gap: isMobileLayout ? "8px" : "18px",
+            marginBottom: isMobileLayout ? "16px" : "24px",
           }}
         >
           <MetricCard
-            label="Próximas consultas"
+            label="Consultas"
             value={upcomingAppointments.length}
             description="Atendimentos futuros agendados."
             icon="fa-solid fa-calendar-check"
@@ -1235,7 +1298,7 @@ export default function PatientHomePage() {
           />
 
           <MetricCard
-            label="Checklists pendentes"
+            label="Checklists"
             value={pendingCheckins.length}
             description="Formulários para responder antes da sessão."
             icon="fa-solid fa-clipboard-question"
@@ -1243,7 +1306,7 @@ export default function PatientHomePage() {
           />
 
           <MetricCard
-            label="Tarefas pendentes"
+            label="Tarefas"
             value={pendingTasks.length}
             description="Atividades combinadas com o profissional."
             icon="fa-solid fa-list-check"
@@ -1251,7 +1314,7 @@ export default function PatientHomePage() {
           />
 
           <MetricCard
-            label="Materiais novos"
+            label="Materiais"
             value={unviewedMaterials.length}
             description="Conteúdos ainda não visualizados."
             icon="fa-solid fa-book-open"
@@ -1259,7 +1322,7 @@ export default function PatientHomePage() {
           />
 
           <MetricCard
-            label="Consultas canceladas"
+            label="Canceladas"
             value={cancelledAppointments.length}
             description="Atendimentos cancelados no histórico."
             icon="fa-solid fa-calendar-xmark"
@@ -1275,7 +1338,12 @@ export default function PatientHomePage() {
             marginBottom: "20px",
           }}
         >
-          <section style={cardStyle}>
+          <section
+            style={cardStyle}
+            className={`patient-detail-section ${
+              expandedPatientSections.appointment ? "is-open" : ""
+            }`}
+          >
             <h2
               style={{
                 fontSize: "28px",
@@ -1289,9 +1357,21 @@ export default function PatientHomePage() {
             <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
               Informações principais do próximo atendimento agendado.
             </p>
+            {isMobileLayout && (
+            <button
+                type="button"
+                className="patient-detail-toggle-button"
+                onClick={() => togglePatientSection("appointment")}
+              >
+                {expandedPatientSections.appointment
+                  ? "Ocultar detalhes"
+                  : "Exibir detalhes"}
+              </button>
+            )}
 
             {nextAppointment ? (
               <div
+                className="patient-clean-panel"
                 style={{
                   border: "1px solid #dbeafe",
                   borderRadius: "18px",
@@ -1360,6 +1440,7 @@ export default function PatientHomePage() {
                         </div>
 
                         <span
+                          className="patient-status-pill"
                           style={{
                             backgroundColor: confirmationInfo.bg,
                             color: confirmationInfo.color,
@@ -1368,7 +1449,10 @@ export default function PatientHomePage() {
                             padding: "6px 12px",
                             fontSize: "12px",
                             fontWeight: 900,
-                            whiteSpace: "nowrap",
+                            whiteSpace: "normal",
+                            overflowWrap: "anywhere",
+                            textAlign: "center",
+                            maxWidth: "100%",
                           }}
                         >
                           {confirmationInfo.label}
@@ -1376,10 +1460,11 @@ export default function PatientHomePage() {
                       </div>
 
                       <div
+                        className="patient-appointment-alert patient-confirmation-alert"
                         style={{
-                          backgroundColor: confirmationInfo.bg,
-                          border: `1px solid ${confirmationInfo.border}`,
-                          color: confirmationInfo.color,
+                          backgroundColor: "#f8fbff",
+                          border: "1px solid #dbe7ff",
+                          color: "#001e5e",
                           borderRadius: "14px",
                           padding: "12px",
                           marginBottom: "14px",
@@ -1430,10 +1515,11 @@ export default function PatientHomePage() {
                         </div>
                       ) : (
                         <div
+                          className="patient-appointment-alert patient-checklist-alert"
                           style={{
-                            backgroundColor: "#fffbeb",
-                            border: "1px solid #fde68a",
-                            color: "#92400e",
+                            backgroundColor: "#f8fbff",
+                            border: "1px solid #dbe7ff",
+                            color: "#001e5e",
                             borderRadius: "14px",
                             padding: "12px",
                             marginBottom: "14px",
@@ -1464,10 +1550,8 @@ export default function PatientHomePage() {
                               }
                               style={{
                                 ...primaryButtonStyle,
-                                background:
-                                  "linear-gradient(135deg, #059669, #22c55e)",
-                                boxShadow:
-                                  "0 10px 24px rgba(34, 197, 94, 0.20)",
+                                background: "#001e5e",
+                                boxShadow: "0 10px 24px rgba(0, 30, 94, 0.22)",
                                 opacity:
                                   updatingAppointmentId === nextAppointment.id
                                     ? 0.7
@@ -1492,9 +1576,9 @@ export default function PatientHomePage() {
                                 openCancelRequestModal(nextAppointment)
                               }
                               style={{
-                                backgroundColor: "#fff7ed",
-                                color: "#c2410c",
-                                border: "1px solid #fed7aa",
+                                backgroundColor: "#ffffff",
+                                color: "#92400e",
+                                border: "1px solid #fcd34d",
                                 borderRadius: "14px",
                                 padding: "11px 16px",
                                 fontWeight: 900,
@@ -1517,9 +1601,9 @@ export default function PatientHomePage() {
                                 updatingAppointmentId === nextAppointment.id
                               }
                               style={{
-                                backgroundColor: "#fff7ed",
-                                color: "#c2410c",
-                                border: "1px solid #fed7aa",
+                                backgroundColor: "#ffffff",
+                                color: "#92400e",
+                                border: "1px solid #fcd34d",
                                 borderRadius: "14px",
                                 padding: "11px 16px",
                                 fontWeight: 900,
@@ -1578,7 +1662,12 @@ export default function PatientHomePage() {
             )}
           </section>
 
-          <section style={cardStyle}>
+          <section
+            style={cardStyle}
+            className={`patient-detail-section ${
+              expandedPatientSections.tasks ? "is-open" : ""
+            }`}
+          >
             <h2
               style={{
                 fontSize: "28px",
@@ -1592,6 +1681,17 @@ export default function PatientHomePage() {
             <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
               Atividades combinadas para apoiar o processo terapêutico.
             </p>
+            {isMobileLayout && (
+            <button
+                type="button"
+                className="patient-detail-toggle-button"
+                onClick={() => togglePatientSection("tasks")}
+              >
+                {expandedPatientSections.tasks
+                  ? "Ocultar detalhes"
+                  : "Exibir detalhes"}
+              </button>
+            )}
 
             {taskError && (
               <div
@@ -1652,6 +1752,7 @@ export default function PatientHomePage() {
                 {recentTasks.map((task) => (
                   <div
                     key={task.id}
+                    className="patient-clean-list-card"
                     style={{
                       border: "1px solid #e2e8f0",
                       borderRadius: "18px",
@@ -1756,7 +1857,12 @@ export default function PatientHomePage() {
           </section>
         </div>
 
-        <section style={{ ...cardStyle, marginBottom: "20px" }}>
+        <section
+          style={{ ...cardStyle, marginBottom: "20px" }}
+          className={`patient-detail-section ${
+            expandedPatientSections.materials ? "is-open" : ""
+          }`}
+        >
           <h2
             style={{
               fontSize: "28px",
@@ -1770,6 +1876,17 @@ export default function PatientHomePage() {
           <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
             Conteúdos enviados pelo profissional para apoiar seu acompanhamento.
           </p>
+          {isMobileLayout && (
+          <button
+              type="button"
+              className="patient-detail-toggle-button"
+              onClick={() => togglePatientSection("materials")}
+            >
+              {expandedPatientSections.materials
+                ? "Ocultar detalhes"
+                : "Exibir detalhes"}
+            </button>
+          )}
 
           {materialError && (
             <div
@@ -1830,6 +1947,7 @@ export default function PatientHomePage() {
               {recentMaterials.map((material) => (
                 <div
                   key={material.id}
+                  className="patient-clean-list-card"
                   style={{
                     border: "1px solid #e2e8f0",
                     borderRadius: "18px",
@@ -1989,7 +2107,12 @@ export default function PatientHomePage() {
           )}
         </section>
 
-        <section style={cardStyle}>
+        <section
+          style={cardStyle}
+          className={`patient-detail-section ${
+            expandedPatientSections.summary ? "is-open" : ""
+          }`}
+        >
           <h2
             style={{
               fontSize: "28px",
@@ -2003,16 +2126,30 @@ export default function PatientHomePage() {
           <p style={{ color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
             Visão geral dos principais registros disponíveis na sua área.
           </p>
+          {isMobileLayout && (
+          <button
+              type="button"
+              className="patient-detail-toggle-button"
+              onClick={() => togglePatientSection("summary")}
+            >
+              {expandedPatientSections.summary
+                ? "Ocultar detalhes"
+                : "Exibir detalhes"}
+            </button>
+          )}
 
           <div
+            className="patient-summary-metrics-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-              gap: "16px",
+              gridTemplateColumns: isMobileLayout
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(4, minmax(0, 1fr))",
+              gap: isMobileLayout ? "10px" : "16px",
             }}
           >
             <MetricCard
-              label="Tarefas pendentes"
+              label="Pendentes"
               value={pendingTasks.length}
               description="Atividades ainda em aberto."
               icon="fa-solid fa-list-check"
@@ -2020,7 +2157,7 @@ export default function PatientHomePage() {
             />
 
             <MetricCard
-              label="Tarefas concluídas"
+              label="Concluídas"
               value={completedTasks.length}
               description="Atividades finalizadas."
               icon="fa-solid fa-circle-check"
@@ -2028,7 +2165,7 @@ export default function PatientHomePage() {
             />
 
             <MetricCard
-              label="Materiais recebidos"
+              label="Materiais"
               value={materials.length}
               description="Conteúdos enviados pelo profissional."
               icon="fa-solid fa-book-open"
@@ -2036,7 +2173,7 @@ export default function PatientHomePage() {
             />
 
             <MetricCard
-              label="Checklists respondidos"
+              label="Checklists"
               value={answeredCheckins.length}
               description="Respostas pré-sessão registradas."
               icon="fa-solid fa-clipboard-check"
@@ -2044,7 +2181,353 @@ export default function PatientHomePage() {
             />
           </div>
         </section>
+
+        <div style={{ height: "90px" }} aria-hidden="true" />
       </div>
+
+
+      <style>{`
+        .fa-clipboard-question::before {
+          content: "\\f46d";
+        }
+
+        .patient-detail-toggle-button {
+          display: none;
+        }
+
+
+          .patient-status-pill {
+            max-width: 100%;
+            line-height: 1.25;
+          }
+
+          .patient-appointment-alert {
+            line-height: 1.45;
+          }
+
+        @media (max-width: 640px) {
+
+          .patient-status-pill {
+            width: fit-content !important;
+            max-width: 100% !important;
+            padding: 6px 10px !important;
+            font-size: 11px !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+          }
+
+          .patient-appointment-alert {
+            padding: 9px 10px !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+            font-size: 12px !important;
+            line-height: 1.35 !important;
+            gap: 7px !important;
+          }
+
+          .patient-appointment-alert i {
+            font-size: 12px !important;
+            margin-top: 1px !important;
+          }
+
+          .patient-clean-panel > div:last-child button:first-child {
+            background: #001e5e !important;
+            color: #ffffff !important;
+            border: 1px solid #001e5e !important;
+          }
+
+          .patient-clean-panel > div:last-child button:nth-child(2) {
+            background: #ffffff !important;
+            color: #92400e !important;
+            border: 1px solid #fcd34d !important;
+          }
+
+          .patient-clean-panel > div:last-child a {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border: 1px solid #bfdbfe !important;
+          }
+
+          .patient-hero-section {
+            padding: 14px 16px 16px 16px !important;
+            border-radius: 22px !important;
+            margin-bottom: 16px !important;
+            min-height: auto !important;
+          }
+
+          .patient-hero-main-row {
+            display: block !important;
+            position: relative !important;
+          }
+
+          .patient-hero-copy {
+            width: 100% !important;
+            min-width: 0 !important;
+            padding-right: 0 !important;
+          }
+
+          .patient-hero-copy > span {
+            margin-bottom: 4px !important;
+            padding: 5px 9px !important;
+            font-size: 11px !important;
+          }
+
+          .patient-hero-copy h1 {
+            font-size: 22px !important;
+            line-height: 1.08 !important;
+            margin: 4px 0 0 0 !important;
+            padding-right: 0 !important;
+            max-width: 100% !important;
+            word-break: normal !important;
+            overflow-wrap: normal !important;
+          }
+
+          .patient-hero-copy p {
+            display: none !important;
+          }
+
+          .patient-hero-actions {
+            position: absolute !important;
+            top: 0 !important;
+            right: 0 !important;
+            width: auto !important;
+            margin: 0 !important;
+            justify-content: flex-end !important;
+            z-index: 3 !important;
+          }
+
+          .patient-hero-actions a {
+            padding: 6px 10px !important;
+            border-radius: 9px !important;
+            font-size: 11px !important;
+            white-space: nowrap !important;
+            min-width: auto !important;
+          }
+
+
+          .chat-main-wrapper .patient-metrics-grid,
+          .chat-main-wrapper > div .patient-metrics-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+
+          .chat-main-wrapper .patient-summary-metrics-grid,
+          .chat-main-wrapper > div .patient-summary-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .patient-metrics-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .patient-metric-card {
+            height: 92px !important;
+            min-height: 92px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
+          }
+
+          .patient-metric-bg {
+            width: 54px !important;
+            height: 54px !important;
+            right: -20px !important;
+            top: -18px !important;
+          }
+
+          .patient-metric-card > div:nth-child(2) {
+            display: block !important;
+            position: relative !important;
+            z-index: 2 !important;
+          }
+
+          .patient-metric-label {
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+            margin-bottom: 6px !important;
+            max-width: 68px !important;
+            overflow-wrap: anywhere !important;
+          }
+
+          .patient-metric-value {
+            font-size: 22px !important;
+            line-height: 1 !important;
+          }
+
+          .patient-metric-icon {
+            position: absolute !important;
+            right: 8px !important;
+            bottom: 8px !important;
+            width: 26px !important;
+            height: 26px !important;
+            min-width: 26px !important;
+            min-height: 26px !important;
+            border-radius: 9px !important;
+            font-size: 12px !important;
+            margin: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 2 !important;
+          }
+
+          .patient-metric-description {
+            display: none !important;
+          }
+
+          .patient-detail-section {
+            padding: 17px !important;
+            border-radius: 18px !important;
+            margin-bottom: 14px !important;
+          }
+
+          .patient-detail-section h2 {
+            font-size: 21px !important;
+            line-height: 1.16 !important;
+            margin-bottom: 10px !important;
+          }
+
+          .patient-detail-section > p {
+            display: none !important;
+          }
+
+          .patient-detail-section:not(.is-open) > *:not(h2):not(.patient-detail-toggle-button) {
+            display: none !important;
+          }
+
+          .patient-detail-toggle-button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border: 1px solid #bfdbfe !important;
+            border-radius: 999px !important;
+            padding: 8px 13px !important;
+            font-size: 12px !important;
+            font-weight: 900 !important;
+            cursor: pointer !important;
+            margin: 2px 0 18px 0 !important;
+          }
+
+          .patient-detail-section.is-open .patient-detail-toggle-button {
+            margin-bottom: 16px !important;
+          }
+
+          .patient-clean-panel > div:last-child {
+            display: flex !important;
+            gap: 8px !important;
+            flex-wrap: wrap !important;
+            margin-top: 12px !important;
+          }
+
+          .patient-clean-panel > div:last-child button,
+          .patient-clean-panel > div:last-child a {
+            border-radius: 12px !important;
+            padding: 9px 12px !important;
+            font-size: 12px !important;
+            font-weight: 900 !important;
+            box-shadow: none !important;
+          }
+
+          .patient-detail-section.is-open .patient-clean-panel,
+          .patient-detail-section.is-open .patient-clean-list-card {
+            background: #ffffff !important;
+            border: 1px solid #e6edf7 !important;
+            border-radius: 16px !important;
+            padding: 14px !important;
+            box-shadow: none !important;
+          }
+
+          .patient-clean-panel > div:first-child {
+            display: block !important;
+            margin-bottom: 12px !important;
+          }
+
+          .patient-clean-panel > div:first-child > div {
+            margin-bottom: 10px !important;
+          }
+
+          .patient-clean-panel > div:first-child > span {
+            display: inline-flex !important;
+            width: fit-content !important;
+            background: #f8fafc !important;
+            color: #5272a6 !important;
+            border: 1px solid #e6edf7 !important;
+          }
+
+          .patient-clean-panel p,
+          .patient-clean-list-card p {
+            font-size: 14px !important;
+            line-height: 1.45 !important;
+          }
+
+          .patient-clean-panel p:first-child,
+          .patient-clean-list-card h3,
+          .patient-clean-list-card p:first-child {
+            font-size: 16px !important;
+            line-height: 1.25 !important;
+            margin-bottom: 8px !important;
+          }
+
+          .patient-clean-list-card > div:first-child {
+            align-items: flex-start !important;
+            margin-bottom: 8px !important;
+          }
+
+          .patient-clean-list-card > div:first-child > span {
+            background: #f8fafc !important;
+            color: #5272a6 !important;
+            border: 1px solid #e6edf7 !important;
+          }
+
+          .patient-clean-list-card [style*="background-color: #fff"],
+          .patient-clean-list-card [style*="backgroundColor: #fff"] {
+            display: none !important;
+          }
+
+          .patient-summary-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+          }
+
+          .patient-summary-metrics-grid .patient-metric-card {
+            height: 82px !important;
+            min-height: 82px !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .patient-hero-copy h1 {
+            font-size: 21px !important;
+          }
+
+          .patient-metrics-grid {
+            gap: 7px !important;
+          }
+
+          .patient-metric-card {
+            height: 84px !important;
+            min-height: 84px !important;
+            padding: 8px !important;
+          }
+
+          .patient-metric-label {
+            font-size: 9.5px !important;
+          }
+
+          .patient-metric-icon {
+            right: 7px !important;
+            bottom: 7px !important;
+            width: 25px !important;
+            height: 25px !important;
+            min-width: 25px !important;
+            min-height: 25px !important;
+            font-size: 11px !important;
+          }
+        }
+      `}</style>
 
       {cancelRequestAppointment && (
         <div

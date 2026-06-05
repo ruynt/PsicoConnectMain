@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type PreSessionCheckin = {
   id: string;
@@ -58,8 +58,14 @@ type MetricCardProps = {
   value: number;
   description: string;
   icon: string;
-  tone: "blue" | "green" | "amber" | "purple" | "red" | "slate";
+  tone: "blue" | "green" | "amber" | "red";
 };
+
+const NAVY = "#001e5e";
+const NAVY_SOFT = "#102a56";
+const BLUE = "#2563eb";
+const MUTED = "#5272a6";
+const BORDER = "#e6edf7";
 
 const tones = {
   blue: {
@@ -77,20 +83,10 @@ const tones = {
     text: "#b45309",
     border: "#fde68a",
   },
-  purple: {
-    bg: "#f5f3ff",
-    text: "#6d28d9",
-    border: "#ddd6fe",
-  },
   red: {
     bg: "#fef2f2",
     text: "#b91c1c",
     border: "#fecaca",
-  },
-  slate: {
-    bg: "#f8fafc",
-    text: "#334155",
-    border: "#e2e8f0",
   },
 };
 
@@ -266,6 +262,13 @@ export default function MyAppointmentsPage() {
     }
   }
 
+  function isFutureAppointment(appointment: PatientAppointment) {
+    return (
+      appointment.status === "SCHEDULED" &&
+      new Date(appointment.dateTime) >= new Date()
+    );
+  }
+
   function getConfirmationStatus(appointment: PatientAppointment) {
     return appointment.confirmationStatus || "PENDING";
   }
@@ -292,9 +295,9 @@ export default function MyAppointmentsPage() {
         description: appointment.confirmedAt
           ? `Confirmada em ${formatDate(appointment.confirmedAt)}`
           : "Você confirmou presença nesta consulta.",
-        bg: "#ecfdf5",
-        color: "#047857",
-        border: "#a7f3d0",
+        bg: "#f8fbff",
+        color: NAVY,
+        border: "#dbe7ff",
         icon: "fa-solid fa-circle-check",
       };
     }
@@ -306,9 +309,9 @@ export default function MyAppointmentsPage() {
           appointment.cancellationRequestStatus === "REJECTED"
             ? "A solicitação foi analisada e rejeitada pelo profissional."
             : "Sua solicitação está aguardando análise do profissional.",
-        bg: "#fffbeb",
-        color: "#92400e",
-        border: "#fde68a",
+        bg: "#f8fbff",
+        color: NAVY,
+        border: "#dbe7ff",
         icon: "fa-solid fa-hourglass-half",
       };
     }
@@ -316,9 +319,9 @@ export default function MyAppointmentsPage() {
     return {
       label: "Aguardando confirmação",
       description: "Confirme sua presença ou solicite cancelamento, se necessário.",
-      bg: "#eff6ff",
-      color: "#1d4ed8",
-      border: "#bfdbfe",
+      bg: "#f8fbff",
+      color: NAVY,
+      border: "#dbe7ff",
       icon: "fa-solid fa-calendar-check",
     };
   }
@@ -349,7 +352,7 @@ export default function MyAppointmentsPage() {
     }
   }
 
-  async function handleSubmitCancelRequest(e: React.FormEvent) {
+  async function handleSubmitCancelRequest(e: FormEvent) {
     e.preventDefault();
 
     if (!cancelRequestAppointment) return;
@@ -490,7 +493,7 @@ export default function MyAppointmentsPage() {
     return null;
   }
 
-  async function handleSubmitCheckin(e: React.FormEvent) {
+  async function handleSubmitCheckin(e: FormEvent) {
     e.preventDefault();
 
     if (!checkinAppointment) return;
@@ -516,9 +519,9 @@ export default function MyAppointmentsPage() {
         },
         body: JSON.stringify({
           appointmentId: checkinAppointment.id,
-          moodLevel: moodLevel || null,
-          anxietyLevel: anxietyLevel || null,
-          sleepLevel: sleepLevel || null,
+          moodLevel: moodLevel === "" ? null : Number(moodLevel),
+          anxietyLevel: anxietyLevel === "" ? null : Number(anxietyLevel),
+          sleepLevel: sleepLevel === "" ? null : Number(sleepLevel),
           mainConcern,
           importantEvents,
           topicsToDiscuss,
@@ -545,24 +548,24 @@ export default function MyAppointmentsPage() {
   const pageStyle = {
     padding: "36px",
     minHeight: "calc(100vh - 48px)",
-    paddingBottom: "72px",
+    paddingBottom: "150px",
     background: "#ffffff",
     borderRadius: 0,
     overflow: "visible",
   };
 
   const cardStyle = {
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    backgroundColor: "#ffffff",
     borderRadius: "22px",
     padding: "24px",
-    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)",
-    border: "1px solid rgba(226, 232, 240, 0.9)",
+    boxShadow: "0 10px 28px rgba(0, 30, 94, 0.06)",
+    border: `1px solid ${BORDER}`,
   };
 
   const primaryButtonStyle = {
-    background: "linear-gradient(135deg, #2563eb, #4f8cff)",
+    background: NAVY,
     color: "#fff",
-    border: "none",
+    border: `1px solid ${NAVY}`,
     borderRadius: "14px",
     padding: "12px 16px",
     fontWeight: 900,
@@ -572,7 +575,7 @@ export default function MyAppointmentsPage() {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 10px 24px rgba(37, 99, 235, 0.24)",
+    boxShadow: "0 10px 24px rgba(0, 30, 94, 0.20)",
   } as const;
 
   const secondaryButtonStyle = {
@@ -590,6 +593,17 @@ export default function MyAppointmentsPage() {
     justifyContent: "center",
   } as const;
 
+  const warningButtonStyle = {
+    backgroundColor: "#ffffff",
+    color: "#92400e",
+    border: "1px solid #fcd34d",
+    borderRadius: "14px",
+    padding: "11px 16px",
+    fontWeight: 900,
+    cursor: "pointer",
+    fontSize: "14px",
+  } as const;
+
   const inputStyle = {
     width: "100%",
     border: "1px solid #cbd5e1",
@@ -598,99 +612,126 @@ export default function MyAppointmentsPage() {
     fontSize: "14px",
     outline: "none",
     backgroundColor: "#ffffff",
+    color: NAVY,
   } as const;
 
   function MetricCard({ label, value, description, icon, tone }: MetricCardProps) {
     const selectedTone = tones[tone];
 
     return (
-      <div
-        style={{
-          ...cardStyle,
-          minHeight: "132px",
-          padding: "20px",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <div className="appointments-metric-card" style={cardStyle}>
         <div
-          style={{
-            position: "absolute",
-            right: "-24px",
-            top: "-24px",
-            width: "94px",
-            height: "94px",
-            borderRadius: "999px",
-            backgroundColor: selectedTone.bg,
-          }}
+          className="appointments-metric-bg"
+          style={{ backgroundColor: selectedTone.bg }}
         />
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "12px",
-            alignItems: "flex-start",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
+        <div className="appointments-metric-content">
           <div>
+            <p className="appointments-metric-label">{label}</p>
             <p
-              style={{
-                color: "#64748b",
-                fontSize: "13px",
-                fontWeight: 800,
-                marginBottom: "8px",
-              }}
-            >
-              {label}
-            </p>
-
-            <p
-              style={{
-                color: selectedTone.text,
-                fontSize: "36px",
-                fontWeight: 900,
-                lineHeight: 1,
-                margin: 0,
-              }}
+              className="appointments-metric-value"
+              style={{ color: selectedTone.text }}
             >
               {value}
             </p>
           </div>
 
           <div
+            className="appointments-metric-icon"
             style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "14px",
               backgroundColor: selectedTone.bg,
               border: `1px solid ${selectedTone.border}`,
               color: selectedTone.text,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "20px",
-              flexShrink: 0,
             }}
           >
             <i className={icon}></i>
           </div>
         </div>
 
-        <p
-          style={{
-            color: "#64748b",
-            fontSize: "13px",
-            marginTop: "12px",
-            marginBottom: 0,
-            position: "relative",
-            zIndex: 1,
-          }}
+        <p className="appointments-metric-description">{description}</p>
+      </div>
+    );
+  }
+
+  function renderAppointmentActions(appointment: PatientAppointment) {
+    const future = isFutureAppointment(appointment);
+    const confirmationStatus = getConfirmationStatus(appointment);
+
+    if (!future) return null;
+
+    return (
+      <div className="appointments-actions">
+        <button
+          type="button"
+          onClick={() => openCheckinModal(appointment)}
+          style={primaryButtonStyle}
         >
-          {description}
-        </p>
+          {appointment.preSessionCheckin
+            ? "Editar checklist"
+            : "Responder checklist"}
+        </button>
+
+        {confirmationStatus !== "CONFIRMED" &&
+          confirmationStatus !== "CANCELLATION_REQUESTED" && (
+            <button
+              type="button"
+              onClick={() => handleConfirmPresence(appointment.id)}
+              disabled={updatingConfirmationId === appointment.id}
+              style={{
+                ...primaryButtonStyle,
+                opacity: updatingConfirmationId === appointment.id ? 0.7 : 1,
+                cursor:
+                  updatingConfirmationId === appointment.id
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              {updatingConfirmationId === appointment.id
+                ? "Confirmando..."
+                : "Confirmar presença"}
+            </button>
+          )}
+
+        {confirmationStatus !== "CANCELLATION_REQUESTED" && (
+          <button
+            type="button"
+            onClick={() => openCancelRequestModal(appointment)}
+            style={warningButtonStyle}
+          >
+            Solicitar cancelamento
+          </button>
+        )}
+
+        {confirmationStatus === "CANCELLATION_REQUESTED" && (
+          <button
+            type="button"
+            onClick={() => handleWithdrawCancelRequest(appointment.id)}
+            disabled={updatingConfirmationId === appointment.id}
+            style={{
+              ...warningButtonStyle,
+              opacity: updatingConfirmationId === appointment.id ? 0.7 : 1,
+              cursor:
+                updatingConfirmationId === appointment.id
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            {updatingConfirmationId === appointment.id
+              ? "Cancelando..."
+              : "Cancelar solicitação"}
+          </button>
+        )}
+
+        {appointment.googleEventLink && appointment.status !== "CANCELLED" && (
+          <a
+            href={appointment.googleEventLink}
+            target="_blank"
+            rel="noreferrer"
+            style={secondaryButtonStyle}
+          >
+            Abrir no Google Calendar
+          </a>
+        )}
       </div>
     );
   }
@@ -717,154 +758,42 @@ export default function MyAppointmentsPage() {
   return (
     <>
       <div style={pageStyle}>
-        <section
-          style={{
-            background:
-              "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
-            borderRadius: "28px",
-            padding: "30px",
-            color: "#ffffff",
-            marginBottom: "24px",
-            boxShadow: "0 20px 50px rgba(37, 99, 235, 0.24)",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              right: "-80px",
-              top: "-90px",
-              width: "240px",
-              height: "240px",
-              borderRadius: "999px",
-              backgroundColor: "rgba(255, 255, 255, 0.16)",
-            }}
-          />
+        <section className="appointments-hero">
+          <div className="appointments-hero-orb appointments-hero-orb-one" />
+          <div className="appointments-hero-orb appointments-hero-orb-two" />
 
-          <div
-            style={{
-              position: "absolute",
-              right: "90px",
-              bottom: "-110px",
-              width: "220px",
-              height: "220px",
-              borderRadius: "999px",
-              backgroundColor: "rgba(255, 255, 255, 0.10)",
-            }}
-          />
+          <div className="appointments-hero-content">
+            <span className="appointments-hero-pill">
+              <i className="fa-solid fa-calendar-days"></i>
+              Área do paciente
+            </span>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "20px",
-              alignItems: "flex-start",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <div>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: "rgba(255, 255, 255, 0.16)",
-                  border: "1px solid rgba(255, 255, 255, 0.22)",
-                  borderRadius: "999px",
-                  padding: "7px 12px",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  marginBottom: "14px",
-                  color: "#ffffff",
-                }}
-              >
-                <i className="fa-solid fa-calendar-days"></i>
-                Área do paciente
-              </span>
+            <h1>
+              <span className="appointments-hero-title-word">Minhas Consultas</span>
+            </h1>
 
-              <h1
-                style={{
-                  fontSize: "44px",
-                  fontWeight: 900,
-                  lineHeight: 1.05,
-                  marginBottom: "10px",
-                  color: "#ffffff",
-                }}
-              >
-                Minhas consultas
-              </h1>
-
-              <p
-                style={{
-                  fontSize: "18px",
-                  color: "#ffffff",
-                  maxWidth: "760px",
-                  margin: 0,
-                }}
-              >
-                Acompanhe seus atendimentos, consulte cancelamentos, visualize o
-                histórico e responda checklists pré-sessão.
-              </p>
-            </div>
+            <p>
+              Acompanhe seus atendimentos, consulte cancelamentos, visualize o
+              histórico e responda checklists pré-sessão.
+            </p>
           </div>
         </section>
 
         {feedback && (
           <div
-            style={{
-              backgroundColor:
-                feedback.type === "success"
-                  ? "#ecfdf5"
-                  : feedback.type === "error"
-                    ? "#fef2f2"
-                    : "#eff6ff",
-              border:
-                feedback.type === "success"
-                  ? "1px solid #a7f3d0"
-                  : feedback.type === "error"
-                    ? "1px solid #fecaca"
-                    : "1px solid #bfdbfe",
-              color:
-                feedback.type === "success"
-                  ? "#065f46"
-                  : feedback.type === "error"
-                    ? "#b91c1c"
-                    : "#1d4ed8",
-              borderRadius: "16px",
-              padding: "14px 16px",
-              marginBottom: "18px",
-              fontWeight: 800,
-            }}
+            className={`appointments-feedback appointments-feedback-${feedback.type}`}
           >
             {feedback.message}
           </div>
         )}
 
         {error && (
-          <div
-            style={{
-              ...cardStyle,
-              backgroundColor: "#fef2f2",
-              border: "1px solid #fecaca",
-              marginBottom: "24px",
-            }}
-          >
-            <p style={{ color: "#b91c1c", fontWeight: 800, margin: 0 }}>
-              {error}
-            </p>
+          <div className="appointments-error-box">
+            <p>{error}</p>
           </div>
         )}
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gap: "18px",
-            marginBottom: "24px",
-          }}
-        >
+        <div className="appointments-metrics-grid">
           <MetricCard
             label="Próximas consultas"
             value={upcomingAppointments.length}
@@ -898,60 +827,19 @@ export default function MyAppointmentsPage() {
           />
         </div>
 
-        <section style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "16px",
-              alignItems: "flex-start",
-              marginBottom: "18px",
-              flexWrap: "wrap",
-            }}
-          >
+        <section className="appointments-section" style={cardStyle}>
+          <div className="appointments-section-header">
             <div>
-              <h2
-                style={{
-                  fontSize: "28px",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  marginBottom: "6px",
-                }}
-              >
-                {currentTabInfo.title}
-              </h2>
-
-              <p style={{ color: "#64748b", margin: 0 }}>
-                {currentTabInfo.description}
-              </p>
+              <h2>{currentTabInfo.title}</h2>
+              <p>{currentTabInfo.description}</p>
             </div>
 
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "16px",
-                backgroundColor: "#eff6ff",
-                color: "#1d4ed8",
-                border: "1px solid #bfdbfe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "22px",
-              }}
-            >
+            <div className="appointments-section-icon">
               <i className={currentTabInfo.icon}></i>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              marginBottom: "18px",
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="appointments-tabs">
             {[
               {
                 label: "Próximas",
@@ -968,539 +856,952 @@ export default function MyAppointmentsPage() {
                 value: "HISTORY",
                 count: historyAppointments.length,
               },
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setActiveTab(tab.value as AppointmentTab)}
-                style={{
-                  border:
-                    activeTab === tab.value
-                      ? "1px solid #2563eb"
-                      : "1px solid #cbd5e1",
-                  backgroundColor: activeTab === tab.value ? "#eff6ff" : "#fff",
-                  color: activeTab === tab.value ? "#1d4ed8" : "#334155",
-                  borderRadius: "999px",
-                  padding: "10px 16px",
-                  fontWeight: 900,
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                {tab.label}
-                <span
-                  style={{
-                    backgroundColor:
-                      activeTab === tab.value ? "#dbeafe" : "#f1f5f9",
-                    color: activeTab === tab.value ? "#1d4ed8" : "#64748b",
-                    borderRadius: "999px",
-                    padding: "2px 8px",
-                    fontSize: "12px",
-                  }}
+            ].map((tab) => {
+              const isActive = activeTab === tab.value;
+
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value as AppointmentTab)}
+                  className={isActive ? "is-active" : ""}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+                  {tab.label}
+                  <span>{tab.count}</span>
+                </button>
+              );
+            })}
           </div>
 
           {currentAppointments.length === 0 ? (
-            <div
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: "18px",
-                padding: "18px",
-                backgroundColor: "#f8fafc",
-              }}
-            >
-              <p
-                style={{
-                  color: "#0f172a",
-                  fontWeight: 900,
-                  marginBottom: "6px",
-                }}
-              >
-                {currentTabInfo.emptyTitle}
-              </p>
-              <p style={{ color: "#64748b", margin: 0 }}>
-                {currentTabInfo.emptyDescription}
-              </p>
+            <div className="appointments-empty-box">
+              <p>{currentTabInfo.emptyTitle}</p>
+              <span>{currentTabInfo.emptyDescription}</span>
             </div>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "14px",
-              }}
-            >
-              {currentAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "18px",
-                    padding: "18px",
-                    backgroundColor:
-                      appointment.status === "CANCELLED"
-                        ? "#fff7f7"
-                        : "#f8fafc",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
-                      alignItems: "flex-start",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div>
-                      <p
-                        style={{
-                          color: "#0f172a",
-                          fontWeight: 900,
-                          fontSize: "19px",
-                          marginBottom: "6px",
-                        }}
-                      >
-                        {appointment.title}
-                      </p>
+            <div className="appointments-list">
+              {currentAppointments.map((appointment) => {
+                const confirmationInfo = getConfirmationInfo(appointment);
+                const isFuture = isFutureAppointment(appointment);
 
-                      <p style={{ color: "#64748b", margin: 0 }}>
-                        Profissional: {appointment.psychologist.name}
-                      </p>
+                return (
+                  <article key={appointment.id} className="appointment-card">
+                    <div className="appointment-card-header">
+                      <div>
+                        <h3>{appointment.title}</h3>
+                        <p>Profissional: {appointment.psychologist.name}</p>
+                      </div>
+
+                      <span
+                        className={`appointment-status-pill ${
+                          appointment.status === "CANCELLED"
+                            ? "is-cancelled"
+                            : appointment.preSessionCheckin
+                              ? "is-done"
+                              : "is-pending"
+                        }`}
+                      >
+                        {appointment.status === "CANCELLED"
+                          ? "Cancelada"
+                          : appointment.preSessionCheckin
+                            ? "Checklist respondido"
+                            : "Agendada"}
+                      </span>
                     </div>
 
-                    <span
-                      style={{
-                        backgroundColor:
-                          appointment.status === "CANCELLED"
-                            ? "#fef2f2"
-                            : appointment.preSessionCheckin
-                              ? "#ecfdf5"
-                              : "#fffbeb",
-                        color:
-                          appointment.status === "CANCELLED"
-                            ? "#b91c1c"
-                            : appointment.preSessionCheckin
-                              ? "#065f46"
-                              : "#92400e",
-                        border:
-                          appointment.status === "CANCELLED"
-                            ? "1px solid #fecaca"
-                            : appointment.preSessionCheckin
-                              ? "1px solid #a7f3d0"
-                              : "1px solid #fde68a",
-                        borderRadius: "999px",
-                        padding: "6px 11px",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {appointment.status === "CANCELLED"
-                        ? "Cancelada"
-                        : appointment.preSessionCheckin
-                          ? "Checklist respondido"
-                          : "Agendada"}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: "8px 18px",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <p style={{ color: "#475569", margin: 0 }}>
-                      <strong>Início:</strong> {formatDate(appointment.dateTime)}
-                    </p>
-
-                    {appointment.endDateTime && (
-                      <p style={{ color: "#475569", margin: 0 }}>
-                        <strong>Fim:</strong>{" "}
-                        {formatDate(appointment.endDateTime)}
+                    <div className="appointment-info-grid">
+                      <p>
+                        <strong>Início:</strong> {formatDate(appointment.dateTime)}
                       </p>
+
+                      {appointment.endDateTime && (
+                        <p>
+                          <strong>Fim:</strong>{" "}
+                          {formatDate(appointment.endDateTime)}
+                        </p>
+                      )}
+
+                      {appointment.location && (
+                        <p>
+                          <strong>Local:</strong> {appointment.location}
+                        </p>
+                      )}
+
+                      {appointment.status === "CANCELLED" &&
+                        appointment.cancelledAt && (
+                          <p>
+                            <strong>Cancelada em:</strong>{" "}
+                            {formatDate(appointment.cancelledAt)}
+                          </p>
+                        )}
+                    </div>
+
+                    {isFuture && (
+                      <div className="appointment-confirmation-box">
+                        <p>
+                          <i className={confirmationInfo.icon}></i>
+                          <strong>{confirmationInfo.label}</strong>
+                        </p>
+
+                        <span>{confirmationInfo.description}</span>
+
+                        {appointment.cancellationRequestReason && (
+                          <span>
+                            <strong>Motivo informado:</strong>{" "}
+                            {appointment.cancellationRequestReason}
+                          </span>
+                        )}
+                      </div>
                     )}
 
-                    {appointment.location && (
-                      <p style={{ color: "#475569", margin: 0 }}>
-                        <strong>Local:</strong> {appointment.location}
+                    {appointment.description && (
+                      <p className="appointment-description">
+                        <strong>Descrição:</strong> {appointment.description}
                       </p>
                     )}
 
                     {appointment.status === "CANCELLED" &&
-                      appointment.cancelledAt && (
-                        <p style={{ color: "#475569", margin: 0 }}>
-                          <strong>Cancelada em:</strong>{" "}
-                          {formatDate(appointment.cancelledAt)}
-                        </p>
-                      )}
-                  </div>
-
-                  {appointment.status === "SCHEDULED" &&
-                    new Date(appointment.dateTime) >= now && (() => {
-                      const confirmationInfo = getConfirmationInfo(appointment);
-
-                      return (
-                        <div
-                          style={{
-                            backgroundColor: confirmationInfo.bg,
-                            border: `1px solid ${confirmationInfo.border}`,
-                            color: confirmationInfo.color,
-                            borderRadius: "14px",
-                            padding: "12px",
-                            marginTop: "12px",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontWeight: 900,
-                              marginBottom: "6px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
-                            <i className={confirmationInfo.icon}></i>
-                            {confirmationInfo.label}
-                          </p>
-
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: "14px",
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {confirmationInfo.description}
-                          </p>
-
-                          {appointment.cancellationRequestReason && (
-                            <p
-                              style={{
-                                marginTop: "8px",
-                                marginBottom: 0,
-                                fontSize: "14px",
-                                lineHeight: 1.5,
-                              }}
-                            >
-                              <strong>Motivo informado:</strong>{" "}
-                              {appointment.cancellationRequestReason}
-                            </p>
-                          )}
+                      appointment.cancellationReason && (
+                        <div className="appointment-cancel-reason">
+                          <strong>Motivo do cancelamento:</strong>{" "}
+                          {appointment.cancellationReason}
                         </div>
-                      );
-                    })()}
+                      )}
 
-                  {appointment.description && (
-                    <p style={{ color: "#475569", marginBottom: "8px" }}>
-                      <strong>Descrição:</strong> {appointment.description}
-                    </p>
-                  )}
-
-                  {appointment.status === "CANCELLED" &&
-                    appointment.cancellationReason && (
-                      <div
-                        style={{
-                          backgroundColor: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          color: "#991b1b",
-                          borderRadius: "14px",
-                          padding: "12px",
-                          marginTop: "12px",
-                          marginBottom: "12px",
-                        }}
-                      >
-                        <strong>Motivo do cancelamento:</strong>{" "}
-                        {appointment.cancellationReason}
+                    {appointment.preSessionCheckin && (
+                      <div className="appointment-checkin-box">
+                        <p>Checklist pré-sessão respondido</p>
+                        <span>
+                          Última atualização em{" "}
+                          {formatDate(appointment.preSessionCheckin.updatedAt)}
+                        </span>
                       </div>
                     )}
 
-                  {appointment.preSessionCheckin && (
-                    <div
-                      style={{
-                        backgroundColor: "#ecfdf5",
-                        border: "1px solid #a7f3d0",
-                        borderRadius: "14px",
-                        padding: "12px",
-                        marginTop: "12px",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          color: "#065f46",
-                          fontWeight: 900,
-                          marginBottom: "6px",
-                        }}
-                      >
-                        Checklist pré-sessão respondido
-                      </p>
-
-                      <p
-                        style={{
-                          color: "#047857",
-                          margin: 0,
-                          fontSize: "14px",
-                        }}
-                      >
-                        Última atualização em{" "}
-                        {formatDate(appointment.preSessionCheckin.updatedAt)}
-                      </p>
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      marginTop: "14px",
-                      display: "flex",
-                      gap: "10px",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {appointment.status === "SCHEDULED" &&
-                      new Date(appointment.dateTime) >= now && (
-                        <button
-                          type="button"
-                          onClick={() => openCheckinModal(appointment)}
-                          style={primaryButtonStyle}
-                        >
-                          {appointment.preSessionCheckin
-                            ? "Editar checklist"
-                            : "Responder checklist"}
-                        </button>
-                      )}
-
-                    {appointment.status === "SCHEDULED" &&
-                      new Date(appointment.dateTime) >= now &&
-                      getConfirmationStatus(appointment) !== "CONFIRMED" &&
-                      getConfirmationStatus(appointment) !==
-                        "CANCELLATION_REQUESTED" && (
-                        <button
-                          type="button"
-                          onClick={() => handleConfirmPresence(appointment.id)}
-                          disabled={updatingConfirmationId === appointment.id}
-                          style={{
-                            backgroundColor: "#ecfdf5",
-                            color: "#047857",
-                            border: "1px solid #a7f3d0",
-                            borderRadius: "14px",
-                            padding: "11px 16px",
-                            fontWeight: 900,
-                            cursor:
-                              updatingConfirmationId === appointment.id
-                                ? "not-allowed"
-                                : "pointer",
-                            fontSize: "14px",
-                            opacity: updatingConfirmationId === appointment.id ? 0.7 : 1,
-                          }}
-                        >
-                          {updatingConfirmationId === appointment.id
-                            ? "Confirmando..."
-                            : "Confirmar presença"}
-                        </button>
-                      )}
-
-                    {appointment.status === "SCHEDULED" &&
-                      new Date(appointment.dateTime) >= now &&
-                      getConfirmationStatus(appointment) !==
-                        "CANCELLATION_REQUESTED" && (
-                        <button
-                          type="button"
-                          onClick={() => openCancelRequestModal(appointment)}
-                          style={{
-                            backgroundColor: "#fff7ed",
-                            color: "#c2410c",
-                            border: "1px solid #fed7aa",
-                            borderRadius: "14px",
-                            padding: "11px 16px",
-                            fontWeight: 900,
-                            cursor: "pointer",
-                            fontSize: "14px",
-                          }}
-                        >
-                          Solicitar cancelamento
-                        </button>
-                      )}
-
-                    {appointment.status === "SCHEDULED" &&
-                      new Date(appointment.dateTime) >= now &&
-                      getConfirmationStatus(appointment) ===
-                        "CANCELLATION_REQUESTED" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleWithdrawCancelRequest(appointment.id)
-                          }
-                          disabled={updatingConfirmationId === appointment.id}
-                          style={{
-                            backgroundColor: "#fff7ed",
-                            color: "#c2410c",
-                            border: "1px solid #fed7aa",
-                            borderRadius: "14px",
-                            padding: "11px 16px",
-                            fontWeight: 900,
-                            cursor:
-                              updatingConfirmationId === appointment.id
-                                ? "not-allowed"
-                                : "pointer",
-                            fontSize: "14px",
-                            opacity:
-                              updatingConfirmationId === appointment.id ? 0.7 : 1,
-                          }}
-                        >
-                          {updatingConfirmationId === appointment.id
-                            ? "Cancelando..."
-                            : "Cancelar solicitação"}
-                        </button>
-                      )}
-
-                    {appointment.googleEventLink &&
-                      appointment.status !== "CANCELLED" && (
-                        <a
-                          href={appointment.googleEventLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={secondaryButtonStyle}
-                        >
-                          Abrir no Google Calendar
-                        </a>
-                      )}
-                  </div>
-                </div>
-              ))}
+                    {renderAppointmentActions(appointment)}
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
       </div>
 
+      <style>{`
+        .fa-clipboard-question::before {
+          content: "\\f46d";
+        }
+
+        .appointments-hero {
+          background: linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa);
+          border-radius: 28px;
+          padding: 30px;
+          color: #ffffff;
+          margin-bottom: 24px;
+          box-shadow: 0 20px 50px rgba(37, 99, 235, 0.18);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .appointments-hero-orb {
+          position: absolute;
+          border-radius: 999px;
+          background-color: rgba(255, 255, 255, 0.13);
+        }
+
+        .appointments-hero-orb-one {
+          right: -80px;
+          top: -90px;
+          width: 240px;
+          height: 240px;
+        }
+
+        .appointments-hero-orb-two {
+          right: 90px;
+          bottom: -110px;
+          width: 220px;
+          height: 220px;
+        }
+
+        .appointments-hero-content {
+          position: relative;
+          z-index: 1;
+        }
+
+        .appointments-hero-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background-color: rgba(255, 255, 255, 0.16);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          border-radius: 999px;
+          padding: 7px 12px;
+          font-size: 13px;
+          font-weight: 800;
+          margin-bottom: 14px;
+          color: #ffffff;
+        }
+
+        .appointments-hero h1 {
+          font-size: 44px;
+          font-weight: 900;
+          line-height: 1.05;
+          margin-bottom: 10px;
+          color: #ffffff !important;
+        }
+
+        .appointments-hero-title-word {
+          color: #ffffff !important;
+        }
+
+        .appointments-hero p {
+          font-size: 18px;
+          color: #ffffff;
+          max-width: 760px;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .appointments-feedback {
+          border-radius: 16px;
+          padding: 14px 16px;
+          margin-bottom: 18px;
+          font-weight: 800;
+        }
+
+        .appointments-feedback-success {
+          background-color: #ecfdf5;
+          border: 1px solid #a7f3d0;
+          color: #065f46;
+        }
+
+        .appointments-feedback-error {
+          background-color: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #b91c1c;
+        }
+
+        .appointments-feedback-info {
+          background-color: #eff6ff;
+          border: 1px solid #bfdbfe;
+          color: #1d4ed8;
+        }
+
+        .appointments-error-box {
+          background-color: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 22px;
+          padding: 18px;
+          margin-bottom: 24px;
+        }
+
+        .appointments-error-box p {
+          color: #b91c1c;
+          font-weight: 800;
+          margin: 0;
+        }
+
+        .appointments-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+          margin-bottom: 24px;
+        }
+
+        .appointments-metric-card {
+          min-height: 132px;
+          padding: 20px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .appointments-metric-bg {
+          position: absolute;
+          right: -24px;
+          top: -24px;
+          width: 94px;
+          height: 94px;
+          border-radius: 999px;
+        }
+
+        .appointments-metric-content {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: flex-start;
+          position: relative;
+          z-index: 1;
+        }
+
+        .appointments-metric-label {
+          color: #64748b !important;
+          font-size: 13px;
+          font-weight: 800;
+          margin-bottom: 8px;
+        }
+
+        .appointments-metric-value {
+          font-size: 36px;
+          font-weight: 900;
+          line-height: 1;
+          margin: 0;
+        }
+
+        .appointments-metric-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          flex-shrink: 0;
+        }
+
+        .appointments-metric-description {
+          color: #64748b;
+          font-size: 13px;
+          margin-top: 12px;
+          margin-bottom: 0;
+          position: relative;
+          z-index: 1;
+        }
+
+        .appointments-section-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          margin-bottom: 18px;
+          flex-wrap: wrap;
+        }
+
+        .appointments-section-header h2 {
+          font-size: 28px;
+          font-weight: 900;
+          color: ${NAVY};
+          margin-bottom: 6px;
+        }
+
+        .appointments-section-header p {
+          color: #64748b;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .appointments-section-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
+          background-color: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+        }
+
+        .appointments-tabs {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 18px;
+          flex-wrap: wrap;
+        }
+
+        .appointments-tabs button {
+          border: 1px solid #cbd5e1;
+          background-color: #ffffff;
+          color: #334155;
+          border-radius: 999px;
+          padding: 10px 16px;
+          font-weight: 900;
+          cursor: pointer;
+          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition:
+            background-color 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease,
+            transform 0.18s ease;
+        }
+
+        .appointments-tabs button:hover,
+        .appointments-actions button:hover:not(:disabled),
+        .appointments-actions a:hover {
+          transform: translateY(-1px);
+        }
+
+        .appointments-tabs button.is-active {
+          border-color: #2563eb;
+          background-color: #eff6ff;
+          color: #1d4ed8;
+        }
+
+        .appointments-tabs button span {
+          background-color: #f1f5f9;
+          color: #64748b;
+          border-radius: 999px;
+          padding: 2px 8px;
+          font-size: 12px;
+        }
+
+        .appointments-tabs button.is-active span {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        .appointments-empty-box {
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 18px;
+          background-color: #f8fafc;
+        }
+
+        .appointments-empty-box p {
+          color: ${NAVY};
+          font-weight: 900;
+          margin-bottom: 6px;
+        }
+
+        .appointments-empty-box span {
+          color: #64748b;
+        }
+
+        .appointments-list {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .appointment-card {
+          border: 1px solid ${BORDER};
+          border-radius: 18px;
+          padding: 18px;
+          background: #ffffff;
+          box-shadow: 0 10px 24px rgba(0, 30, 94, 0.05);
+        }
+
+        .appointment-card-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+
+        .appointment-card-header h3 {
+          color: ${NAVY};
+          font-weight: 900;
+          font-size: 19px;
+          margin-bottom: 6px;
+          line-height: 1.25;
+        }
+
+        .appointment-card-header p {
+          color: #64748b;
+          margin: 0;
+        }
+
+        .appointment-status-pill {
+          border-radius: 999px;
+          padding: 6px 11px;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          text-align: center;
+          max-width: 180px;
+          line-height: 1.2;
+        }
+
+        .appointment-status-pill.is-cancelled {
+          background-color: #fef2f2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+        }
+
+        .appointment-status-pill.is-done {
+          background-color: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+        }
+
+        .appointment-status-pill.is-pending {
+          background-color: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+        }
+
+        .appointment-info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px 18px;
+          margin-bottom: 10px;
+        }
+
+        .appointment-info-grid p,
+        .appointment-description {
+          color: #475569;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .appointment-description {
+          margin-bottom: 8px;
+        }
+
+        .appointment-confirmation-box,
+        .appointment-checkin-box,
+        .appointment-cancel-reason {
+          border-radius: 14px;
+          padding: 12px;
+          margin-top: 12px;
+          margin-bottom: 12px;
+          line-height: 1.45;
+        }
+
+        .appointment-confirmation-box {
+          background-color: #f8fbff;
+          border: 1px solid #dbe7ff;
+          color: ${NAVY};
+        }
+
+        .appointment-confirmation-box p {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .appointment-confirmation-box span {
+          display: block;
+          color: ${NAVY_SOFT};
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .appointment-checkin-box {
+          background-color: #f8fbff;
+          border: 1px solid #dbe7ff;
+        }
+
+        .appointment-checkin-box p {
+          color: ${NAVY};
+          font-weight: 900;
+          margin-bottom: 6px;
+        }
+
+        .appointment-checkin-box span {
+          color: ${MUTED};
+          font-size: 14px;
+        }
+
+        .appointment-cancel-reason {
+          background-color: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+        }
+
+        .appointments-actions {
+          margin-top: 14px;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .appointments-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(15, 23, 42, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          z-index: 1000;
+          backdrop-filter: blur(6px);
+        }
+
+        .appointments-modal-card {
+          width: 100%;
+          background-color: #ffffff;
+          border-radius: 24px;
+          padding: 30px;
+          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+          border: 1px solid #e2e8f0;
+        }
+
+        .appointments-modal-card.is-cancel {
+          max-width: 620px;
+        }
+
+        .appointments-modal-card.is-checkin {
+          max-width: 760px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+
+        .appointments-modal-header {
+          margin-bottom: 22px;
+        }
+
+        .appointments-modal-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border-radius: 999px;
+          padding: 6px 12px;
+          font-size: 13px;
+          font-weight: 900;
+          margin-bottom: 12px;
+        }
+
+        .appointments-modal-pill.is-cancel {
+          background-color: #fff7ed;
+          color: #c2410c;
+          border: 1px solid #fed7aa;
+        }
+
+        .appointments-modal-pill.is-checkin {
+          background-color: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+        }
+
+        .appointments-modal-header h2 {
+          font-size: 30px;
+          font-weight: 900;
+          color: ${NAVY};
+          margin-bottom: 8px;
+        }
+
+        .appointments-modal-header p {
+          color: #64748b;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .appointments-modal-summary {
+          background-color: #eff6ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 16px;
+          padding: 14px;
+          margin-bottom: 18px;
+        }
+
+        .appointments-modal-summary p:first-child {
+          color: #1d4ed8;
+          font-weight: 900;
+          margin-bottom: 6px;
+        }
+
+        .appointments-modal-summary p:last-child {
+          color: #1e40af;
+          margin: 0;
+        }
+
+        .appointments-modal-error {
+          background-color: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #b91c1c;
+          border-radius: 14px;
+          padding: 12px 14px;
+          margin-bottom: 16px;
+          font-weight: 800;
+        }
+
+        .appointments-form-group {
+          margin-bottom: 18px;
+        }
+
+        .appointments-form-group label {
+          display: block;
+          font-weight: 800;
+          color: ${NAVY};
+          margin-bottom: 8px;
+        }
+
+        .appointments-checkin-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+          margin-bottom: 16px;
+        }
+
+        .appointments-modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        @media (max-width: 1180px) {
+          .appointments-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 900px) {
+          .appointments-hero {
+            padding: 24px;
+            border-radius: 24px;
+          }
+
+          .appointments-hero h1 {
+            font-size: 34px;
+          }
+
+          .appointments-section {
+            padding: 20px !important;
+          }
+
+          .appointment-info-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .appointments-hero {
+            padding: 18px;
+            border-radius: 22px;
+            margin-bottom: 16px;
+          }
+
+          .appointments-hero h1 {
+            font-size: 26px;
+            line-height: 1.08;
+            margin-bottom: 0;
+            color: #ffffff !important;
+          }
+
+          .appointments-hero-title-word {
+            display: block;
+            color: #ffffff !important;
+          }
+
+          .appointments-hero p {
+            display: none;
+          }
+
+          .appointments-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+
+          .appointments-metric-card {
+            min-height: 104px;
+            padding: 12px !important;
+            border-radius: 16px !important;
+          }
+
+          .appointments-metric-bg {
+            width: 58px;
+            height: 58px;
+            right: -22px;
+            top: -22px;
+          }
+
+          .appointments-metric-content {
+            gap: 8px;
+          }
+
+          .appointments-metric-label {
+            font-size: 11px;
+            line-height: 1.12;
+            margin-bottom: 6px;
+          }
+
+          .appointments-metric-value {
+            font-size: 26px;
+          }
+
+          .appointments-metric-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            font-size: 14px;
+          }
+
+          .appointments-metric-description {
+            display: none;
+          }
+
+          .appointments-section {
+            padding: 16px !important;
+            border-radius: 18px !important;
+          }
+
+          .appointments-section-header {
+            gap: 10px;
+            margin-bottom: 14px;
+          }
+
+          .appointments-section-header h2 {
+            font-size: 22px;
+          }
+
+          .appointments-section-header p {
+            font-size: 13px;
+          }
+
+          .appointments-section-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            font-size: 18px;
+          }
+
+          .appointments-tabs {
+            gap: 8px;
+          }
+
+          .appointments-tabs button {
+            padding: 8px 11px;
+            font-size: 12px;
+          }
+
+          .appointment-card {
+            padding: 14px;
+            border-radius: 16px;
+          }
+
+          .appointment-card-header {
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .appointment-card-header h3 {
+            font-size: 17px;
+          }
+
+          .appointment-status-pill {
+            width: fit-content;
+            max-width: 100%;
+            padding: 6px 10px;
+            font-size: 11px;
+            text-align: left;
+          }
+
+          .appointment-confirmation-box,
+          .appointment-checkin-box,
+          .appointment-cancel-reason {
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+          }
+
+          .appointment-confirmation-box span,
+          .appointment-checkin-box span {
+            font-size: 12px;
+            line-height: 1.35;
+          }
+
+          .appointments-actions {
+            gap: 8px;
+          }
+
+          .appointments-actions button,
+          .appointments-actions a {
+            width: 100%;
+            justify-content: center;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+            box-shadow: none !important;
+          }
+
+          .appointments-modal-overlay {
+            padding: 16px;
+            align-items: flex-start;
+          }
+
+          .appointments-modal-card {
+            max-height: 88dvh;
+            overflow-y: auto;
+            padding: 20px;
+            border-radius: 20px;
+          }
+
+          .appointments-modal-header h2 {
+            font-size: 24px;
+          }
+
+          .appointments-checkin-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .appointments-modal-actions button {
+            flex: 1 1 auto;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .appointments-metrics-grid {
+            gap: 8px;
+          }
+
+          .appointments-metric-card {
+            min-height: 98px;
+            padding: 10px !important;
+          }
+
+          .appointments-hero h1 {
+            font-size: 24px;
+            color: #ffffff !important;
+          }
+
+          .appointments-tabs button {
+            flex: 1 1 auto;
+            justify-content: center;
+          }
+        }
+      `}</style>
+
       {cancelRequestAppointment && (
         <div
+          className="appointments-modal-overlay"
           onClick={closeCancelRequestModal}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 1000,
-            backdropFilter: "blur(6px)",
-          }}
         >
           <div
+            className="appointments-modal-card is-cancel"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: "620px",
-              backgroundColor: "#ffffff",
-              borderRadius: "24px",
-              padding: "30px",
-              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
-              border: "1px solid #e2e8f0",
-            }}
           >
-            <div style={{ marginBottom: "22px" }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: "#fff7ed",
-                  color: "#c2410c",
-                  border: "1px solid #fed7aa",
-                  borderRadius: "999px",
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: 900,
-                  marginBottom: "12px",
-                }}
-              >
+            <div className="appointments-modal-header">
+              <span className="appointments-modal-pill is-cancel">
                 <i className="fa-solid fa-calendar-xmark"></i>
                 Solicitação de cancelamento
               </span>
 
-              <h2
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  marginBottom: "8px",
-                }}
-              >
-                Solicitar cancelamento da consulta
-              </h2>
+              <h2>Solicitar cancelamento da consulta</h2>
 
-              <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+              <p>
                 Sua solicitação será enviada ao profissional, que poderá aprovar
                 ou rejeitar o cancelamento. A consulta continua agendada até a
                 análise.
               </p>
             </div>
 
-            <div
-              style={{
-                backgroundColor: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                borderRadius: "16px",
-                padding: "14px",
-                marginBottom: "18px",
-              }}
-            >
-              <p
-                style={{
-                  color: "#1d4ed8",
-                  fontWeight: 900,
-                  marginBottom: "6px",
-                }}
-              >
-                {cancelRequestAppointment.title}
-              </p>
+            <div className="appointments-modal-summary">
+              <p>{cancelRequestAppointment.title}</p>
 
-              <p style={{ color: "#1e40af", margin: 0 }}>
+              <p>
                 {formatDate(cancelRequestAppointment.dateTime)} · Profissional:{" "}
                 {cancelRequestAppointment.psychologist.name}
               </p>
             </div>
 
             {cancelRequestError && (
-              <div
-                style={{
-                  backgroundColor: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  color: "#b91c1c",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  marginBottom: "16px",
-                  fontWeight: 800,
-                }}
-              >
-                {cancelRequestError}
-              </div>
+              <div className="appointments-modal-error">{cancelRequestError}</div>
             )}
 
             <form noValidate onSubmit={handleSubmitCancelRequest}>
-              <div style={{ marginBottom: "18px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Motivo da solicitação
-                </label>
+              <div className="appointments-form-group">
+                <label>Motivo da solicitação</label>
 
                 <textarea
                   value={cancelRequestReason}
@@ -1514,14 +1815,7 @@ export default function MyAppointmentsPage() {
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
+              <div className="appointments-modal-actions">
                 <button
                   type="button"
                   onClick={closeCancelRequestModal}
@@ -1534,15 +1828,12 @@ export default function MyAppointmentsPage() {
                 <button
                   type="submit"
                   style={{
+                    ...warningButtonStyle,
                     backgroundColor: "#ea580c",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "14px",
-                    padding: "12px 16px",
-                    fontWeight: 900,
-                    cursor: savingCancelRequest ? "not-allowed" : "pointer",
-                    fontSize: "14px",
+                    color: "#ffffff",
+                    border: "1px solid #ea580c",
                     opacity: savingCancelRequest ? 0.7 : 1,
+                    cursor: savingCancelRequest ? "not-allowed" : "pointer",
                   }}
                   disabled={savingCancelRequest}
                 >
@@ -1557,127 +1848,46 @@ export default function MyAppointmentsPage() {
       )}
 
       {checkinAppointment && (
-        <div
-          onClick={closeCheckinModal}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 1000,
-            backdropFilter: "blur(6px)",
-          }}
-        >
+        <div className="appointments-modal-overlay" onClick={closeCheckinModal}>
           <div
+            className="appointments-modal-card is-checkin"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: "760px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              backgroundColor: "#ffffff",
-              borderRadius: "24px",
-              padding: "30px",
-              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
-              border: "1px solid #e2e8f0",
-            }}
           >
-            <div style={{ marginBottom: "22px" }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: "#eff6ff",
-                  color: "#1d4ed8",
-                  border: "1px solid #bfdbfe",
-                  borderRadius: "999px",
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: 900,
-                  marginBottom: "12px",
-                }}
-              >
+            <div className="appointments-modal-header">
+              <span className="appointments-modal-pill is-checkin">
                 <i className="fa-solid fa-clipboard-check"></i>
                 Preparação para sessão
               </span>
 
-              <h2
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  marginBottom: "8px",
-                }}
-              >
-                Checklist pré-sessão
-              </h2>
+              <h2>Checklist pré-sessão</h2>
 
-              <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+              <p>
                 Responda algumas perguntas rápidas para ajudar o profissional a
                 se preparar melhor para o atendimento.
               </p>
             </div>
 
-            <div
-              style={{
-                backgroundColor: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                borderRadius: "16px",
-                padding: "14px",
-                marginBottom: "18px",
-              }}
-            >
-              <p
-                style={{
-                  color: "#1d4ed8",
-                  fontWeight: 900,
-                  marginBottom: "6px",
-                }}
-              >
-                {checkinAppointment.title}
-              </p>
+            <div className="appointments-modal-summary">
+              <p>{checkinAppointment.title}</p>
 
-              <p style={{ color: "#1e40af", margin: 0 }}>
+              <p>
                 {formatDate(checkinAppointment.dateTime)} · Profissional:{" "}
                 {checkinAppointment.psychologist.name}
               </p>
             </div>
 
             {checkinError && (
-              <div
-                style={{
-                  backgroundColor: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  color: "#b91c1c",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  marginBottom: "16px",
-                  fontWeight: 800,
-                }}
-              >
-                {checkinError}
-              </div>
+              <div className="appointments-modal-error">{checkinError}</div>
             )}
 
             <form noValidate onSubmit={handleSubmitCheckin}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: "14px",
-                  marginBottom: "16px",
-                }}
-              >
+              <div className="appointments-checkin-grid">
                 <div>
                   <label
                     style={{
                       display: "block",
                       fontWeight: 800,
-                      color: "#0f172a",
+                      color: NAVY,
                       marginBottom: "8px",
                     }}
                   >
@@ -1700,7 +1910,7 @@ export default function MyAppointmentsPage() {
                     style={{
                       display: "block",
                       fontWeight: 800,
-                      color: "#0f172a",
+                      color: NAVY,
                       marginBottom: "8px",
                     }}
                   >
@@ -1723,7 +1933,7 @@ export default function MyAppointmentsPage() {
                     style={{
                       display: "block",
                       fontWeight: 800,
-                      color: "#0f172a",
+                      color: NAVY,
                       marginBottom: "8px",
                     }}
                   >
@@ -1742,17 +1952,8 @@ export default function MyAppointmentsPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: "14px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Qual sua principal preocupação no momento?
-                </label>
+              <div className="appointments-form-group">
+                <label>Qual sua principal preocupação no momento?</label>
 
                 <textarea
                   value={mainConcern}
@@ -1766,17 +1967,8 @@ export default function MyAppointmentsPage() {
                 />
               </div>
 
-              <div style={{ marginBottom: "14px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Aconteceu algo importante desde a última sessão?
-                </label>
+              <div className="appointments-form-group">
+                <label>Aconteceu algo importante desde a última sessão?</label>
 
                 <textarea
                   value={importantEvents}
@@ -1790,17 +1982,8 @@ export default function MyAppointmentsPage() {
                 />
               </div>
 
-              <div style={{ marginBottom: "18px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Existe algum tema que você gostaria de falar na consulta?
-                </label>
+              <div className="appointments-form-group">
+                <label>Existe algum tema que você gostaria de falar na consulta?</label>
 
                 <textarea
                   value={topicsToDiscuss}
@@ -1814,14 +1997,7 @@ export default function MyAppointmentsPage() {
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
+              <div className="appointments-modal-actions">
                 <button
                   type="button"
                   onClick={closeCheckinModal}

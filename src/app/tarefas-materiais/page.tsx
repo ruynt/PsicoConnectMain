@@ -68,6 +68,8 @@ export default function TarefasMateriaisPage() {
   const [materialError, setMaterialError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("TASKS");
+  const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([]);
+  const [expandedMaterialIds, setExpandedMaterialIds] = useState<string[]>([]);
 
   async function readJsonSafely(response: Response) {
     const text = await response.text();
@@ -281,6 +283,22 @@ export default function TarefasMateriaisPage() {
     }, 5000);
   }
 
+  function toggleTaskDetails(taskId: string) {
+    setExpandedTaskIds((previous) =>
+      previous.includes(taskId)
+        ? previous.filter((id) => id !== taskId)
+        : [...previous, taskId],
+    );
+  }
+
+  function toggleMaterialDetails(materialId: string) {
+    setExpandedMaterialIds((previous) =>
+      previous.includes(materialId)
+        ? previous.filter((id) => id !== materialId)
+        : [...previous, materialId],
+    );
+  }
+
   function formatDate(dateString: string | null) {
     if (!dateString) return "--";
 
@@ -332,12 +350,16 @@ export default function TarefasMateriaisPage() {
     try {
       setUpdatingTaskId(taskId);
 
-      const response = await fetch(`/api/patient/tasks/${taskId}`, {
+      if (status !== "COMPLETED") {
+        showFeedback(
+          "info",
+          "A reabertura de tarefas ainda não possui rota configurada nesta versão.",
+        );
+        return;
+      }
+
+      const response = await fetch(`/api/patient/tasks/${taskId}/complete`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
       });
 
       const data = await readJsonSafely(response);
@@ -348,12 +370,7 @@ export default function TarefasMateriaisPage() {
 
       await loadTasks();
 
-      showFeedback(
-        "success",
-        status === "COMPLETED"
-          ? "Tarefa marcada como concluída."
-          : "Tarefa reaberta com sucesso.",
-      );
+      showFeedback("success", "Tarefa marcada como concluída.");
     } catch (error: any) {
       showFeedback(
         "error",
@@ -368,7 +385,7 @@ export default function TarefasMateriaisPage() {
     try {
       setUpdatingMaterialId(materialId);
 
-      const response = await fetch(`/api/patient/materials/${materialId}`, {
+      const response = await fetch(`/api/patient/materials/${materialId}/view`, {
         method: "PATCH",
       });
 
@@ -396,7 +413,7 @@ export default function TarefasMateriaisPage() {
   const pageStyle = {
     padding: "36px",
     minHeight: "calc(100vh - 48px)",
-    paddingBottom: "72px",
+    paddingBottom: "150px",
     background: "#ffffff",
     borderRadius: 0,
     overflow: "visible",
@@ -440,8 +457,9 @@ export default function TarefasMateriaisPage() {
   const isLoadingAnyData = loadingTasks || loadingMaterials;
 
   return (
-    <div style={pageStyle}>
+    <div className="tasks-materials-page" style={pageStyle}>
       <section
+        className="tasks-materials-hero"
         style={{
           background: "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
           borderRadius: "28px",
@@ -490,6 +508,7 @@ export default function TarefasMateriaisPage() {
           </p>
 
           <div
+            className="tasks-materials-hero-title"
             role="heading"
             aria-level={1}
             style={{
@@ -504,6 +523,7 @@ export default function TarefasMateriaisPage() {
           </div>
 
           <p
+            className="tasks-materials-hero-description"
             style={{
               fontSize: "18px",
               color: "#ffffff",
@@ -538,6 +558,7 @@ export default function TarefasMateriaisPage() {
       ) : (
         <>
           <section
+            className="tasks-progress-card"
             style={{
               ...cardStyle,
               marginBottom: "24px",
@@ -581,6 +602,7 @@ export default function TarefasMateriaisPage() {
               </p>
 
               <div
+                className="tasks-progress-stats-grid"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -666,6 +688,7 @@ export default function TarefasMateriaisPage() {
               </p>
 
               <div
+                className="tasks-indicators-grid"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -675,6 +698,7 @@ export default function TarefasMateriaisPage() {
                 {gamification.indicators.map((indicator) => (
                   <div
                     key={indicator.title}
+                    className="tasks-indicator-card"
                     style={{
                       border: indicator.unlocked
                         ? "1px solid #bfdbfe"
@@ -783,6 +807,7 @@ export default function TarefasMateriaisPage() {
           )}
 
           <div
+            className="tasks-metrics-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
@@ -798,6 +823,7 @@ export default function TarefasMateriaisPage() {
           </div>
 
           <div
+            className="tasks-tabs"
             style={{
               display: "flex",
               gap: "10px",
@@ -855,7 +881,7 @@ export default function TarefasMateriaisPage() {
           </div>
 
           {activeTab === "TASKS" && (
-            <section style={cardStyle}>
+            <section className="tasks-content-section" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -887,158 +913,167 @@ export default function TarefasMateriaisPage() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: "14px" }}
                 >
-                  {tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      style={{
-                        border: `1px solid ${BORDER}`,
-                        borderRadius: "16px",
-                        padding: "18px",
-                        backgroundColor: "#f8fafc",
-                      }}
-                    >
+                  {tasks.map((task) => {
+                    const isTaskExpanded = expandedTaskIds.includes(task.id);
+
+                    return (
                       <div
+                        key={task.id}
+                        className={`tasks-list-card ${isTaskExpanded ? "is-expanded" : ""}`}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          alignItems: "flex-start",
-                          marginBottom: "10px",
+                          border: `1px solid ${BORDER}`,
+                          borderRadius: "16px",
+                          padding: "18px",
+                          backgroundColor: "#f8fafc",
                         }}
                       >
-                        <div>
-                          <h3
+                        <div
+                          className="tasks-list-card-header"
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            alignItems: "flex-start",
+                            marginBottom: isTaskExpanded ? "12px" : "10px",
+                          }}
+                        >
+                          <div>
+                            <h3
+                              style={{
+                                color: NAVY,
+                                fontSize: "20px",
+                                fontWeight: 900,
+                                marginBottom: "0",
+                              }}
+                            >
+                              {task.title}
+                            </h3>
+                          </div>
+
+                          <span
+                            className="tasks-status-pill"
                             style={{
-                              color: NAVY,
-                              fontSize: "20px",
+                              ...getTaskStatusStyle(task.status),
+                              borderRadius: "999px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
                               fontWeight: 900,
-                              marginBottom: "6px",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            {task.title}
-                          </h3>
-
-                          {task.dueDate && (
-                            <p style={{ color: MUTED, margin: 0 }}>
-                              Prazo: {formatDateOnly(task.dueDate)}
-                            </p>
-                          )}
+                            {getTaskStatusLabel(task.status)}
+                          </span>
                         </div>
 
-                        <span
-                          style={{
-                            ...getTaskStatusStyle(task.status),
-                            borderRadius: "999px",
-                            padding: "6px 12px",
-                            fontSize: "12px",
-                            fontWeight: 900,
-                            whiteSpace: "nowrap",
-                          }}
+                        <button
+                          type="button"
+                          className="tasks-card-toggle"
+                          onClick={() => toggleTaskDetails(task.id)}
                         >
-                          {getTaskStatusLabel(task.status)}
-                        </span>
-                      </div>
+                          {isTaskExpanded ? "Ocultar detalhes" : "Exibir detalhes"}
+                        </button>
 
-                      {task.description && (
-                        <p
-                          style={{
-                            color: NAVY_SOFT,
-                            lineHeight: 1.6,
-                            marginBottom: "12px",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {task.description}
-                        </p>
-                      )}
+                        {isTaskExpanded && (
+                          <div className="tasks-list-card-details">
+                            {task.dueDate && (
+                              <p style={{ color: MUTED, marginBottom: "10px" }}>
+                                <strong>Prazo:</strong>{" "}
+                                {formatDateOnly(task.dueDate)}
+                              </p>
+                            )}
 
-                      {task.appointment && (
-                        <p style={{ color: NAVY_SOFT, marginBottom: "10px" }}>
-                          <strong>Consulta relacionada:</strong>{" "}
-                          {task.appointment.title} —{" "}
-                          {formatDate(task.appointment.dateTime)}
-                        </p>
-                      )}
+                            {task.description && (
+                              <p
+                                style={{
+                                  color: NAVY_SOFT,
+                                  lineHeight: 1.6,
+                                  marginBottom: "12px",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {task.description}
+                              </p>
+                            )}
 
-                      {task.psychologist?.name && (
-                        <p
-                          style={{
-                            color: MUTED,
-                            fontSize: "13px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Enviada por {task.psychologist.name}
-                        </p>
-                      )}
+                            {task.appointment && (
+                              <p style={{ color: NAVY_SOFT, marginBottom: "10px" }}>
+                                <strong>Consulta relacionada:</strong>{" "}
+                                {task.appointment.title} —{" "}
+                                {formatDate(task.appointment.dateTime)}
+                              </p>
+                            )}
 
-                      {task.completedAt && (
-                        <p style={{ color: "#065f46", marginBottom: "10px" }}>
-                          <strong>Concluída em:</strong>{" "}
-                          {formatDate(task.completedAt)}
-                        </p>
-                      )}
+                            {task.psychologist?.name && (
+                              <p
+                                style={{
+                                  color: MUTED,
+                                  fontSize: "13px",
+                                  marginBottom: "10px",
+                                }}
+                              >
+                                Enviada por {task.psychologist.name}
+                              </p>
+                            )}
 
-                      <div
-                        style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
-                      >
-                        {task.status === "PENDING" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleUpdateTaskStatus(task.id, "COMPLETED")
-                            }
-                            disabled={updatingTaskId === task.id}
-                            style={{
-                              ...buttonPrimaryStyle,
-                              opacity: updatingTaskId === task.id ? 0.7 : 1,
-                              cursor:
-                                updatingTaskId === task.id
-                                  ? "not-allowed"
-                                  : "pointer",
-                            }}
-                          >
-                            {updatingTaskId === task.id
-                              ? "Atualizando..."
-                              : "Marcar como concluída"}
-                          </button>
-                        )}
+                            {task.completedAt && (
+                              <p style={{ color: "#065f46", marginBottom: "10px" }}>
+                                <strong>Concluída em:</strong>{" "}
+                                {formatDate(task.completedAt)}
+                              </p>
+                            )}
 
-                        {task.status === "COMPLETED" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleUpdateTaskStatus(task.id, "PENDING")
-                            }
-                            disabled={updatingTaskId === task.id}
-                            style={{
-                              ...buttonSecondaryStyle,
-                              opacity: updatingTaskId === task.id ? 0.7 : 1,
-                              cursor:
-                                updatingTaskId === task.id
-                                  ? "not-allowed"
-                                  : "pointer",
-                            }}
-                          >
-                            Reabrir tarefa
-                          </button>
-                        )}
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              {task.status === "PENDING" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdateTaskStatus(task.id, "COMPLETED")
+                                  }
+                                  disabled={updatingTaskId === task.id}
+                                  style={{
+                                    ...buttonPrimaryStyle,
+                                    opacity: updatingTaskId === task.id ? 0.7 : 1,
+                                    cursor:
+                                      updatingTaskId === task.id
+                                        ? "not-allowed"
+                                        : "pointer",
+                                  }}
+                                >
+                                  {updatingTaskId === task.id
+                                    ? "Atualizando..."
+                                    : "Marcar como concluída"}
+                                </button>
+                              )}
 
-                        {task.status === "CANCELLED" && (
-                          <span style={{ color: "#b91c1c", fontWeight: 800 }}>
-                            Esta tarefa foi cancelada pelo psicólogo.
-                          </span>
+                              {task.status === "CANCELLED" && (
+                                <span
+                                  style={{
+                                    color: "#b91c1c",
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  Esta tarefa foi cancelada pelo psicólogo.
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
           )}
 
           {activeTab === "MATERIALS" && (
-            <section style={cardStyle}>
+            <section className="tasks-content-section" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -1070,156 +1105,545 @@ export default function TarefasMateriaisPage() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: "14px" }}
                 >
-                  {materials.map((material) => (
-                    <div
-                      key={material.id}
-                      style={{
-                        border: `1px solid ${BORDER}`,
-                        borderRadius: "16px",
-                        padding: "18px",
-                        backgroundColor: material.viewedAt ? "#f8fafc" : "#eff6ff",
-                      }}
-                    >
+                  {materials.map((material) => {
+                    const isMaterialExpanded = expandedMaterialIds.includes(
+                      material.id,
+                    );
+
+                    return (
                       <div
+                        key={material.id}
+                        className={`tasks-list-card ${isMaterialExpanded ? "is-expanded" : ""}`}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          alignItems: "flex-start",
-                          marginBottom: "10px",
+                          border: `1px solid ${BORDER}`,
+                          borderRadius: "16px",
+                          padding: "18px",
+                          backgroundColor: material.viewedAt
+                            ? "#f8fafc"
+                            : "#eff6ff",
                         }}
                       >
-                        <div>
-                          <h3
+                        <div
+                          className="tasks-list-card-header"
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            alignItems: "flex-start",
+                            marginBottom: isMaterialExpanded ? "12px" : "10px",
+                          }}
+                        >
+                          <div>
+                            <h3
+                              style={{
+                                color: NAVY,
+                                fontSize: "20px",
+                                fontWeight: 900,
+                                marginBottom: "0",
+                              }}
+                            >
+                              {material.title}
+                            </h3>
+                          </div>
+
+                          <span
+                            className="tasks-status-pill"
                             style={{
-                              color: NAVY,
-                              fontSize: "20px",
+                              backgroundColor: material.viewedAt
+                                ? "#ecfdf5"
+                                : "#dbeafe",
+                              color: material.viewedAt ? "#065f46" : "#1d4ed8",
+                              border: material.viewedAt
+                                ? "1px solid #a7f3d0"
+                                : "1px solid #bfdbfe",
+                              borderRadius: "999px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
                               fontWeight: 900,
-                              marginBottom: "6px",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            {material.title}
-                          </h3>
-
-                          {material.category && (
-                            <p style={{ color: MUTED, margin: 0 }}>
-                              Categoria: {material.category}
-                            </p>
-                          )}
+                            {material.viewedAt ? "Visualizado" : "Novo"}
+                          </span>
                         </div>
 
-                        <span
-                          style={{
-                            backgroundColor: material.viewedAt
-                              ? "#ecfdf5"
-                              : "#dbeafe",
-                            color: material.viewedAt ? "#065f46" : "#1d4ed8",
-                            border: material.viewedAt
-                              ? "1px solid #a7f3d0"
-                              : "1px solid #bfdbfe",
-                            borderRadius: "999px",
-                            padding: "6px 12px",
-                            fontSize: "12px",
-                            fontWeight: 900,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {material.viewedAt ? "Visualizado" : "Novo"}
-                        </span>
-                      </div>
-
-                      {material.description && (
-                        <p
-                          style={{
-                            color: NAVY_SOFT,
-                            lineHeight: 1.6,
-                            marginBottom: "12px",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {material.description}
-                        </p>
-                      )}
-
-                      {material.url && (
-                        <a
-                          href={material.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            ...buttonPrimaryStyle,
-                            marginBottom: "12px",
-                          }}
-                        >
-                          Abrir material
-                        </a>
-                      )}
-
-                      {material.content && (
-                        <div
-                          style={{
-                            backgroundColor: "#ffffff",
-                            border: `1px solid ${BORDER}`,
-                            borderRadius: "14px",
-                            padding: "14px",
-                            color: NAVY_SOFT,
-                            whiteSpace: "pre-wrap",
-                            lineHeight: 1.6,
-                            marginTop: "8px",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          {material.content}
-                        </div>
-                      )}
-
-                      {material.psychologist?.name && (
-                        <p
-                          style={{
-                            color: MUTED,
-                            fontSize: "13px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Enviado por {material.psychologist.name} em{" "}
-                          {formatDate(material.createdAt)}
-                        </p>
-                      )}
-
-                      {material.viewedAt && (
-                        <p style={{ color: "#065f46", marginBottom: "10px" }}>
-                          <strong>Visualizado em:</strong>{" "}
-                          {formatDate(material.viewedAt)}
-                        </p>
-                      )}
-
-                      {!material.viewedAt && (
                         <button
                           type="button"
-                          onClick={() => handleMarkMaterialAsViewed(material.id)}
-                          disabled={updatingMaterialId === material.id}
-                          style={{
-                            ...buttonSecondaryStyle,
-                            opacity: updatingMaterialId === material.id ? 0.7 : 1,
-                            cursor:
-                              updatingMaterialId === material.id
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
+                          className="tasks-card-toggle"
+                          onClick={() => toggleMaterialDetails(material.id)}
                         >
-                          {updatingMaterialId === material.id
-                            ? "Atualizando..."
-                            : "Marcar como visualizado"}
+                          {isMaterialExpanded
+                            ? "Ocultar detalhes"
+                            : "Exibir detalhes"}
                         </button>
-                      )}
-                    </div>
-                  ))}
+
+                        {isMaterialExpanded && (
+                          <div className="tasks-list-card-details">
+                            {material.category && (
+                              <p style={{ color: MUTED, marginBottom: "10px" }}>
+                                <strong>Categoria:</strong> {material.category}
+                              </p>
+                            )}
+
+                            {material.description && (
+                              <p
+                                style={{
+                                  color: NAVY_SOFT,
+                                  lineHeight: 1.6,
+                                  marginBottom: "12px",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {material.description}
+                              </p>
+                            )}
+
+                            {material.url && (
+                              <a
+                                href={material.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  ...buttonPrimaryStyle,
+                                  marginBottom: "12px",
+                                }}
+                              >
+                                Abrir material
+                              </a>
+                            )}
+
+                            {material.content && (
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  border: `1px solid ${BORDER}`,
+                                  borderRadius: "14px",
+                                  padding: "14px",
+                                  color: NAVY_SOFT,
+                                  whiteSpace: "pre-wrap",
+                                  lineHeight: 1.6,
+                                  marginTop: "8px",
+                                  marginBottom: "12px",
+                                }}
+                              >
+                                {material.content}
+                              </div>
+                            )}
+
+                            {material.psychologist?.name && (
+                              <p
+                                style={{
+                                  color: MUTED,
+                                  fontSize: "13px",
+                                  marginBottom: "10px",
+                                }}
+                              >
+                                Enviado por {material.psychologist.name} em{" "}
+                                {formatDate(material.createdAt)}
+                              </p>
+                            )}
+
+                            {material.viewedAt && (
+                              <p
+                                style={{
+                                  color: "#065f46",
+                                  marginBottom: "10px",
+                                }}
+                              >
+                                <strong>Visualizado em:</strong>{" "}
+                                {formatDate(material.viewedAt)}
+                              </p>
+                            )}
+
+                            {!material.viewedAt && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleMarkMaterialAsViewed(material.id)
+                                }
+                                disabled={updatingMaterialId === material.id}
+                                style={{
+                                  ...buttonSecondaryStyle,
+                                  opacity:
+                                    updatingMaterialId === material.id ? 0.7 : 1,
+                                  cursor:
+                                    updatingMaterialId === material.id
+                                      ? "not-allowed"
+                                      : "pointer",
+                                }}
+                              >
+                                {updatingMaterialId === material.id
+                                  ? "Atualizando..."
+                                  : "Marcar como visualizado"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
           )}
         </>
       )}
+
+
+      <style>{`
+        .tasks-materials-hero-title,
+        .tasks-materials-hero-title * {
+          color: #ffffff !important;
+        }
+
+        .tasks-materials-hero-description {
+          color: #ffffff !important;
+        }
+
+        .tasks-metric-card-label {
+          color: #64748b !important;
+        }
+
+        .tasks-small-stat-card {
+          min-height: 86px;
+        }
+
+        .tasks-content-section {
+          overflow: visible;
+        }
+
+        .tasks-list-card {
+          transition:
+            background-color 0.18s ease,
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            transform 0.18s ease;
+        }
+
+        .tasks-list-card:not(.is-expanded) {
+          padding-top: 16px !important;
+          padding-bottom: 16px !important;
+        }
+
+        .tasks-list-card:hover {
+          transform: translateY(-1px);
+        }
+
+        .tasks-list-card-header {
+          min-width: 0;
+        }
+
+        .tasks-list-card-header h3 {
+          overflow-wrap: anywhere;
+        }
+
+        .tasks-card-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: fit-content;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+          border-radius: 999px;
+          padding: 8px 13px;
+          font-size: 12px;
+          font-weight: 900;
+          cursor: pointer;
+          margin-top: 2px;
+        }
+
+        .tasks-list-card-details {
+          margin-top: 14px;
+          border-top: 1px solid #e6edf7;
+          padding-top: 14px;
+        }
+
+        .tasks-tabs button {
+          transition:
+            background-color 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease,
+            transform 0.18s ease;
+        }
+
+        .tasks-tabs button:hover {
+          transform: translateY(-1px);
+        }
+
+        @media (max-width: 1180px) {
+          .tasks-progress-card {
+            grid-template-columns: 1fr !important;
+          }
+
+          .tasks-metrics-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+
+          .tasks-indicators-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .tasks-materials-page {
+            padding: 20px !important;
+            padding-bottom: 130px !important;
+          }
+
+          .tasks-materials-hero {
+            padding: 24px !important;
+            border-radius: 24px !important;
+          }
+
+          .tasks-materials-hero-title {
+            font-size: 34px !important;
+          }
+
+          .tasks-progress-card,
+          .tasks-content-section {
+            padding: 20px !important;
+          }
+
+          .tasks-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .tasks-materials-page {
+            padding: 16px !important;
+            padding-bottom: 120px !important;
+          }
+
+          .tasks-materials-hero {
+            padding: 18px !important;
+            border-radius: 22px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .tasks-materials-hero-title {
+            font-size: 26px !important;
+            line-height: 1.08 !important;
+            margin-bottom: 0 !important;
+            color: #ffffff !important;
+          }
+
+          .tasks-materials-hero-description {
+            display: none !important;
+          }
+
+          .tasks-progress-card {
+            padding: 16px !important;
+            gap: 16px !important;
+            margin-bottom: 16px !important;
+            border-radius: 18px !important;
+          }
+
+          .tasks-progress-card h2 {
+            font-size: 23px !important;
+            line-height: 1.16 !important;
+            margin-bottom: 6px !important;
+          }
+
+          .tasks-progress-card > div:first-child > p:nth-of-type(2) {
+            font-size: 13px !important;
+            line-height: 1.45 !important;
+            margin-bottom: 12px !important;
+          }
+
+          .tasks-progress-card > div:first-child > p:last-child,
+          .tasks-progress-card > div:nth-child(2) > p:nth-of-type(2) {
+            display: none !important;
+          }
+
+          .tasks-progress-stats-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+          }
+
+          .tasks-small-stat-card {
+            min-height: 74px !important;
+            padding: 10px !important;
+            border-radius: 14px !important;
+          }
+
+          .tasks-small-stat-card p:first-child {
+            font-size: 10.5px !important;
+            line-height: 1.15 !important;
+            margin-bottom: 5px !important;
+            color: #64748b !important;
+          }
+
+          .tasks-small-stat-card p:last-child {
+            font-size: 22px !important;
+            line-height: 1 !important;
+          }
+
+          .tasks-indicators-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .tasks-indicator-card {
+            padding: 10px !important;
+            border-radius: 14px !important;
+          }
+
+          .tasks-indicator-card > div:first-child {
+            margin-bottom: 0 !important;
+            gap: 8px !important;
+          }
+
+          .tasks-indicator-card > div:first-child > div:first-child {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 10px !important;
+            font-size: 13px !important;
+          }
+
+          .tasks-indicator-card p {
+            font-size: 11px !important;
+            line-height: 1.2 !important;
+          }
+
+          .tasks-indicator-card > p {
+            display: none !important;
+          }
+
+          .tasks-metrics-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .tasks-metric-card {
+            min-height: 82px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+          }
+
+          .tasks-metric-card-label {
+            font-size: 10.5px !important;
+            line-height: 1.15 !important;
+            margin-bottom: 6px !important;
+            color: #64748b !important;
+          }
+
+          .tasks-metric-card-value {
+            font-size: 24px !important;
+            line-height: 1 !important;
+          }
+
+          .tasks-tabs {
+            gap: 8px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .tasks-tabs button {
+            flex: 1 1 100%;
+            justify-content: center !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+          }
+
+          .tasks-content-section {
+            padding: 16px !important;
+            border-radius: 18px !important;
+          }
+
+          .tasks-content-section h2 {
+            font-size: 22px !important;
+            line-height: 1.15 !important;
+          }
+
+          .tasks-content-section > p {
+            display: none !important;
+          }
+
+          .tasks-list-card {
+            padding: 14px !important;
+            border-radius: 16px !important;
+          }
+
+          .tasks-list-card > div:first-child {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .tasks-list-card h3 {
+            font-size: 17px !important;
+            line-height: 1.25 !important;
+          }
+
+          .tasks-status-pill {
+            width: fit-content !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            text-align: left !important;
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+          }
+
+          .tasks-list-card button:not(.tasks-card-toggle),
+          .tasks-list-card a {
+            width: 100% !important;
+            justify-content: center !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+            box-shadow: none !important;
+          }
+
+          .tasks-card-toggle {
+            width: fit-content !important;
+            max-width: 100% !important;
+            padding: 7px 12px !important;
+            font-size: 12px !important;
+          }
+
+          .tasks-list-card-details {
+            margin-top: 12px !important;
+            padding-top: 12px !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .tasks-materials-hero-title {
+            font-size: 24px !important;
+          }
+
+          .tasks-metrics-grid,
+          .tasks-progress-stats-grid,
+          .tasks-indicators-grid {
+            gap: 7px !important;
+          }
+
+          .tasks-small-stat-card {
+            min-height: 70px !important;
+            padding: 9px !important;
+          }
+
+          .tasks-metric-card {
+            min-height: 78px !important;
+            padding: 9px !important;
+          }
+
+          .tasks-metric-card-label,
+          .tasks-small-stat-card p:first-child {
+            font-size: 10px !important;
+          }
+
+          .tasks-metric-card-value,
+          .tasks-small-stat-card p:last-child {
+            font-size: 22px !important;
+          }
+        }
+      `}</style>
+
+
+      <div style={{ height: "90px" }} aria-hidden="true" />
     </div>
   );
 }
@@ -1255,6 +1679,7 @@ function SmallStatCard({
 
   return (
     <div
+      className="tasks-small-stat-card"
       style={{
         backgroundColor: selectedTone.bg,
         border: `1px solid ${selectedTone.border}`,
@@ -1305,6 +1730,7 @@ function MetricCard({
 
   return (
     <div
+      className="tasks-metric-card"
       style={{
         backgroundColor: "#ffffff",
         borderRadius: "22px",
@@ -1313,11 +1739,12 @@ function MetricCard({
         border: `1px solid ${BORDER}`,
       }}
     >
-      <p style={{ color: MUTED, fontSize: "14px", marginBottom: "8px" }}>
+      <p className="tasks-metric-card-label" style={{ color: MUTED, fontSize: "14px", marginBottom: "8px" }}>
         {label}
       </p>
 
       <p
+        className="tasks-metric-card-value"
         style={{
           color: toneMap[tone],
           fontSize: "32px",

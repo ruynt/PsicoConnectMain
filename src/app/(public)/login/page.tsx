@@ -37,6 +37,17 @@ function getLoginErrorMessage(error: string | null | undefined) {
   return "Não foi possível concluir o login. Tente novamente.";
 }
 
+function isPositiveNotice(message: string) {
+  const normalizedMessage = message.toLowerCase();
+
+  return (
+    normalizedMessage.includes("sucesso") ||
+    normalizedMessage.includes("enviamos") ||
+    normalizedMessage.includes("reenviado") ||
+    normalizedMessage.includes("verificação")
+  );
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,6 +71,43 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
+  async function tryResendVerificationEmail() {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return false;
+    }
+
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.resent) {
+        return false;
+      }
+
+      setApiError(
+        data.message ||
+          "Enviamos novamente o e-mail de verificação. Confira sua caixa de entrada e confirme seu e-mail para acessar.",
+      );
+
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
@@ -68,11 +116,17 @@ export default function LoginPage() {
     try {
       const result = await signIn("credentials", {
         redirect: false,
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
       if (result?.error) {
+        const verificationEmailWasResent = await tryResendVerificationEmail();
+
+        if (verificationEmailWasResent) {
+          return;
+        }
+
         setApiError(getLoginErrorMessage(result.error));
         return;
       }
@@ -90,7 +144,7 @@ export default function LoginPage() {
     }
   };
 
-  const isSuccessMessage = apiError.includes("sucesso");
+  const isSuccessMessage = isPositiveNotice(apiError);
   const hasError = Boolean(apiError) && !isSuccessMessage;
 
   return (

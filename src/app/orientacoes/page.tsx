@@ -111,8 +111,9 @@ export default function OrientacoesPage() {
   };
 
   return (
-    <div style={pageStyle}>
+    <div className="orientacoes-page" style={pageStyle}>
       <section
+        className="orientacoes-hero"
         style={{
           position: "relative",
           overflow: "hidden",
@@ -150,6 +151,7 @@ export default function OrientacoesPage() {
         />
 
         <div
+          className="orientacoes-hero-grid"
           style={{
             position: "relative",
             zIndex: 1,
@@ -161,6 +163,7 @@ export default function OrientacoesPage() {
         >
           <div>
             <div
+              className="orientacoes-hero-pill"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -180,6 +183,7 @@ export default function OrientacoesPage() {
             </div>
 
             <h1
+              className="orientacoes-hero-title"
               style={{
                 fontSize: "46px",
                 lineHeight: 1.02,
@@ -192,6 +196,7 @@ export default function OrientacoesPage() {
             </h1>
 
             <p
+              className="orientacoes-hero-description"
               style={{
                 fontSize: "18px",
                 color: "#dbeafe",
@@ -207,6 +212,7 @@ export default function OrientacoesPage() {
           </div>
 
           <div
+            className="orientacoes-hero-alert"
             style={{
               backgroundColor: "rgba(255, 255, 255, 0.14)",
               border: "1px solid rgba(255, 255, 255, 0.22)",
@@ -252,6 +258,7 @@ export default function OrientacoesPage() {
       </section>
 
       <section
+        className="orientacoes-quick-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -289,8 +296,9 @@ export default function OrientacoesPage() {
             bg: "#f5f3ff",
           },
         ].map((item) => (
-          <div key={item.title} style={miniCardStyle}>
+          <div key={item.title} className="orientacoes-quick-card" style={miniCardStyle}>
             <div
+              className="orientacoes-quick-icon"
               style={{
                 width: "46px",
                 height: "46px",
@@ -333,6 +341,7 @@ export default function OrientacoesPage() {
       </section>
 
       <section
+        className="orientacoes-guide-card"
         style={{
           ...glassCardStyle,
           padding: "26px",
@@ -342,7 +351,7 @@ export default function OrientacoesPage() {
           gap: "24px",
         }}
       >
-        <div>
+        <div className="orientacoes-guide-menu">
           <p
             style={{
               color: "#2563eb",
@@ -379,6 +388,7 @@ export default function OrientacoesPage() {
           </p>
 
           <div
+            className="orientacoes-guide-buttons"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -391,6 +401,7 @@ export default function OrientacoesPage() {
               return (
                 <button
                   key={section.id}
+                  className="orientacoes-guide-button"
                   type="button"
                   onClick={() => setActiveSectionId(section.id)}
                   style={{
@@ -455,6 +466,7 @@ export default function OrientacoesPage() {
         </div>
 
         <div
+          className="orientacoes-guide-content"
           style={{
             borderRadius: "28px",
             padding: "28px",
@@ -464,6 +476,7 @@ export default function OrientacoesPage() {
           }}
         >
           <div
+            className="orientacoes-active-pill"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -482,6 +495,7 @@ export default function OrientacoesPage() {
           </div>
 
           <h2
+            className="orientacoes-active-title"
             style={{
               color: "#111827",
               fontSize: "34px",
@@ -495,6 +509,7 @@ export default function OrientacoesPage() {
           </h2>
 
           <p
+            className="orientacoes-active-description"
             style={{
               color: "#6b7280",
               lineHeight: 1.6,
@@ -506,6 +521,7 @@ export default function OrientacoesPage() {
           </p>
 
           <div
+            className="orientacoes-active-list"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -515,6 +531,7 @@ export default function OrientacoesPage() {
             {activeSection.content.map((text, index) => (
               <div
                 key={text}
+                className="orientacoes-active-item"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "38px 1fr",
@@ -555,6 +572,7 @@ export default function OrientacoesPage() {
       </section>
 
       <section
+        className="orientacoes-practice-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1.1fr 0.9fr",
@@ -563,6 +581,7 @@ export default function OrientacoesPage() {
         }}
       >
         <div
+          className="orientacoes-practice-card"
           style={{
             ...glassCardStyle,
             padding: "26px",
@@ -623,6 +642,7 @@ export default function OrientacoesPage() {
             ].map((item, index) => (
               <div
                 key={item.step}
+                className="orientacoes-step-item"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "58px 1fr",
@@ -683,6 +703,7 @@ export default function OrientacoesPage() {
         </div>
 
         <div
+          className="orientacoes-practice-card orientacoes-warning-card"
           style={{
             ...glassCardStyle,
             padding: "26px",
@@ -765,6 +786,7 @@ export default function OrientacoesPage() {
       </section>
 
       <section
+        className="orientacoes-human-card"
         style={{
           ...glassCardStyle,
           padding: "24px",
@@ -819,6 +841,557 @@ export default function OrientacoesPage() {
           </p>
         </div>
       </section>
+
+
+      <style>{`
+        .orientacoes-page {
+          width: 100%;
+        }
+
+        .orientacoes-hero-title,
+        .orientacoes-hero-title *,
+        .orientacoes-hero-description,
+        .orientacoes-hero-pill,
+        .orientacoes-hero-alert,
+        .orientacoes-hero-alert * {
+          color: #ffffff !important;
+        }
+
+        .orientacoes-quick-card,
+        .orientacoes-guide-card,
+        .orientacoes-guide-content,
+        .orientacoes-practice-card,
+        .orientacoes-human-card {
+          min-width: 0;
+        }
+
+        .orientacoes-guide-button {
+          transition:
+            background-color 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease,
+            transform 0.18s ease;
+        }
+
+        .orientacoes-guide-button:hover {
+          transform: translateY(-1px);
+        }
+
+        .orientacoes-active-item,
+        .orientacoes-step-item {
+          min-width: 0;
+        }
+
+        @media (max-width: 1180px) {
+          .orientacoes-hero-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .orientacoes-hero-alert {
+            max-width: 760px;
+          }
+
+          .orientacoes-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .orientacoes-guide-card {
+            grid-template-columns: 1fr !important;
+          }
+
+          .orientacoes-guide-buttons {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .orientacoes-practice-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .orientacoes-page {
+            padding: 20px !important;
+            padding-bottom: 150px !important;
+            border-radius: 0 !important;
+          }
+
+          .orientacoes-hero {
+            padding: 24px !important;
+            border-radius: 24px !important;
+          }
+
+          .orientacoes-hero-title {
+            font-size: 36px !important;
+            line-height: 1.08 !important;
+          }
+
+          .orientacoes-guide-card,
+          .orientacoes-guide-content,
+          .orientacoes-practice-card,
+          .orientacoes-human-card {
+            padding: 22px !important;
+            border-radius: 22px !important;
+          }
+
+          .orientacoes-active-title {
+            font-size: 30px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .orientacoes-page {
+            padding: 16px !important;
+            padding-bottom: 130px !important;
+          }
+
+          .orientacoes-hero {
+            padding: 18px !important;
+            border-radius: 22px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .orientacoes-hero-grid {
+            gap: 16px !important;
+          }
+
+          .orientacoes-hero-pill {
+            padding: 6px 10px !important;
+            font-size: 12px !important;
+            margin-bottom: 12px !important;
+          }
+
+          .orientacoes-hero-title {
+            font-size: 28px !important;
+            line-height: 1.1 !important;
+            margin-bottom: 10px !important;
+          }
+
+          .orientacoes-hero-description {
+            font-size: 14px !important;
+            line-height: 1.45 !important;
+          }
+
+          .orientacoes-hero-alert {
+            padding: 14px !important;
+            border-radius: 18px !important;
+          }
+
+          .orientacoes-hero-alert p:first-child {
+            font-size: 12px !important;
+            margin-bottom: 8px !important;
+          }
+
+          .orientacoes-hero-alert p:nth-child(2) {
+            font-size: 17px !important;
+            line-height: 1.25 !important;
+            margin-bottom: 8px !important;
+          }
+
+          .orientacoes-hero-alert p:last-child {
+            font-size: 13px !important;
+            line-height: 1.45 !important;
+          }
+
+          .orientacoes-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .orientacoes-quick-card {
+            padding: 14px !important;
+            border-radius: 18px !important;
+          }
+
+          .orientacoes-quick-icon {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 12px !important;
+            font-size: 15px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .orientacoes-quick-card h2 {
+            font-size: 14px !important;
+            line-height: 1.18 !important;
+            margin-bottom: 6px !important;
+          }
+
+          .orientacoes-quick-card p {
+            font-size: 12px !important;
+            line-height: 1.35 !important;
+          }
+
+          .orientacoes-guide-card,
+          .orientacoes-guide-content,
+          .orientacoes-practice-card,
+          .orientacoes-human-card {
+            padding: 16px !important;
+            border-radius: 18px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .orientacoes-guide-menu > h2,
+          .orientacoes-active-title,
+          .orientacoes-practice-card h2,
+          .orientacoes-human-card h2 {
+            font-size: 22px !important;
+            line-height: 1.14 !important;
+          }
+
+          .orientacoes-guide-menu > p:not(:first-child),
+          .orientacoes-active-description {
+            font-size: 13px !important;
+            line-height: 1.45 !important;
+            margin-bottom: 14px !important;
+          }
+
+          .orientacoes-guide-buttons {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+
+          .orientacoes-guide-button {
+            padding: 11px !important;
+            border-radius: 14px !important;
+          }
+
+          .orientacoes-guide-button > div:first-child {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 12px !important;
+            font-size: 14px !important;
+          }
+
+          .orientacoes-guide-button p {
+            font-size: 13px !important;
+            line-height: 1.2 !important;
+          }
+
+          .orientacoes-active-pill {
+            padding: 6px 10px !important;
+            font-size: 12px !important;
+            margin-bottom: 12px !important;
+          }
+
+          .orientacoes-active-list {
+            gap: 10px !important;
+          }
+
+          .orientacoes-active-item {
+            grid-template-columns: 30px 1fr !important;
+            gap: 10px !important;
+          }
+
+          .orientacoes-active-item > div:first-child {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 10px !important;
+            font-size: 12px !important;
+          }
+
+          .orientacoes-active-item p {
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+          }
+
+          .orientacoes-practice-grid {
+            gap: 16px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .orientacoes-step-item {
+            grid-template-columns: 40px 1fr !important;
+            gap: 10px !important;
+          }
+
+          .orientacoes-step-item > div:first-child {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 13px !important;
+            font-size: 12px !important;
+          }
+
+          .orientacoes-step-item h3 {
+            font-size: 15px !important;
+            line-height: 1.22 !important;
+          }
+
+          .orientacoes-step-item p,
+          .orientacoes-warning-card p {
+            font-size: 13px !important;
+            line-height: 1.45 !important;
+          }
+
+          .orientacoes-human-card {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+            text-align: left !important;
+          }
+
+          .orientacoes-human-card > div:first-child {
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 15px !important;
+            font-size: 18px !important;
+          }
+
+          .orientacoes-human-card p {
+            font-size: 13px !important;
+            line-height: 1.45 !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .orientacoes-hero-title {
+            font-size: 25px !important;
+          }
+
+          .orientacoes-quick-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .orientacoes-quick-card {
+            display: grid !important;
+            grid-template-columns: 40px 1fr !important;
+            gap: 10px !important;
+            align-items: flex-start !important;
+          }
+
+          .orientacoes-quick-icon {
+            margin-bottom: 0 !important;
+          }
+
+          .orientacoes-quick-card h2 {
+            margin-top: 1px !important;
+          }
+
+          .orientacoes-quick-card p {
+            grid-column: 2 !important;
+          }
+        }
+
+        /* Ajuste fino: painel do tema e cards rápidos compactos */
+        @media (min-width: 1181px) {
+          .orientacoes-guide-card {
+            align-items: start !important;
+          }
+
+          .orientacoes-guide-content {
+            min-height: auto !important;
+            height: fit-content !important;
+            align-self: start !important;
+            padding: 24px !important;
+          }
+
+          .orientacoes-active-description {
+            margin-bottom: 18px !important;
+          }
+
+          .orientacoes-active-list {
+            gap: 10px !important;
+          }
+
+          .orientacoes-active-item {
+            grid-template-columns: 32px 1fr !important;
+            gap: 10px !important;
+          }
+
+          .orientacoes-active-item > div:first-child {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 10px !important;
+            font-size: 12px !important;
+          }
+
+          .orientacoes-active-item p {
+            line-height: 1.5 !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .orientacoes-quick-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+          }
+
+          .orientacoes-quick-card {
+            min-height: 118px !important;
+            padding: 12px !important;
+            border-radius: 18px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+          }
+
+          .orientacoes-quick-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 12px !important;
+            font-size: 14px !important;
+            margin-bottom: 8px !important;
+          }
+
+          .orientacoes-quick-card h2 {
+            font-size: 13px !important;
+            line-height: 1.15 !important;
+            margin-bottom: 0 !important;
+          }
+
+          .orientacoes-quick-card p {
+            display: none !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .orientacoes-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+          }
+
+          .orientacoes-quick-card {
+            min-height: 104px !important;
+            padding: 11px !important;
+          }
+
+          .orientacoes-quick-icon {
+            width: 32px !important;
+            height: 32px !important;
+            margin-bottom: 7px !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .orientacoes-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .orientacoes-quick-card {
+            display: flex !important;
+            min-height: 100px !important;
+            gap: 0 !important;
+          }
+
+          .orientacoes-quick-card h2 {
+            margin-top: 0 !important;
+          }
+
+          .orientacoes-quick-card p {
+            display: none !important;
+          }
+        }
+
+        /* Ajuste final dos cards rápidos: 4 colunas no tablet, 2 no celular */
+        @media (max-width: 900px) {
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-grid,
+          .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-grid,
+          .orientacoes-page .orientacoes-quick-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card,
+          .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-card,
+          .orientacoes-page .orientacoes-quick-card {
+            width: auto !important;
+            min-width: 0 !important;
+            min-height: 92px !important;
+            padding: 10px !important;
+            border-radius: 16px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-icon,
+          .orientacoes-page .orientacoes-quick-icon {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
+            border-radius: 9px !important;
+            font-size: 12px !important;
+            margin: 0 !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card h2,
+          .orientacoes-page .orientacoes-quick-card h2 {
+            font-size: 11px !important;
+            line-height: 1.12 !important;
+            margin: 0 !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card p,
+          .orientacoes-page .orientacoes-quick-card p {
+            display: none !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-grid,
+          .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-grid,
+          .orientacoes-page .orientacoes-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card,
+          .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-card,
+          .orientacoes-page .orientacoes-quick-card {
+            min-height: 86px !important;
+            padding: 10px !important;
+            border-radius: 15px !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-icon,
+          .orientacoes-page .orientacoes-quick-icon {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
+            border-radius: 9px !important;
+            font-size: 12px !important;
+            margin: 0 !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card h2,
+          .orientacoes-page .orientacoes-quick-card h2 {
+            font-size: 12px !important;
+            line-height: 1.15 !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-grid,
+          .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-grid,
+          .orientacoes-page .orientacoes-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card,
+          .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-card,
+          .orientacoes-page .orientacoes-quick-card {
+            min-height: 82px !important;
+            padding: 9px !important;
+          }
+
+          .chat-main-wrapper .orientacoes-page .orientacoes-quick-card h2,
+          .orientacoes-page .orientacoes-quick-card h2 {
+            font-size: 11px !important;
+            line-height: 1.12 !important;
+          }
+        }
+
+      `}</style>
+
 
       <div style={{ height: "120px", flexShrink: 0 }} />
     </div>

@@ -106,6 +106,52 @@ const formatTimestamp = () =>
   });
 
 
+const GENERIC_BOT_ERROR_MESSAGE =
+  "Não consegui responder agora. Tente novamente em instantes.";
+
+const GENERIC_AI_ERROR_MESSAGE =
+  "Não consegui processar essa solicitação no momento. Você pode tentar reformular a pergunta ou tentar novamente em alguns instantes.";
+
+function getSafeBotReply(reply?: string) {
+  const fallbackMessage =
+    "Desculpe, não consegui obter uma resposta agora. Tente novamente em instantes.";
+
+  if (!reply || typeof reply !== "string") {
+    return fallbackMessage;
+  }
+
+  const normalizedReply = reply.toLowerCase();
+
+  const technicalErrorTerms = [
+    "backend",
+    "porta 8000",
+    "porta 3000",
+    "localhost",
+    "falha na api",
+    "não foi possível conectar ao psicobot",
+    "projeto principal está rodando",
+    "não consegui conectar ao backend",
+    "fetch failed",
+    "networkerror",
+    "failed to fetch",
+    "connect econnrefused",
+    "erro 500",
+    "erro 502",
+    "erro 503",
+    "erro 504",
+  ];
+
+  const hasTechnicalError = technicalErrorTerms.some((term) =>
+    normalizedReply.includes(term),
+  );
+
+  if (hasTechnicalError) {
+    return GENERIC_AI_ERROR_MESSAGE;
+  }
+
+  return reply;
+}
+
 function getRoleWelcomeMessage(role: string) {
   if (role === "ADMIN") {
     return "Olá! Sou o PsicoBot. Posso ajudar com usuários, CRPs pendentes, usuários recentes e orientações sobre a área administrativa do PsicoConnect.";
@@ -288,7 +334,7 @@ export default function ChatBotPage() {
 
       const botMessage: Message = {
         id: Date.now() + 1,
-        text: data.reply || "Desculpe, não consegui obter uma resposta da IA.",
+        text: getSafeBotReply(data.reply),
         sender: "bot",
         timestamp: formatTimestamp(),
       };
@@ -297,8 +343,7 @@ export default function ChatBotPage() {
     } catch {
       const errorMessage: Message = {
         id: Date.now() + 1,
-        text:
-          "Erro: Não foi possível conectar ao PsicoBot. Verifique se o projeto principal está rodando e, para perguntas de IA/RAG, se o backend da porta 8000 também está ativo.",
+        text: GENERIC_BOT_ERROR_MESSAGE,
         sender: "bot",
         timestamp: formatTimestamp(),
       };
@@ -328,11 +373,48 @@ export default function ChatBotPage() {
             onClick={resetConversation}
             disabled={isLoading}
             title="Limpar conversa desta sessão"
+            aria-label="Limpar conversa desta sessão"
           >
-            <i className="fa-solid fa-rotate-left" />
-            Limpar conversa
+            <svg
+              className="clear-chat-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M14.8 3.5a2.2 2.2 0 0 1 3.1 0l2.6 2.6a2.2 2.2 0 0 1 0 3.1l-7.8 7.8-5.7-5.7 7.8-7.8Z" />
+              <path d="M5.7 12.6l5.7 5.7-1.1 1.1c-.7.7-1.6 1.1-2.6 1.1H3.8c-.4 0-.7-.3-.7-.7v-3.9c0-1 .4-1.9 1.1-2.6l1.5-.7Z" />
+              <path d="M11.8 20.5h8.1c.5 0 .9-.4.9-.9s-.4-.9-.9-.9h-6.3l-1.8 1.8Z" />
+            </svg>
+            <span className="clear-chat-label">Limpar conversa</span>
           </button>
         </header>
+
+        <div className="chat-mobile-suggestions-panel">
+          <div className="chat-mobile-suggestions-heading">
+            <div className="side-panel-icon">
+              <i className="fa-solid fa-lightbulb" />
+            </div>
+
+            <div>
+              <h2>Sugestões</h2>
+              <p className="side-panel-description">{sidePanelDescription}</p>
+            </div>
+          </div>
+
+          <div className="suggestion-list">
+            {quickSuggestions.map((suggestion) => (
+              <button
+                key={suggestion.label}
+                type="button"
+                onClick={() => handleSuggestionClick(suggestion.prompt)}
+                disabled={isLoading}
+                className="suggestion-button"
+              >
+                {suggestion.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="chat-content-wrapper">
           <div
@@ -341,23 +423,39 @@ export default function ChatBotPage() {
             ref={chatMessagesRef}
             onScroll={handleScroll}
           >
-            {messages.map((msg) => (
-              <div key={msg.id} className={`message ${msg.sender} break-words`}>
-                <div>
-                  <ReactMarkdown
-                    components={{
-                      a: ({ node, ...props }) => (
-                        <a {...props} target="_blank" rel="noopener noreferrer" />
-                      ),
-                    }}
-                  >
-                    {msg.text}
-                  </ReactMarkdown>
-                </div>
+            {messages.map((msg) => {
+              const isBotMessage = msg.sender === "bot";
 
-                <span className="timestamp">{msg.timestamp}</span>
-              </div>
-            ))}
+              return (
+                <div key={msg.id} className={`message-row ${msg.sender}`}>
+                  <div className={`message ${msg.sender} break-words`}>
+                    {isBotMessage && (
+                      <span className="bot-message-mini-icon" aria-hidden="true">
+                        <img src="/psicobot_icon_white.png" alt="" />
+                      </span>
+                    )}
+
+                    <div>
+                      <ReactMarkdown
+                        components={{
+                          a: ({ node, ...props }) => (
+                            <a
+                              {...props}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            />
+                          ),
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    </div>
+
+                    <span className="timestamp">{msg.timestamp}</span>
+                  </div>
+                </div>
+              );
+            })}
 
             {isLoading && (
               <div className="message bot">
@@ -469,23 +567,59 @@ export default function ChatBotPage() {
         }
 
         .chat-header {
+          position: relative;
+          overflow: hidden;
           display: flex;
           align-items: center;
-          gap: 12px;
-          border-bottom: 1px solid #e0e0e0;
-          padding: 16px 16px 12px;
+          gap: 14px;
+          border: none;
+          border-radius: 26px;
+          padding: 22px 170px 22px 24px;
           flex-shrink: 0;
-          background-color: #ffffff;
+          background: linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa);
+          box-shadow: 0 18px 42px rgba(37, 99, 235, 0.16);
+          color: #ffffff;
+        }
+
+        .chat-header::before {
+          content: "";
+          position: absolute;
+          right: -70px;
+          top: -90px;
+          width: 220px;
+          height: 220px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.14);
+          pointer-events: none;
+        }
+
+        .chat-header::after {
+          content: "";
+          position: absolute;
+          right: 130px;
+          bottom: -120px;
+          width: 190px;
+          height: 190px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.10);
+          pointer-events: none;
+        }
+
+        .chat-header .icon,
+        .chat-header-title,
+        .clear-chat-button {
+          position: relative;
+          z-index: 1;
         }
 
         .chat-header .icon {
-          font-size: 41px;
           color: #ffffff;
-          background-color: #528cff;
-          border-radius: 50%;
-          margin-right: 4px;
-          width: 64px;
-          height: 64px;
+          background: rgba(255, 255, 255, 0.16);
+          border: 1px solid rgba(255, 255, 255, 0.26);
+          border-radius: 18px;
+          margin-right: 0;
+          width: 58px;
+          height: 58px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -493,10 +627,11 @@ export default function ChatBotPage() {
         }
 
         .chat-header .psicobot-header-icon img {
-          width: 46px;
-          height: 46px;
+          width: 40px;
+          height: 40px;
           object-fit: contain;
           display: block;
+          filter: drop-shadow(0 2px 4px rgba(0, 30, 94, 0.18));
         }
 
         .chat-header-title {
@@ -507,11 +642,12 @@ export default function ChatBotPage() {
         }
 
         .chat-header-title h2 {
-          font-size: 28px;
-          font-weight: 700;
-          color: #001e5e;
+          font-size: 34px;
+          font-weight: 900;
+          color: #ffffff !important;
           font-family: "Montserrat", sans-serif;
-          line-height: 1.1;
+          line-height: 1.05;
+          letter-spacing: -0.03em;
           white-space: normal;
           overflow: visible;
           text-overflow: clip;
@@ -521,33 +657,41 @@ export default function ChatBotPage() {
 
         .chat-header-title p {
           font-size: 16px;
-          color: #5272a6;
+          color: #dbeafe !important;
           font-family: "Inter", sans-serif;
-          margin-top: 2px;
+          margin-top: 4px;
           white-space: normal;
           word-break: break-word;
         }
 
         .clear-chat-button {
-          border: 1px solid #d6e4ff;
-          background: #f7faff;
-          color: #1c4bb3;
-          border-radius: 14px;
-          padding: 10px 12px;
+          position: absolute;
+          right: 22px;
+          top: 22px;
+          min-width: 42px;
+          height: 42px;
+          border: 1px solid rgba(255, 255, 255, 0.30);
+          background: rgba(255, 255, 255, 0.14);
+          color: #ffffff;
+          border-radius: 999px;
+          padding: 0 14px;
           font-size: 13px;
           font-weight: 800;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
           transition: 0.18s ease;
           white-space: nowrap;
+          backdrop-filter: blur(8px);
+          box-shadow: none;
         }
 
         .clear-chat-button:hover:not(:disabled) {
-          background: #eaf2ff;
-          border-color: #bfd5ff;
-          color: #001e5e;
+          background: rgba(255, 255, 255, 0.22);
+          border-color: rgba(255, 255, 255, 0.42);
+          color: #ffffff;
         }
 
         .clear-chat-button:disabled {
@@ -555,13 +699,21 @@ export default function ChatBotPage() {
           cursor: not-allowed;
         }
 
+        .clear-chat-icon {
+          width: 16px;
+          height: 16px;
+          display: block;
+          flex: 0 0 16px;
+          fill: currentColor;
+        }
+
         .chat-content-wrapper {
-          flex-grow: 1;
+          flex: 1 1 auto;
           min-height: 0;
           display: flex;
           flex-direction: column;
           background-color: #cde3fe;
-          margin: 40px 32px 32px;
+          margin: 24px 32px 32px;
           border-radius: 30px;
           width: calc(100% - 64px);
           overflow: hidden;
@@ -570,7 +722,7 @@ export default function ChatBotPage() {
         }
 
         .chat-messages {
-          flex-grow: 1;
+          flex: 1 1 auto;
           min-height: 0;
           padding: 32px 32px 0 32px;
           overflow-y: auto;
@@ -660,20 +812,22 @@ export default function ChatBotPage() {
 
         .chat-input-area textarea {
           flex-grow: 1;
+          min-height: 46px;
+          max-height: 92px;
           border: none;
           background-color: #ffffff;
-          padding: 16px 24px;
+          padding: 13px 22px;
           border-radius: 30px;
           font-size: 15px;
-          line-height: 1.4;
+          line-height: 1.35;
           outline: none;
           resize: none;
           font-family: "Inter", sans-serif;
-          max-height: 100px;
-          overflow-y: auto;
+          overflow-y: hidden;
           margin-right: 16px;
           box-sizing: border-box;
           box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+          display: block;
         }
 
         .chat-input-area textarea::placeholder {
@@ -790,37 +944,27 @@ export default function ChatBotPage() {
           pointer-events: none;
         }
 
-        .chat-messages::-webkit-scrollbar,
-        .chat-input-area textarea::-webkit-scrollbar,
-        .chat-side-panel::-webkit-scrollbar {
+        .chat-messages::-webkit-scrollbar {
           width: 8px;
         }
 
-        .chat-messages::-webkit-scrollbar-track,
-        .chat-input-area textarea::-webkit-scrollbar-track,
-        .chat-side-panel::-webkit-scrollbar-track {
+        .chat-messages::-webkit-scrollbar-track {
           background: transparent;
           border-radius: 4px;
         }
 
-        .chat-messages::-webkit-scrollbar-thumb,
-        .chat-input-area textarea::-webkit-scrollbar-thumb,
-        .chat-side-panel::-webkit-scrollbar-thumb {
+        .chat-messages::-webkit-scrollbar-thumb {
           background-color: rgba(0, 30, 94, 0.3);
           border-radius: 4px;
           border: 2px solid transparent;
           background-clip: padding-box;
         }
 
-        .chat-messages::-webkit-scrollbar-thumb:hover,
-        .chat-input-area textarea::-webkit-scrollbar-thumb:hover,
-        .chat-side-panel::-webkit-scrollbar-thumb:hover {
+        .chat-messages::-webkit-scrollbar-thumb:hover {
           background-color: rgba(0, 30, 94, 0.5);
         }
 
-        .chat-messages,
-        .chat-input-area textarea,
-        .chat-side-panel {
+        .chat-messages {
           scrollbar-width: thin;
           scrollbar-color: rgba(0, 30, 94, 0.5) transparent;
         }
@@ -926,32 +1070,624 @@ export default function ChatBotPage() {
           font-weight: 700;
         }
 
+        .chat-mobile-suggestions-panel {
+          display: none;
+        }
+
+        @media (max-width: 1280px) {
+          .chat-page-shell {
+            grid-template-columns: minmax(0, 1fr) 300px;
+            gap: 14px;
+          }
+
+          .chat-content-wrapper {
+            margin: 24px 22px 24px;
+            width: calc(100% - 44px);
+          }
+
+          .message.bot {
+            max-width: 76%;
+          }
+
+          .message.user {
+            max-width: 58%;
+          }
+        }
+
         @media (max-width: 1120px) {
           .chat-page-shell {
-            grid-template-columns: 1fr;
+            height: calc(100dvh - 48px);
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-radius: 24px;
+          }
+
+          .chat-panel-wrapper {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
           }
 
           .chat-side-panel {
             display: none;
           }
-        }
 
-        @media (max-width: 760px) {
-          .chat-page-shell {
-            height: calc(100vh - 24px);
-            min-height: 600px;
+          .chat-header {
+            flex-shrink: 0;
+            padding: 22px 150px 22px 22px;
+            border-radius: 24px;
+          }
+
+          .chat-header-title h2 {
+            font-size: 30px;
+          }
+
+          .chat-mobile-suggestions-panel {
+            display: block;
+            flex-shrink: 0;
+            padding: 12px 14px 0;
+            background: #ffffff;
+          }
+
+          .chat-mobile-suggestions-heading {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+          }
+
+          .chat-mobile-suggestions-heading .side-panel-icon {
+            display: flex;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            font-size: 15px;
+            margin: 0;
+          }
+
+          .chat-mobile-suggestions-heading h2 {
+            color: #102a56;
+            font-size: 18px;
+            line-height: 1.1;
+            font-weight: 800;
+            margin: 0 0 2px;
+          }
+
+          .chat-mobile-suggestions-heading .side-panel-description {
+            display: block;
+            color: #5272a6;
+            font-size: 12px;
+            line-height: 1.35;
+            margin: 0;
+          }
+
+          .chat-mobile-suggestions-panel .suggestion-list {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin: 0;
+          }
+
+          .chat-mobile-suggestions-panel .suggestion-button {
+            padding: 9px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            line-height: 1.2;
+            text-align: center;
           }
 
           .chat-content-wrapper {
-            margin: 24px 16px 16px;
-            width: calc(100% - 32px);
+            flex: 1 1 auto;
+            min-height: 0;
+            height: auto;
+            margin: 12px 14px 0;
+            width: calc(100% - 28px);
+            border-radius: 22px 22px 0 0;
+          }
+
+          .chat-messages {
+            flex: 1 1 auto;
+            min-height: 0;
+          }
+
+          .chat-input-area {
+            flex-shrink: 0;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .chat-page-shell {
+            height: calc(100dvh - 42px);
+            border-radius: 22px;
+          }
+
+          .chat-header {
+            padding: 20px 74px 20px 18px;
+            border-radius: 22px;
+            gap: 10px;
+          }
+
+          .chat-header .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+          }
+
+          .chat-header .psicobot-header-icon img {
+            width: 34px;
+            height: 34px;
+          }
+
+          .chat-header-title h2 {
+            font-size: 25px;
+          }
+
+          .chat-header-title p {
+            font-size: 14px;
+          }
+
+          .clear-chat-button {
+            right: 18px;
+            top: 18px;
+          }
+
+          .chat-content-wrapper {
+            margin: 12px 14px 0;
+            width: calc(100% - 28px);
+            border-radius: 22px 22px 0 0;
+          }
+
+          .chat-messages {
+            padding: 20px 18px 0;
+            gap: 10px;
           }
 
           .message {
-            max-width: 84%;
-            font-size: 16px;
+            font-size: 15px;
+            padding: 12px 15px;
+            border-radius: 16px;
+          }
+
+          .message.bot {
+            max-width: 82%;
+          }
+
+          .message.user {
+            max-width: 72%;
+          }
+
+          .chat-input-area {
+            padding: 16px 18px 18px;
+          }
+
+          .chat-input-area textarea {
+            min-height: 44px;
+            max-height: 84px;
+            padding: 12px 16px;
+            border-radius: 22px;
+            margin-right: 10px;
+            font-size: 14px;
+            overflow-y: hidden;
+          }
+
+          .chat-input-area button {
+            width: 46px;
+            height: 46px;
+            font-size: 17px;
+          }
+
+          #scroll-down-button {
+            bottom: 72px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            font-size: 15px;
           }
         }
+
+        @media (max-width: 640px) {
+          .chat-page-shell {
+            height: calc(100dvh - 38px);
+            min-height: 0;
+            border-radius: 20px;
+          }
+
+          .chat-header {
+            padding: 16px 62px 16px 14px;
+            border-radius: 20px;
+            gap: 9px;
+            align-items: center;
+          }
+
+          .chat-header .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+          }
+
+          .chat-header .psicobot-header-icon img {
+            width: 30px;
+            height: 30px;
+          }
+
+          .chat-header-title h2 {
+            font-size: 20px;
+            line-height: 1.08;
+          }
+
+          .chat-header-title p {
+            font-size: 12.5px;
+          }
+
+          .clear-chat-button {
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            padding: 0;
+            border-radius: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .clear-chat-label {
+            display: none;
+          }
+
+          .clear-chat-icon {
+            width: 17px;
+            height: 17px;
+            flex-basis: 17px;
+            margin: 0;
+          }
+
+          .chat-mobile-suggestions-panel {
+            padding: 10px 12px 0;
+          }
+
+          .chat-mobile-suggestions-heading {
+            grid-template-columns: auto 1fr;
+            gap: 9px;
+            margin-bottom: 8px;
+          }
+
+          .chat-mobile-suggestions-heading .side-panel-icon {
+            display: flex;
+            width: 32px;
+            height: 32px;
+            border-radius: 11px;
+            font-size: 14px;
+          }
+
+          .chat-mobile-suggestions-heading h2 {
+            font-size: 16px;
+          }
+
+          .chat-mobile-suggestions-heading .side-panel-description {
+            display: none;
+          }
+
+          .chat-mobile-suggestions-panel .suggestion-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 7px;
+          }
+
+          .chat-mobile-suggestions-panel .suggestion-button {
+            padding: 8px 9px;
+            border-radius: 11px;
+            font-size: 11.5px;
+          }
+
+          .chat-content-wrapper {
+            margin: 10px 10px 0;
+            width: calc(100% - 20px);
+            border-radius: 18px 18px 0 0;
+          }
+
+          .chat-messages {
+            padding: 14px 12px 0;
+            gap: 9px;
+          }
+
+          .message,
+          .message.bot,
+          .message.user {
+            max-width: 92%;
+            font-size: 13.5px;
+            line-height: 1.4;
+            padding: 10px 12px;
+            border-radius: 14px;
+          }
+
+          .message p {
+            margin-bottom: 6px;
+          }
+
+          .message ul,
+          .message ol {
+            margin: 6px 0 6px 18px;
+          }
+
+          .timestamp {
+            font-size: 10px;
+          }
+
+          .chat-input-area {
+            padding: 10px 12px 12px;
+            align-items: flex-end;
+          }
+
+          .chat-input-area textarea {
+            min-height: 42px;
+            max-height: 78px;
+            padding: 11px 14px;
+            border-radius: 18px;
+            margin-right: 8px;
+            font-size: 13.5px;
+            overflow-y: hidden;
+          }
+
+          .chat-input-area button {
+            width: 42px;
+            height: 42px;
+            font-size: 15px;
+          }
+
+          #scroll-down-button {
+            bottom: 58px;
+            right: 14px;
+            width: 34px;
+            height: 34px;
+            font-size: 14px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .chat-page-shell {
+            height: calc(100dvh - 34px);
+          }
+
+          .chat-header {
+            padding: 14px 58px 14px 12px;
+          }
+
+          .chat-header-title h2 {
+            font-size: 18px;
+          }
+
+          .chat-content-wrapper {
+            margin: 8px 8px 0;
+            width: calc(100% - 16px);
+          }
+
+          .chat-messages {
+            padding: 12px 10px 0;
+          }
+
+          .message,
+          .message.bot,
+          .message.user {
+            max-width: 95%;
+            font-size: 13px;
+            padding: 9px 11px;
+          }
+
+          .chat-input-area {
+            padding: 9px 10px 10px;
+          }
+
+          .suggestion-button {
+            font-size: 11px;
+            padding: 7px 8px;
+          }
+        }
+
+        /* Balões com canto de origem e ícone sutil do PsicoBot */
+        .message-row {
+          display: flex;
+          width: 100%;
+          align-items: flex-end;
+        }
+
+        .message-row.bot {
+          justify-content: flex-start;
+        }
+
+        .message-row.user {
+          justify-content: flex-end;
+        }
+
+        .message {
+          position: relative;
+        }
+
+        .message.bot {
+          padding-left: 42px;
+          border-bottom-left-radius: 4px !important;
+        }
+
+        .message.user {
+          border-bottom-right-radius: 4px !important;
+        }
+
+        .bot-message-mini-icon {
+          position: absolute;
+          left: 14px;
+          top: 14px;
+          width: 18px;
+          height: 18px;
+          border-radius: 7px;
+          background: #eef4ff;
+          border: 1px solid #dbeafe;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.86;
+          pointer-events: none;
+          overflow: hidden;
+        }
+
+        .bot-message-mini-icon img {
+          width: 13px;
+          height: 13px;
+          object-fit: contain;
+          opacity: 0.72;
+          filter:
+            grayscale(1)
+            brightness(0.55)
+            contrast(0.9);
+        }
+
+        .message.bot:has(.typing-indicator) {
+          padding-left: 14px;
+        }
+
+        .message.bot:has(.typing-indicator) .bot-message-mini-icon {
+          display: none;
+        }
+
+        @media (max-width: 640px) {
+          .message.bot {
+            padding-left: 34px !important;
+            border-bottom-left-radius: 4px !important;
+          }
+
+          .message.user {
+            border-bottom-right-radius: 4px !important;
+          }
+
+          .bot-message-mini-icon {
+            left: 10px;
+            top: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 6px;
+          }
+
+          .bot-message-mini-icon img {
+            width: 11px;
+            height: 11px;
+          }
+
+          .message.bot:has(.typing-indicator) {
+            padding-left: 12px !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .message.bot {
+            padding-left: 32px !important;
+          }
+
+          .bot-message-mini-icon {
+            left: 9px;
+            top: 9px;
+            width: 15px;
+            height: 15px;
+          }
+
+          .bot-message-mini-icon img {
+            width: 10px;
+            height: 10px;
+          }
+        }
+
+
+        /* Correção: botão limpar conversa não desce no toque mobile */
+        .clear-chat-button,
+        .clear-chat-button:hover,
+        .clear-chat-button:active,
+        .clear-chat-button:focus,
+        .clear-chat-button:focus-visible {
+          margin: 0 !important;
+          line-height: 1 !important;
+        }
+
+        @media (max-width: 640px) {
+          .clear-chat-button,
+          .clear-chat-button:hover,
+          .clear-chat-button:active,
+          .clear-chat-button:focus,
+          .clear-chat-button:focus-visible {
+            position: absolute !important;
+            right: 12px !important;
+            top: 50% !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: translateY(-50%) !important;
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            min-height: 38px !important;
+            max-width: 38px !important;
+            max-height: 38px !important;
+            padding: 0 !important;
+            border-radius: 13px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex: 0 0 38px !important;
+            align-self: center !important;
+            margin: 0 !important;
+            line-height: 1 !important;
+            vertical-align: middle !important;
+          }
+
+          .clear-chat-button:active {
+            transform: translateY(-50%) scale(0.98) !important;
+          }
+
+          .clear-chat-icon {
+            position: static !important;
+            width: 17px !important;
+            height: 17px !important;
+            min-width: 17px !important;
+            min-height: 17px !important;
+            max-width: 17px !important;
+            max-height: 17px !important;
+            flex: 0 0 17px !important;
+            margin: 0 !important;
+            display: block !important;
+            transform: none !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .clear-chat-button,
+          .clear-chat-button:hover,
+          .clear-chat-button:active,
+          .clear-chat-button:focus,
+          .clear-chat-button:focus-visible {
+            right: 10px !important;
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            max-width: 36px !important;
+            max-height: 36px !important;
+            flex-basis: 36px !important;
+          }
+
+          .clear-chat-icon {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            max-width: 16px !important;
+            max-height: 16px !important;
+            flex-basis: 16px !important;
+          }
+        }
+
       `}</style>
     </div>
   );

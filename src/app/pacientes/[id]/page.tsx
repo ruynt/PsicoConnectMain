@@ -228,6 +228,7 @@ export default function PatientDetailsPage() {
   const [editingSummaryTitle, setEditingSummaryTitle] = useState("");
   const [editingSummaryContent, setEditingSummaryContent] = useState("");
   const [expandedSummaryId, setExpandedSummaryId] = useState("");
+  const [isPatientInfoExpanded, setIsPatientInfoExpanded] = useState(false);
 
   const [noteToArchive, setNoteToArchive] = useState<{
     id: string;
@@ -1242,7 +1243,7 @@ export default function PatientDetailsPage() {
 
   if (error || !patient) {
     return (
-      <div style={pageStyle}>
+      <div className="patient-detail-page" style={pageStyle}>
         <Link
           href="/pacientes"
           style={{
@@ -1547,6 +1548,7 @@ export default function PatientDetailsPage() {
         )}
 
         <section
+          className="patient-info-card"
           style={{
             ...cardStyle,
             marginBottom: "24px",
@@ -1569,13 +1571,14 @@ export default function PatientDetailsPage() {
 
           <div style={{ position: "relative", zIndex: 1 }}>
             <div
+              className="patient-info-header"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 gap: "16px",
                 alignItems: "flex-start",
                 flexWrap: "wrap",
-                marginBottom: "18px",
+                marginBottom: isPatientInfoExpanded ? "18px" : 0,
               }}
             >
               <div>
@@ -1621,180 +1624,191 @@ export default function PatientDetailsPage() {
                 </p>
               </div>
 
-              <span
-                style={{
-                  backgroundColor: "#f8fafc",
-                  color: "#64748b",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "999px",
-                  padding: "8px 12px",
-                  fontSize: "12px",
-                  fontWeight: 900,
-                }}
-              >
-                Atualizado pelo próprio paciente
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: "12px",
-                marginBottom: "16px",
-              }}
-            >
-              {[
-                {
-                  label: "E-mail",
-                  value: patient.email,
-                  icon: "fa-solid fa-envelope",
-                },
-                {
-                  label: "Telefone",
-                  value: formatPhone(patient.phone),
-                  icon: "fa-solid fa-phone",
-                },
-                {
-                  label: "Nascimento",
-                  value: formatBirthDate(patient.birthDate),
-                  icon: "fa-solid fa-cake-candles",
-                },
-                {
-                  label: "Cidade/UF",
-                  value:
-                    patient.city || patient.state
-                      ? `${patient.city || "Cidade não informada"}${
-                          patient.state ? `/${patient.state}` : ""
-                        }`
-                      : "Não informado",
-                  icon: "fa-solid fa-location-dot",
-                },
-                {
-                  label: "Preferência de contato",
-                  value: getTextValue(patient.contactPreference),
-                  icon: "fa-solid fa-comments",
-                },
-                {
-                  label: "Cadastro",
-                  value: formatDateOnly(patient.createdAt),
-                  icon: "fa-solid fa-calendar-plus",
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
+              <div className="patient-info-actions">
+                <span
+                  className="patient-info-updated-badge"
                   style={{
                     backgroundColor: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "16px",
-                    padding: "14px",
-                  }}
-                >
-                  <p
-                    style={{
-                      color: "#64748b",
-                      fontSize: "12px",
-                      fontWeight: 900,
-                      marginBottom: "6px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "7px",
-                    }}
-                  >
-                    <i className={item.icon}></i>
-                    {item.label}
-                  </p>
-
-                  <p
-                    style={{
-                      color: "#0f172a",
-                      fontWeight: 900,
-                      margin: 0,
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {item.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: "#fff7ed",
-                  border: "1px solid #fed7aa",
-                  borderRadius: "16px",
-                  padding: "14px",
-                }}
-              >
-                <p
-                  style={{
-                    color: "#9a3412",
-                    fontSize: "12px",
-                    fontWeight: 900,
-                    marginBottom: "6px",
-                  }}
-                >
-                  Contato de emergência
-                </p>
-
-                <p
-                  style={{
-                    color: "#0f172a",
-                    fontWeight: 900,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {getTextValue(patient.emergencyContactName)}
-                </p>
-
-                <p style={{ color: "#475569", margin: 0 }}>
-                  {formatPhone(patient.emergencyContactPhone)}
-                </p>
-              </div>
-
-              <div
-                style={{
-                  backgroundColor: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "16px",
-                  padding: "14px",
-                }}
-              >
-                <p
-                  style={{
                     color: "#64748b",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "999px",
+                    padding: "8px 12px",
                     fontSize: "12px",
                     fontWeight: 900,
-                    marginBottom: "6px",
                   }}
                 >
-                  Observações do perfil
-                </p>
+                  Atualizado pelo próprio paciente
+                </span>
 
-                <p
-                  style={{
-                    color: "#475569",
-                    lineHeight: 1.5,
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                  }}
+                <button
+                  type="button"
+                  className="patient-info-toggle"
+                  onClick={() =>
+                    setIsPatientInfoExpanded((currentValue) => !currentValue)
+                  }
                 >
-                  {getTextValue(patient.patientNotes || patient.bio)}
-                </p>
+                  <i
+                    className={`fa-solid ${
+                      isPatientInfoExpanded ? "fa-chevron-up" : "fa-chevron-down"
+                    }`}
+                  ></i>
+                  {isPatientInfoExpanded ? "Ocultar" : "Exibir"}
+                </button>
               </div>
             </div>
+
+            {isPatientInfoExpanded && (
+              <>
+                <div className="patient-info-grid">
+                  {[
+                    {
+                      label: "E-mail",
+                      value: patient.email,
+                      icon: "fa-solid fa-envelope",
+                    },
+                    {
+                      label: "Telefone",
+                      value: formatPhone(patient.phone),
+                      icon: "fa-solid fa-phone",
+                    },
+                    {
+                      label: "Nascimento",
+                      value: formatBirthDate(patient.birthDate),
+                      icon: "fa-solid fa-cake-candles",
+                    },
+                    {
+                      label: "Cidade/UF",
+                      value:
+                        patient.city || patient.state
+                          ? `${patient.city || "Cidade não informada"}${
+                              patient.state ? `/${patient.state}` : ""
+                            }`
+                          : "Não informado",
+                      icon: "fa-solid fa-location-dot",
+                    },
+                    {
+                      label: "Preferência de contato",
+                      value: getTextValue(patient.contactPreference),
+                      icon: "fa-solid fa-comments",
+                    },
+                    {
+                      label: "Cadastro",
+                      value: formatDateOnly(patient.createdAt),
+                      icon: "fa-solid fa-calendar-plus",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="patient-info-mini-card"
+                      style={{
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "16px",
+                        padding: "14px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#64748b",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          marginBottom: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "7px",
+                        }}
+                      >
+                        <i className={item.icon}></i>
+                        {item.label}
+                      </p>
+
+                      <p
+                        style={{
+                          color: "#0f172a",
+                          fontWeight: 900,
+                          margin: 0,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="patient-info-extra-grid">
+                  <div
+                    style={{
+                      backgroundColor: "#fff7ed",
+                      border: "1px solid #fed7aa",
+                      borderRadius: "16px",
+                      padding: "14px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "#9a3412",
+                        fontSize: "12px",
+                        fontWeight: 900,
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Contato de emergência
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#0f172a",
+                        fontWeight: 900,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {getTextValue(patient.emergencyContactName)}
+                    </p>
+
+                    <p style={{ color: "#475569", margin: 0 }}>
+                      {formatPhone(patient.emergencyContactPhone)}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "16px",
+                      padding: "14px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "#64748b",
+                        fontSize: "12px",
+                        fontWeight: 900,
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Observações do perfil
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#475569",
+                        lineHeight: 1.5,
+                        margin: 0,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {getTextValue(patient.patientNotes || patient.bio)}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
         <div
+          className="patient-tabs"
           style={{
             display: "flex",
             gap: "10px",
@@ -1874,14 +1888,14 @@ export default function PatientDetailsPage() {
         {activeTab === "SUMMARY" && (
           <>
             <div
+              className="patient-summary-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                 gap: "20px",
                 marginBottom: "28px",
               }}
             >
-              <div style={smallCardStyle}>
+              <div className="patient-small-card" style={smallCardStyle}>
                 <p
                   style={{
                     color: "#6b7280",
@@ -1904,7 +1918,7 @@ export default function PatientDetailsPage() {
                 </p>
               </div>
 
-              <div style={smallCardStyle}>
+              <div className="patient-small-card" style={smallCardStyle}>
                 <p
                   style={{
                     color: "#6b7280",
@@ -1926,7 +1940,7 @@ export default function PatientDetailsPage() {
                 </p>
               </div>
 
-              <div style={smallCardStyle}>
+              <div className="patient-small-card" style={smallCardStyle}>
                 <p
                   style={{
                     color: "#065f46",
@@ -1948,7 +1962,7 @@ export default function PatientDetailsPage() {
                 </p>
               </div>
 
-              <div style={smallCardStyle}>
+              <div className="patient-small-card" style={smallCardStyle}>
                 <p
                   style={{
                     color: "#b91c1c",
@@ -1971,7 +1985,7 @@ export default function PatientDetailsPage() {
               </div>
             </div>
 
-            <section style={cardStyle}>
+            <section className="patient-content-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -2120,7 +2134,7 @@ export default function PatientDetailsPage() {
         )}
 
         {activeTab === "APPOINTMENTS" && (
-          <section style={cardStyle}>
+          <section className="patient-content-card" style={cardStyle}>
             <h2
               style={{
                 fontSize: "26px",
@@ -2286,9 +2300,9 @@ export default function PatientDetailsPage() {
                       </div>
 
                       <div
+                        className="patient-payment-mini-grid"
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                           gap: "10px",
                         }}
                       >
@@ -2382,7 +2396,7 @@ export default function PatientDetailsPage() {
         )}
 
         {activeTab === "PRONTUARIO" && (
-          <section style={cardStyle}>
+          <section className="patient-content-card" style={cardStyle}>
             <div
               style={{
                 display: "flex",
@@ -2438,9 +2452,9 @@ export default function PatientDetailsPage() {
             </div>
 
             <div
+              className="patient-prontuario-info-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                 gap: "12px",
                 marginBottom: "18px",
               }}
@@ -2785,12 +2799,13 @@ export default function PatientDetailsPage() {
                     </p>
                   ) : summaries.length === 0 ? (
                     <div
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "14px",
-                        padding: "16px",
-                        backgroundColor: "#f8fafc",
-                      }}
+                      className="patient-list-item"
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "14px",
+                          padding: "16px",
+                          backgroundColor: "#f8fafc",
+                        }}
                     >
                       <p
                         style={{
@@ -3099,7 +3114,7 @@ export default function PatientDetailsPage() {
         )}
 
         {activeTab === "CHECKINS" && (
-          <section style={cardStyle}>
+          <section className="patient-content-card" style={cardStyle}>
             <h2
               style={{
                 fontSize: "26px",
@@ -3171,12 +3186,13 @@ export default function PatientDetailsPage() {
                 {checkins.map((checkin) => (
                   <div
                     key={checkin.id}
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "14px",
-                      padding: "18px",
-                      backgroundColor: "#f8fafc",
-                    }}
+                    className="patient-list-item"
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "18px",
+                        backgroundColor: "#f8fafc",
+                      }}
                   >
                     <div
                       style={{
@@ -3221,9 +3237,9 @@ export default function PatientDetailsPage() {
                     </div>
 
                     <div
+                      className="patient-checkin-level-grid"
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                         gap: "10px",
                         marginBottom: "14px",
                       }}
@@ -3359,13 +3375,13 @@ export default function PatientDetailsPage() {
 
         {activeTab === "TASKS" && (
           <div
+            className="patient-two-column-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1.4fr",
               gap: "20px",
             }}
           >
-            <section style={cardStyle}>
+            <section className="patient-content-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -3483,7 +3499,7 @@ export default function PatientDetailsPage() {
                   />
                 </div>
 
-                <div style={{ marginBottom: "18px" }}>
+                <div className="patient-message-input-wrapper" style={{ marginBottom: "18px" }}>
                   <label
                     style={{
                       display: "block",
@@ -3534,7 +3550,7 @@ export default function PatientDetailsPage() {
               </form>
             </section>
 
-            <section style={cardStyle}>
+            <section className="patient-content-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -3757,13 +3773,13 @@ export default function PatientDetailsPage() {
 
         {activeTab === "MATERIALS" && (
           <div
+            className="patient-two-column-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1.4fr",
               gap: "20px",
             }}
           >
-            <section style={cardStyle}>
+            <section className="patient-content-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -3954,7 +3970,7 @@ export default function PatientDetailsPage() {
               </form>
             </section>
 
-            <section style={cardStyle}>
+            <section className="patient-content-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -4127,13 +4143,13 @@ export default function PatientDetailsPage() {
 
         {activeTab === "MESSAGES" && (
           <div
+            className="patient-two-column-grid patient-message-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1.4fr",
               gap: "20px",
             }}
           >
-            <section style={cardStyle}>
+            <section className="patient-content-card patient-form-card patient-message-form-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -4180,10 +4196,11 @@ export default function PatientDetailsPage() {
                   </label>
 
                   <textarea
+                    className="patient-message-compose-textarea"
                     value={messageContent}
                     onChange={(e) => setMessageContent(e.target.value)}
                     placeholder="Ex.: Olá! Não esqueça de realizar a tarefa combinada antes da próxima sessão."
-                    rows={8}
+                    rows={3}
                     maxLength={2000}
                     style={{
                       width: "100%",
@@ -4197,6 +4214,7 @@ export default function PatientDetailsPage() {
                   />
 
                   <p
+                    className="patient-message-counter"
                     style={{
                       color: "#6b7280",
                       fontSize: "12px",
@@ -4210,19 +4228,36 @@ export default function PatientDetailsPage() {
 
                 <button
                   type="submit"
+                  className="patient-message-send-button"
                   disabled={sendingMessage}
                   style={{
                     ...buttonPrimaryStyle,
                     width: "100%",
                     opacity: sendingMessage ? 0.7 : 1,
                     cursor: sendingMessage ? "not-allowed" : "pointer",
+                    gap: "8px",
                   }}
                 >
-                  {sendingMessage ? "Enviando..." : "Enviar mensagem"}
+                  <i
+                    className={
+                      sendingMessage
+                        ? "fa-solid fa-spinner fa-spin"
+                        : "fa-solid fa-paper-plane"
+                    }
+                  ></i>
+                  <span className="patient-message-send-text">
+                    {sendingMessage ? "Enviando..." : "Enviar mensagem"}
+                  </span>
                 </button>
               </form>
 
+              <div className="patient-message-mobile-note">
+                <i className="fa-solid fa-circle-info"></i>
+                Mensagem assíncrona
+              </div>
+
               <div
+                className="patient-message-note"
                 style={{
                   marginTop: "18px",
                   backgroundColor: "#eff6ff",
@@ -4239,8 +4274,9 @@ export default function PatientDetailsPage() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section className="patient-content-card patient-message-history-card" style={cardStyle}>
               <div
+                className="patient-message-history-header"
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -4307,6 +4343,7 @@ export default function PatientDetailsPage() {
                 </div>
               ) : (
                 <div
+                  className="patient-message-list"
                   style={{
                     display: "flex",
                     flexDirection: "column",
@@ -4323,6 +4360,9 @@ export default function PatientDetailsPage() {
                     return (
                       <div
                         key={message.id}
+                        className={`patient-chat-row ${
+                          isPsychologist ? "psychologist" : "patient"
+                        }`}
                         style={{
                           display: "flex",
                           justifyContent: isPsychologist
@@ -4331,6 +4371,9 @@ export default function PatientDetailsPage() {
                         }}
                       >
                         <div
+                          className={`patient-chat-bubble ${
+                            isPsychologist ? "psychologist" : "patient"
+                          }`}
                           style={{
                             maxWidth: "78%",
                             backgroundColor: isPsychologist
@@ -4394,13 +4437,13 @@ export default function PatientDetailsPage() {
 
         {activeTab === "NOTES" && (
           <div
+            className="patient-two-column-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1.4fr",
               gap: "20px",
             }}
           >
-            <section id="note-form" style={cardStyle}>
+            <section id="note-form" className="patient-content-card patient-form-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -4576,7 +4619,7 @@ export default function PatientDetailsPage() {
               </form>
             </section>
 
-            <section style={cardStyle}>
+            <section className="patient-content-card" style={cardStyle}>
               <h2
                 style={{
                   fontSize: "26px",
@@ -4825,6 +4868,761 @@ export default function PatientDetailsPage() {
             </section>
           </div>
         )}
+
+
+        <style>{`
+          .patient-detail-page {
+            width: 100%;
+          }
+
+          .patient-info-card,
+          .patient-content-card,
+          .patient-small-card,
+          .patient-list-item {
+            min-width: 0;
+          }
+
+          .patient-info-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+
+          .patient-info-toggle {
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 7px 11px;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1;
+          }
+
+          .patient-info-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .patient-info-extra-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+          }
+
+          .patient-summary-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 20px !important;
+          }
+
+          .patient-prontuario-info-grid,
+          .patient-checkin-level-grid,
+          .patient-payment-mini-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+
+          .patient-two-column-grid {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) !important;
+          }
+
+          .patient-detail-page input,
+          .patient-detail-page select {
+            min-height: 42px !important;
+            padding: 9px 12px !important;
+            line-height: 1.25 !important;
+          }
+
+          .patient-detail-page textarea {
+            padding: 10px 12px !important;
+            line-height: 1.45 !important;
+          }
+
+          .patient-detail-page textarea:placeholder-shown {
+            min-height: 72px !important;
+            height: 72px !important;
+          }
+
+          .patient-detail-page input:placeholder-shown {
+            min-height: 40px !important;
+            padding-top: 8px !important;
+            padding-bottom: 8px !important;
+          }
+
+          @media (max-width: 1180px) {
+            .patient-detail-page {
+              padding: 28px !important;
+              padding-bottom: 130px !important;
+            }
+
+            .patient-summary-grid {
+              grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+              gap: 12px !important;
+              margin-bottom: 18px !important;
+            }
+
+            .patient-small-card {
+              min-height: 112px !important;
+              padding: 16px !important;
+              border-radius: 18px !important;
+            }
+
+            .patient-info-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            }
+
+            .patient-two-column-grid {
+              grid-template-columns: 1fr !important;
+              gap: 16px !important;
+            }
+          }
+
+          @media (max-width: 900px) {
+            .patient-detail-page {
+              padding: 20px !important;
+              padding-bottom: 120px !important;
+              border-radius: 24px !important;
+            }
+
+            .patient-info-card,
+            .patient-content-card {
+              padding: 20px !important;
+              border-radius: 20px !important;
+            }
+
+            .patient-info-card {
+              margin-bottom: 18px !important;
+            }
+
+            .patient-info-header {
+              align-items: flex-start !important;
+            }
+
+            .patient-info-card h2,
+            .patient-content-card h2 {
+              font-size: 23px !important;
+              line-height: 1.12 !important;
+            }
+
+            .patient-info-card p,
+            .patient-content-card p {
+              font-size: 14px !important;
+              line-height: 1.45 !important;
+            }
+
+            .patient-info-actions {
+              justify-content: flex-start;
+            }
+
+            .patient-info-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 10px !important;
+            }
+
+            .patient-info-extra-grid {
+              grid-template-columns: 1fr !important;
+              gap: 10px !important;
+            }
+
+            .patient-info-mini-card {
+              padding: 12px !important;
+              border-radius: 14px !important;
+            }
+
+            .patient-tabs {
+              gap: 8px !important;
+              margin-bottom: 18px !important;
+            }
+
+            .patient-tabs button {
+              padding: 9px 12px !important;
+              font-size: 12.5px !important;
+              gap: 6px !important;
+            }
+
+            .patient-summary-grid {
+              grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+              gap: 9px !important;
+              margin-bottom: 16px !important;
+            }
+
+            .patient-small-card {
+              min-height: 92px !important;
+              padding: 12px !important;
+              border-radius: 16px !important;
+            }
+
+            .patient-small-card p:first-child {
+              font-size: 11px !important;
+              line-height: 1.08 !important;
+              margin-bottom: 5px !important;
+            }
+
+            .patient-small-card p:last-child {
+              font-size: 21px !important;
+              line-height: 1.1 !important;
+            }
+
+            .patient-small-card:first-child p:last-child {
+              font-size: 12px !important;
+            }
+
+            .patient-prontuario-info-grid,
+            .patient-checkin-level-grid,
+            .patient-payment-mini-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 8px !important;
+            }
+
+            .patient-prontuario-info-grid > div,
+            .patient-checkin-level-grid > div,
+            .patient-payment-mini-grid > div {
+              padding: 11px !important;
+              border-radius: 13px !important;
+            }
+
+            .patient-checkin-level-grid p:last-child {
+              font-size: 20px !important;
+            }
+
+            .patient-list-item {
+              padding: 14px !important;
+              border-radius: 14px !important;
+            }
+
+            .patient-detail-page input,
+            .patient-detail-page select {
+              min-height: 40px !important;
+              padding: 8px 11px !important;
+              font-size: 13px !important;
+            }
+
+            .patient-detail-page textarea:placeholder-shown {
+              min-height: 66px !important;
+              height: 66px !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .patient-detail-page {
+              padding: 16px !important;
+              padding-bottom: 110px !important;
+              border-radius: 20px !important;
+            }
+
+            .patient-info-card,
+            .patient-content-card {
+              padding: 16px !important;
+              border-radius: 18px !important;
+            }
+
+            .patient-info-card h2,
+            .patient-content-card h2 {
+              font-size: 21px !important;
+            }
+
+            .patient-info-card > div:first-child {
+              display: none !important;
+            }
+
+            .patient-info-card > div:nth-child(2) {
+              position: relative !important;
+            }
+
+            .patient-info-card p {
+              font-size: 13px !important;
+            }
+
+            .patient-info-updated-badge {
+              display: none !important;
+            }
+
+            .patient-info-toggle {
+              padding: 6px 10px !important;
+              font-size: 11.5px !important;
+            }
+
+            .patient-info-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 8px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .patient-info-mini-card {
+              padding: 10px !important;
+              border-radius: 13px !important;
+            }
+
+            .patient-info-mini-card p:first-child {
+              font-size: 10px !important;
+              margin-bottom: 4px !important;
+            }
+
+            .patient-info-mini-card p:last-child {
+              font-size: 12px !important;
+            }
+
+            .patient-tabs {
+              display: grid !important;
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 7px !important;
+            }
+
+            .patient-tabs button {
+              width: 100% !important;
+              justify-content: center !important;
+              padding: 9px 8px !important;
+              font-size: 11.5px !important;
+              border-radius: 12px !important;
+            }
+
+            .patient-summary-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 8px !important;
+              margin-bottom: 14px !important;
+            }
+
+            .patient-small-card {
+              min-height: 82px !important;
+              padding: 10px !important;
+              border-radius: 15px !important;
+            }
+
+            .patient-small-card p:first-child {
+              font-size: 10px !important;
+            }
+
+            .patient-small-card p:last-child {
+              font-size: 20px !important;
+            }
+
+            .patient-small-card:first-child p:last-child {
+              font-size: 11.5px !important;
+            }
+
+            .patient-prontuario-info-grid {
+              grid-template-columns: 1fr !important;
+            }
+
+            .patient-checkin-level-grid,
+            .patient-payment-mini-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 7px !important;
+            }
+
+            .patient-checkin-level-grid > div,
+            .patient-payment-mini-grid > div {
+              padding: 9px !important;
+            }
+
+            .patient-checkin-level-grid p:first-child,
+            .patient-payment-mini-grid p:first-child {
+              font-size: 10px !important;
+            }
+
+            .patient-checkin-level-grid p:last-child {
+              font-size: 18px !important;
+            }
+
+            .patient-detail-page input,
+            .patient-detail-page select {
+              min-height: 38px !important;
+              padding: 7px 10px !important;
+              font-size: 12.5px !important;
+              border-radius: 10px !important;
+            }
+
+            .patient-detail-page textarea {
+              padding: 8px 10px !important;
+              font-size: 12.5px !important;
+              border-radius: 10px !important;
+            }
+
+            .patient-detail-page textarea:placeholder-shown {
+              min-height: 58px !important;
+              height: 58px !important;
+            }
+
+            .patient-content-card button,
+            .patient-content-card a {
+              max-width: 100% !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .patient-summary-grid,
+            .patient-info-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              gap: 7px !important;
+            }
+
+            .patient-small-card {
+              min-height: 78px !important;
+              padding: 9px !important;
+            }
+
+            .patient-checkin-level-grid,
+            .patient-payment-mini-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            }
+          }
+
+          /* Ajuste final: mensagens em formato de chat e inputs vazios mais finos */
+          .patient-detail-page textarea:placeholder-shown {
+            min-height: 54px !important;
+            height: 54px !important;
+          }
+
+          .patient-detail-page textarea:focus:placeholder-shown {
+            min-height: 76px !important;
+            height: 76px !important;
+          }
+
+          .patient-message-compose-textarea {
+            min-height: 88px !important;
+            height: 88px !important;
+            max-height: 180px !important;
+            overflow-y: auto !important;
+          }
+
+          .patient-message-compose-textarea:placeholder-shown {
+            min-height: 54px !important;
+            height: 54px !important;
+          }
+
+          .patient-message-compose-textarea:focus:placeholder-shown {
+            min-height: 76px !important;
+            height: 76px !important;
+          }
+
+          .patient-message-send-button i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          @media (max-width: 900px) {
+            .patient-message-grid {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 12px !important;
+            }
+
+            .patient-message-history-card {
+              order: 1 !important;
+            }
+
+            .patient-message-form-card {
+              order: 2 !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .patient-message-grid {
+              gap: 10px !important;
+            }
+
+            .patient-message-history-card {
+              display: flex !important;
+              flex-direction: column !important;
+              min-height: 420px !important;
+              max-height: 58vh !important;
+              padding: 12px !important;
+              background: #cde3fe !important;
+              border-color: #bfdbfe !important;
+              overflow: hidden !important;
+            }
+
+            .patient-message-history-header {
+              flex: 0 0 auto !important;
+              align-items: center !important;
+              margin-bottom: 10px !important;
+            }
+
+            .patient-message-history-header h2 {
+              font-size: 18px !important;
+              margin-bottom: 0 !important;
+            }
+
+            .patient-message-history-header p {
+              display: none !important;
+            }
+
+            .patient-message-history-header button {
+              width: auto !important;
+              padding: 7px 10px !important;
+              border-radius: 999px !important;
+              font-size: 11.5px !important;
+              white-space: nowrap !important;
+            }
+
+            .patient-message-list {
+              flex: 1 1 auto !important;
+              max-height: none !important;
+              min-height: 0 !important;
+              overflow-y: auto !important;
+              padding: 4px 4px 8px !important;
+              gap: 10px !important;
+              border-radius: 16px !important;
+              background: transparent !important;
+            }
+
+            .patient-chat-row {
+              width: 100% !important;
+            }
+
+            .patient-chat-bubble {
+              max-width: 86% !important;
+              padding: 10px 12px !important;
+              border-radius: 16px !important;
+              font-size: 13px !important;
+              line-height: 1.45 !important;
+            }
+
+            .patient-chat-bubble.psychologist {
+              border-bottom-right-radius: 4px !important;
+            }
+
+            .patient-chat-bubble.patient {
+              border-bottom-left-radius: 4px !important;
+            }
+
+            .patient-chat-bubble p:first-child {
+              font-size: 10.5px !important;
+              margin-bottom: 4px !important;
+            }
+
+            .patient-chat-bubble p:nth-child(2) {
+              margin-bottom: 6px !important;
+            }
+
+            .patient-chat-bubble p:last-child {
+              font-size: 10px !important;
+            }
+
+            .patient-message-form-card {
+              padding: 12px !important;
+              border-radius: 20px !important;
+            }
+
+            .patient-message-form-card h2,
+            .patient-message-form-card > p,
+            .patient-message-note,
+            .patient-message-input-wrapper label,
+            .patient-message-counter {
+              display: none !important;
+            }
+
+            .patient-message-form-card form {
+              display: grid !important;
+              grid-template-columns: minmax(0, 1fr) 44px !important;
+              gap: 8px !important;
+              align-items: end !important;
+            }
+
+            .patient-message-input-wrapper {
+              margin: 0 !important;
+              min-width: 0 !important;
+            }
+
+            .patient-message-compose-textarea,
+            .patient-message-compose-textarea:placeholder-shown,
+            .patient-message-compose-textarea:focus:placeholder-shown {
+              min-height: 44px !important;
+              height: 44px !important;
+              max-height: 110px !important;
+              border-radius: 18px !important;
+              padding: 11px 14px !important;
+              font-size: 13px !important;
+              line-height: 1.35 !important;
+              resize: none !important;
+              overflow-y: auto !important;
+            }
+
+            .patient-message-send-button {
+              width: 44px !important;
+              height: 44px !important;
+              min-width: 44px !important;
+              min-height: 44px !important;
+              padding: 0 !important;
+              border-radius: 999px !important;
+              box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2) !important;
+            }
+
+            .patient-message-send-button i {
+              font-size: 15px !important;
+              margin: 0 !important;
+            }
+
+            .patient-message-send-text {
+              display: none !important;
+            }
+
+            .patient-detail-page textarea:placeholder-shown {
+              min-height: 48px !important;
+              height: 48px !important;
+            }
+
+            .patient-detail-page textarea:focus:placeholder-shown {
+              min-height: 64px !important;
+              height: 64px !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .patient-message-history-card {
+              min-height: 390px !important;
+              max-height: 56vh !important;
+            }
+
+            .patient-message-compose-textarea,
+            .patient-message-compose-textarea:placeholder-shown,
+            .patient-message-compose-textarea:focus:placeholder-shown {
+              min-height: 42px !important;
+              height: 42px !important;
+              padding: 10px 13px !important;
+            }
+
+            .patient-message-send-button {
+              width: 42px !important;
+              height: 42px !important;
+              min-width: 42px !important;
+              min-height: 42px !important;
+            }
+          }
+
+
+          /* Ajuste final: input mobile sem exemplo, sem scroll vazio e aviso assíncrono */
+          .patient-message-mobile-note {
+            display: none;
+          }
+
+          @media (max-width: 640px) {
+            .patient-message-form-card {
+              position: relative !important;
+              padding-top: 38px !important;
+            }
+
+            .patient-message-mobile-note {
+              position: absolute;
+              top: 10px;
+              right: 12px;
+              display: inline-flex !important;
+              align-items: center;
+              justify-content: center;
+              gap: 5px;
+              background: #eff6ff;
+              border: 1px solid #bfdbfe;
+              color: #1d4ed8;
+              border-radius: 999px;
+              padding: 5px 9px;
+              font-size: 10.5px;
+              font-weight: 900;
+              line-height: 1;
+              z-index: 2;
+              white-space: nowrap;
+            }
+
+            .patient-message-mobile-note i {
+              font-size: 10px;
+            }
+
+            .patient-message-note {
+              display: none !important;
+            }
+
+            .patient-message-compose-textarea::placeholder {
+              color: transparent !important;
+            }
+
+            .patient-message-compose-textarea,
+            .patient-message-compose-textarea:placeholder-shown,
+            .patient-message-compose-textarea:focus:placeholder-shown {
+              min-height: 42px !important;
+              height: 42px !important;
+              max-height: 104px !important;
+              padding: 10px 13px !important;
+              overflow-y: hidden !important;
+              scrollbar-width: none !important;
+            }
+
+            .patient-message-compose-textarea::-webkit-scrollbar {
+              display: none !important;
+              width: 0 !important;
+              height: 0 !important;
+            }
+
+            .patient-message-compose-textarea:not(:placeholder-shown) {
+              min-height: 42px !important;
+              height: auto !important;
+              overflow-y: auto !important;
+              scrollbar-width: thin !important;
+            }
+
+            .patient-message-compose-textarea:not(:placeholder-shown)::-webkit-scrollbar {
+              display: initial !important;
+              width: 6px !important;
+            }
+
+            .patient-message-form-card form {
+              grid-template-columns: minmax(0, 1fr) 42px !important;
+              align-items: center !important;
+            }
+
+            .patient-message-send-button {
+              width: 42px !important;
+              height: 42px !important;
+              min-width: 42px !important;
+              min-height: 42px !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .patient-message-form-card {
+              padding-top: 36px !important;
+            }
+
+            .patient-message-mobile-note {
+              top: 9px;
+              right: 10px;
+              padding: 5px 8px;
+              font-size: 10px;
+            }
+
+            .patient-message-compose-textarea,
+            .patient-message-compose-textarea:placeholder-shown,
+            .patient-message-compose-textarea:focus:placeholder-shown {
+              min-height: 40px !important;
+              height: 40px !important;
+              max-height: 96px !important;
+              padding: 9px 12px !important;
+            }
+
+            .patient-message-send-button {
+              width: 40px !important;
+              height: 40px !important;
+              min-width: 40px !important;
+              min-height: 40px !important;
+            }
+
+            .patient-message-form-card form {
+              grid-template-columns: minmax(0, 1fr) 40px !important;
+            }
+          }
+
+        `}</style>
+
 
         <div style={{ height: "90px" }} aria-hidden="true" />
       </div>
