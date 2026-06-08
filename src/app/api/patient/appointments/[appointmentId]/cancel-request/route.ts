@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -99,12 +100,12 @@ export async function POST(req: NextRequest, context: Params) {
           updatedAppointment.cancellationRequestStatus || null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao solicitar cancelamento:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao solicitar cancelamento.",
+        error: getErrorMessage(error, "Erro interno ao solicitar cancelamento."),
       },
       { status: 500 },
     );
@@ -199,14 +200,13 @@ export async function DELETE(req: NextRequest, context: Params) {
           updatedAppointment.cancellationRequestStatus || null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao cancelar solicitação de cancelamento:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao cancelar solicitação de cancelamento.",
+          getErrorMessage(error, "Erro interno ao cancelar solicitação de cancelamento."),
       },
       { status: 500 },
     );

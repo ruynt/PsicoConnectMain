@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import prisma from "../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 export const runtime = "nodejs";
 
@@ -113,12 +114,12 @@ export async function POST(req: NextRequest) {
       message: "Foto de perfil atualizada com sucesso.",
       profileImageUrl,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao enviar foto de perfil:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao enviar foto de perfil.",
+        error: getErrorMessage(error, "Erro interno ao enviar foto de perfil."),
       },
       { status: 500 },
     );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 async function getPsychologistFromToken(req: NextRequest) {
   const token = await getToken({
@@ -185,12 +186,12 @@ export async function PATCH(
         updatedAt: updatedNote.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar anotação:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao atualizar anotação.",
+        error: getErrorMessage(error, "Erro interno ao atualizar anotação."),
       },
       { status: 500 },
     );
@@ -265,12 +266,12 @@ export async function DELETE(
         updatedAt: archivedNote.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao arquivar anotação:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao arquivar anotação.",
+        error: getErrorMessage(error, "Erro interno ao arquivar anotação."),
       },
       { status: 500 },
     );

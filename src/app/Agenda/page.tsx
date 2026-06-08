@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type CalendarEvent = {
   id: string;
@@ -124,7 +125,7 @@ export default function AgendaPage() {
   const searchParams = useSearchParams();
   const patientIdFromUrl = searchParams.get("patientId");
 
-  const userRole = (session?.user as any)?.role;
+  const userRole = session?.user?.role;
   const isPsychologist = userRole === "PSYCHOLOGIST";
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -244,8 +245,8 @@ export default function AgendaPage() {
       }
 
       setEvents(data.events || []);
-    } catch (error: any) {
-      setEventsError(error.message || "Erro ao carregar consultas.");
+    } catch (error: unknown) {
+      setEventsError(getErrorMessage(error, "Erro ao carregar consultas."));
     } finally {
       setLoadingEvents(false);
     }
@@ -600,10 +601,10 @@ export default function AgendaPage() {
       await loadGoogleStatus();
 
       showFeedback("success", "Google Calendar desconectado com sucesso.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error?.message || "Não foi possível desconectar o Google Calendar.",
+        getErrorMessage(error, "Não foi possível desconectar o Google Calendar."),
       );
     } finally {
       setDisconnectingGoogle(false);
@@ -687,8 +688,8 @@ export default function AgendaPage() {
         data?.message ||
           "Consulta criada com sucesso. O paciente foi notificado por e-mail.",
       );
-    } catch (error: any) {
-      setFormError(error.message || "Erro ao criar consulta.");
+    } catch (error: unknown) {
+      setFormError(getErrorMessage(error, "Erro ao criar consulta."));
     } finally {
       setSavingAppointment(false);
     }
@@ -743,8 +744,8 @@ export default function AgendaPage() {
         data?.message ||
           "Consulta cancelada com sucesso. O paciente foi notificado por e-mail.",
       );
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao cancelar consulta.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao cancelar consulta."));
     } finally {
       setCancelingAppointmentId("");
     }
@@ -790,10 +791,10 @@ export default function AgendaPage() {
             ? "Solicitação de cancelamento aprovada."
             : "Solicitação de cancelamento rejeitada."),
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao analisar solicitação de cancelamento.",
+        getErrorMessage(error, "Erro ao analisar solicitação de cancelamento."),
       );
     } finally {
       setReviewingCancellationId("");
@@ -836,10 +837,10 @@ export default function AgendaPage() {
         "success",
         data?.message || "Lembrete enviado por e-mail com sucesso.",
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao enviar lembrete por e-mail.",
+        getErrorMessage(error, "Erro ao enviar lembrete por e-mail."),
       );
     } finally {
       setSendingReminderId("");
@@ -890,10 +891,10 @@ export default function AgendaPage() {
         "success",
         data?.message || "Pagamento atualizado com sucesso.",
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao atualizar pagamento da consulta.",
+        getErrorMessage(error, "Erro ao atualizar pagamento da consulta."),
       );
     } finally {
       setUpdatingPaymentId("");

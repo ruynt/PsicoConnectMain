@@ -1,14 +1,31 @@
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import type { CrpVerificationStatus, Prisma, Role } from "@prisma/client";
 
 import { authConfig } from "../../../../lib/auth";
 import prisma from "../../../../lib/prisma";
+
+const validRoles: Role[] = ["ADMIN", "PSYCHOLOGIST", "PATIENT"];
+
+const validCrpStatuses: CrpVerificationStatus[] = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+];
 
 async function requireAdmin() {
   const session = await getServerSession(authConfig);
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   return role === "ADMIN";
+}
+
+function isValidRole(value: string): value is Role {
+  return validRoles.includes(value as Role);
+}
+
+function isValidCrpStatus(value: string): value is CrpVerificationStatus {
+  return validCrpStatuses.includes(value as CrpVerificationStatus);
 }
 
 export async function GET(req: NextRequest) {
@@ -27,7 +44,7 @@ export async function GET(req: NextRequest) {
     const role = searchParams.get("role") || "ALL";
     const crpStatus = searchParams.get("crpStatus") || "ALL";
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -61,14 +78,13 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    if (["ADMIN", "PSYCHOLOGIST", "PATIENT"].includes(role)) {
+    if (isValidRole(role)) {
       where.role = role;
     }
 
-    if (["PENDING", "APPROVED", "REJECTED"].includes(crpStatus)) {
+    if (isValidCrpStatus(crpStatus)) {
       where.role = "PSYCHOLOGIST";
       where.psychologist = {
-        ...(where.psychologist || {}),
         crpVerificationStatus: crpStatus,
       };
     }
@@ -140,7 +156,7 @@ export async function GET(req: NextRequest) {
             : null,
       })),
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Erro ao carregar usuários administrativos:", error);
 
     return NextResponse.json(

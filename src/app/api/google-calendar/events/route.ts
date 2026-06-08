@@ -2,6 +2,32 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
+
+type GoogleCalendarEvent = {
+  id?: string;
+  summary?: string;
+  description?: string;
+  location?: string;
+  htmlLink?: string;
+  status?: string;
+  eventType?: string;
+  start?: {
+    dateTime?: string;
+    date?: string;
+  };
+  end?: {
+    dateTime?: string;
+    date?: string;
+  };
+};
+
+type GoogleCalendarEventsResponse = {
+  items?: GoogleCalendarEvent[];
+  error?: string | { message?: string };
+  error_description?: string;
+  raw?: string;
+};
 
 async function refreshGoogleAccessToken(refreshToken: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -54,9 +80,9 @@ async function fetchGoogleEvents(accessToken: string) {
 
   const text = await response.text();
 
-  let data: any = {};
+  let data: GoogleCalendarEventsResponse = {};
   try {
-    data = text ? JSON.parse(text) : {};
+    data = text ? (JSON.parse(text) as GoogleCalendarEventsResponse) : {};
   } catch {
     data = { raw: text };
   }
@@ -167,9 +193,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            data?.error?.message ||
-            data?.error ||
+            getExternalApiErrorMessage(
+            data,
             "Erro ao buscar eventos do Google Calendar.",
+          ),
           details: data,
           events: [],
         },
@@ -178,10 +205,10 @@ export async function GET(req: NextRequest) {
     }
 
     const events = (data.items || [])
-      .filter((event: any) => {
+      .filter((event) => {
         return event.status !== "cancelled" && event.eventType !== "birthday";
       })
-      .map((event: any) => ({
+      .map((event) => ({
         id: event.id,
         title: event.summary || "Sem título",
         description: event.description || "",
@@ -193,14 +220,13 @@ export async function GET(req: NextRequest) {
       }));
 
     return NextResponse.json({ events });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro interno na rota de eventos:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao buscar eventos do Google Calendar.",
+          getErrorMessage(error, "Erro interno ao buscar eventos do Google Calendar."),
         events: [],
       },
       { status: 500 },

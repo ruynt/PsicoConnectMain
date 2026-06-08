@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type RouteContext = {
   params: Promise<{
@@ -131,12 +132,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
           : null,
       })),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar tarefas terapêuticas:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao listar tarefas.",
+        error: getErrorMessage(error, "Erro interno ao listar tarefas."),
         tasks: [],
       },
       { status: 500 },
@@ -225,12 +226,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
         updatedAt: task.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar tarefa terapêutica:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao criar tarefa.",
+        error: getErrorMessage(error, "Erro interno ao criar tarefa."),
       },
       { status: 500 },
     );

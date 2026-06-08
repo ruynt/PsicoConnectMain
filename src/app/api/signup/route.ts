@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import { Prisma } from "@prisma/client";
+import { getErrorCode } from "@/lib/errorUtils";
 
 import {
   generateVerificationToken,
@@ -127,28 +127,37 @@ function getFirstValidationMessage(error: z.ZodError) {
   );
 }
 
+function getPrismaErrorTarget(error: unknown) {
+  if (typeof error !== "object" || error === null || !("meta" in error)) {
+    return "";
+  }
+
+  const meta = (error as { meta?: { target?: unknown } }).meta;
+  const target = meta?.target;
+
+  if (Array.isArray(target)) {
+    return target.join(",");
+  }
+
+  return typeof target === "string" ? target : "";
+}
+
 function getFriendlyPrismaError(error: unknown) {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+  if (getErrorCode(error) !== "P2002") {
     return null;
   }
 
-  if (error.code === "P2002") {
-    const target = Array.isArray(error.meta?.target)
-      ? error.meta?.target.join(",")
-      : String(error.meta?.target || "");
+  const target = getPrismaErrorTarget(error);
 
-    if (target.includes("email")) {
-      return "Este e-mail já está em uso. Tente entrar na conta ou recuperar sua senha.";
-    }
-
-    if (target.includes("crp")) {
-      return "Este CRP já está cadastrado. Confira os dados informados.";
-    }
-
-    return "Já existe um cadastro com uma das informações informadas.";
+  if (target.includes("email")) {
+    return "Este e-mail já está em uso. Tente entrar na conta ou recuperar sua senha.";
   }
 
-  return null;
+  if (target.includes("crp")) {
+    return "Este CRP já está cadastrado. Confira os dados informados.";
+  }
+
+  return "Já existe um cadastro com uma das informações informadas.";
 }
 
 function getErrorMessage(error: unknown) {

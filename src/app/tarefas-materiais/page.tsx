@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type TaskStatus = "PENDING" | "COMPLETED" | "CANCELLED";
 
@@ -103,8 +104,8 @@ export default function TarefasMateriaisPage() {
       }
 
       setTasks(data.tasks || []);
-    } catch (error: any) {
-      setTaskError(error.message || "Erro ao carregar tarefas.");
+    } catch (error: unknown) {
+      setTaskError(getErrorMessage(error, "Erro ao carregar tarefas."));
     } finally {
       setLoadingTasks(false);
     }
@@ -126,8 +127,8 @@ export default function TarefasMateriaisPage() {
       }
 
       setMaterials(data.materials || []);
-    } catch (error: any) {
-      setMaterialError(error.message || "Erro ao carregar materiais.");
+    } catch (error: unknown) {
+      setMaterialError(getErrorMessage(error, "Erro ao carregar materiais."));
     } finally {
       setLoadingMaterials(false);
     }
@@ -371,10 +372,10 @@ export default function TarefasMateriaisPage() {
       await loadTasks();
 
       showFeedback("success", "Tarefa marcada como concluída.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Não foi possível atualizar a tarefa.",
+        getErrorMessage(error, "Não foi possível atualizar a tarefa."),
       );
     } finally {
       setUpdatingTaskId("");
@@ -400,10 +401,10 @@ export default function TarefasMateriaisPage() {
       await loadMaterials();
 
       showFeedback("success", "Material marcado como visualizado.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Não foi possível atualizar o material.",
+        getErrorMessage(error, "Não foi possível atualizar o material."),
       );
     } finally {
       setUpdatingMaterialId("");

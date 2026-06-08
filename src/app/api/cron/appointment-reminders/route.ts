@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import prisma from "../../../../lib/prisma";
 import { sendAppointmentReminderEmail } from "../../../../lib/emails";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -101,7 +102,7 @@ async function runAppointmentReminders(req: NextRequest) {
           dateTime: appointment.dateTime.toISOString(),
           status: "SENT",
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(
           `Erro ao enviar lembrete da consulta ${appointment.id}:`,
           error,
@@ -113,7 +114,7 @@ async function runAppointmentReminders(req: NextRequest) {
           patientEmail: appointment.patient.user.email,
           dateTime: appointment.dateTime.toISOString(),
           status: "ERROR",
-          error: error?.message || "Erro desconhecido ao enviar lembrete.",
+          error: getErrorMessage(error, "Erro desconhecido ao enviar lembrete."),
         });
       }
     }
@@ -130,14 +131,13 @@ async function runAppointmentReminders(req: NextRequest) {
       errors: results.filter((item) => item.status === "ERROR").length,
       results,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro na rotina de lembretes automáticos:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao executar rotina de lembretes automáticos.",
+          getErrorMessage(error, "Erro interno ao executar rotina de lembretes automáticos."),
       },
       { status: 500 },
     );

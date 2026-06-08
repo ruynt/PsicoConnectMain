@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { getErrorCode } from "@/lib/errorUtils";
 
 import { authConfig } from "../../../../../../lib/auth";
 import { sendCrpRejectedEmail } from "../../../../../../lib/emails";
@@ -96,10 +97,10 @@ export async function PATCH(req: Request, context: RouteContext) {
         user: psychologist.user,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao rejeitar psicólogo:", error);
 
-    if (error?.code === "P2025") {
+    if (getErrorCode(error) === "P2025") {
       return NextResponse.json(
         { error: "Psicólogo não encontrado." },
         { status: 404 },

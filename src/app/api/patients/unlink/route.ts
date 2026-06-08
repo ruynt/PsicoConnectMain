@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 export async function POST(req: NextRequest) {
   const token = await getToken({
@@ -69,12 +70,12 @@ export async function POST(req: NextRequest) {
       message: "Paciente desvinculado com sucesso.",
       link: updatedLink,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao desvincular paciente:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao desvincular paciente.",
+        error: getErrorMessage(error, "Erro interno ao desvincular paciente."),
       },
       { status: 500 },
     );

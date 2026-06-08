@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type RouteContext = {
   params: Promise<{
@@ -68,13 +69,13 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         viewedAt: updatedMaterial.viewedAt?.toISOString() || null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao marcar material como visualizado:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message || "Erro interno ao marcar material como visualizado.",
+          getErrorMessage(error, "Erro interno ao marcar material como visualizado."),
       },
       { status: 500 },
     );

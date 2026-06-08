@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type PreSessionCheckin = {
   id: string;
@@ -134,8 +135,8 @@ export default function MyAppointmentsPage() {
       }
 
       setAppointments(data.appointments || []);
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar consultas.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar consultas."));
     } finally {
       setLoading(false);
     }
@@ -345,8 +346,8 @@ export default function MyAppointmentsPage() {
 
       await loadAppointments();
       showFeedback("success", "Presença confirmada com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao confirmar presença.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao confirmar presença."));
     } finally {
       setUpdatingConfirmationId("");
     }
@@ -388,8 +389,8 @@ export default function MyAppointmentsPage() {
       await loadAppointments();
       closeCancelRequestModal();
       showFeedback("success", "Solicitação de cancelamento enviada ao profissional.");
-    } catch (error: any) {
-      setCancelRequestError(error.message || "Erro ao solicitar cancelamento.");
+    } catch (error: unknown) {
+      setCancelRequestError(getErrorMessage(error, "Erro ao solicitar cancelamento."));
     } finally {
       setSavingCancelRequest(false);
     }
@@ -416,10 +417,10 @@ export default function MyAppointmentsPage() {
 
       await loadAppointments();
       showFeedback("success", "Solicitação de cancelamento retirada com sucesso.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao cancelar solicitação de cancelamento.",
+        getErrorMessage(error, "Erro ao cancelar solicitação de cancelamento."),
       );
     } finally {
       setUpdatingConfirmationId("");
@@ -538,8 +539,8 @@ export default function MyAppointmentsPage() {
       closeCheckinModal();
 
       showFeedback("success", "Checklist pré-sessão salvo com sucesso.");
-    } catch (error: any) {
-      setCheckinError(error.message || "Erro ao salvar checklist.");
+    } catch (error: unknown) {
+      setCheckinError(getErrorMessage(error, "Erro ao salvar checklist."));
     } finally {
       setSavingCheckin(false);
     }

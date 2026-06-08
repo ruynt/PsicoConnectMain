@@ -128,7 +128,6 @@ function AuthGuard({ children }: PropsWithChildren) {
           : "/dashboard";
       }
 
-      setIsNavigating(true);
       router.push(redirectPath);
       return;
     }
@@ -138,7 +137,6 @@ function AuthGuard({ children }: PropsWithChildren) {
       shouldBlockPsychologistByCrp &&
       !isVerificationPage
     ) {
-      setIsNavigating(true);
       router.push("/aguardando-verificacao");
       return;
     }
@@ -149,7 +147,6 @@ function AuthGuard({ children }: PropsWithChildren) {
       isPsychologist &&
       crpVerificationStatus === "APPROVED"
     ) {
-      setIsNavigating(true);
       router.push("/dashboard");
     }
   }, [
@@ -164,14 +161,13 @@ function AuthGuard({ children }: PropsWithChildren) {
     router,
   ]);
 
-  useEffect(() => {
-    setIsNavigating(false);
-    setIsSidebarVisible(false);
-  }, [pathname]);
 
   function handleMenuNavigation(path: string) {
+    setIsSidebarVisible(false);
+
     if (pathname !== path) {
       setIsNavigating(true);
+      window.setTimeout(() => setIsNavigating(false), 900);
     }
   }
 

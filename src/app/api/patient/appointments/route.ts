@@ -2,8 +2,25 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import type { Prisma } from "@prisma/client";
+import { getErrorMessage } from "@/lib/errorUtils";
 
-function mapAppointment(appointment: any) {
+type PatientAppointment = Prisma.AppointmentGetPayload<{
+  include: {
+    psychologist: {
+      include: {
+        user: {
+          select: {
+            name: true;
+            email: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
+function mapAppointment(appointment: PatientAppointment) {
   return {
     id: appointment.id,
     title: appointment.title || "Consulta",
@@ -98,13 +115,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       appointments: appointments.map(mapAppointment),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar consultas do paciente:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message || "Erro interno ao listar consultas do paciente.",
+          getErrorMessage(error, "Erro interno ao listar consultas do paciente."),
         appointments: [],
       },
       { status: 500 },

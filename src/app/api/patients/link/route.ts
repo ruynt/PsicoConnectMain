@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 export async function POST(req: NextRequest) {
   const token = await getToken({
@@ -94,12 +95,12 @@ export async function POST(req: NextRequest) {
         email: user.email,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao vincular paciente:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao vincular paciente.",
+        error: getErrorMessage(error, "Erro interno ao vincular paciente."),
       },
       { status: 500 },
     );

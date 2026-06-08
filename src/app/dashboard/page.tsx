@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type DashboardData = {
   psychologist: {
@@ -229,8 +230,8 @@ export default function PsychologistDashboardPage() {
       }
 
       setData(result);
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar dashboard.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar dashboard."));
     } finally {
       setLoading(false);
     }
@@ -285,10 +286,10 @@ export default function PsychologistDashboardPage() {
           ? "Solicitação de cancelamento aprovada com sucesso."
           : "Solicitação de cancelamento rejeitada com sucesso.",
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao analisar solicitação de cancelamento.",
+        getErrorMessage(error, "Erro ao analisar solicitação de cancelamento."),
       );
     } finally {
       setReviewingCancellationId("");

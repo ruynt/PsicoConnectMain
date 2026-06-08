@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { sendAppointmentCancelledEmail } from "../../../../lib/emails";
+import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 
 async function refreshGoogleAccessToken(refreshToken: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -54,7 +55,7 @@ async function deleteGoogleEvent(accessToken: string, googleEventId: string) {
 
   const text = await response.text();
 
-  let data: any = {};
+  let data: unknown = {};
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
@@ -225,8 +226,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               error:
-                data?.error?.message ||
-                "Erro ao cancelar evento no Google Calendar.",
+                getExternalApiErrorMessage(data, "Erro ao cancelar evento no Google Calendar."),
               details: data,
             },
             { status: response.status },
@@ -276,12 +276,12 @@ export async function POST(req: NextRequest) {
       appointment: updatedAppointment,
       emailWarning,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao cancelar consulta:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao cancelar consulta.",
+        error: getErrorMessage(error, "Erro interno ao cancelar consulta."),
       },
       { status: 500 },
     );

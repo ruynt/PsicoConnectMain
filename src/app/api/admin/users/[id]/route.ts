@@ -203,7 +203,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       ok: true,
       message: "Usuário atualizado com sucesso.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -214,7 +214,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       );
     }
 
-    if (error?.message === "INVALID_CRP_DATA") {
+    if (error instanceof Error && error.message === "INVALID_CRP_DATA") {
       return NextResponse.json(
         { error: "Informe estado, regional e número do CRP." },
         { status: 400 },

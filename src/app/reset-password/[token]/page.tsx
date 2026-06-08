@@ -4,14 +4,29 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+type Feedback = {
+  type: "success" | "error";
+  message: string;
+};
+
+type ResetPasswordResponse = {
+  error?: string;
+  message?: string;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Não foi possível redefinir a senha.";
+}
+
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const router = useRouter();
   const params = useParams();
@@ -57,24 +72,24 @@ export default function ResetPasswordPage() {
         body: JSON.stringify({ password }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as ResetPasswordResponse;
 
       if (!response.ok) {
-        throw new Error(data?.error || "Não foi possível redefinir a senha.");
+        throw new Error(data.error || "Não foi possível redefinir a senha.");
       }
 
       setFeedback({
         type: "success",
-        message: "Senha redefinida com sucesso.",
+        message: data.message || "Senha redefinida com sucesso.",
       });
 
       setTimeout(() => {
         router.push("/login?reset=success");
       }, 1000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setFeedback({
         type: "error",
-        message: error?.message || "Não foi possível redefinir a senha.",
+        message: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -144,7 +159,7 @@ export default function ResetPasswordPage() {
               id="senha"
               name="senha"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               required
             />
             <small className="error-message"></small>
@@ -155,7 +170,7 @@ export default function ResetPasswordPage() {
               id="confirmar-senha"
               name="confirmar-senha"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(event) => setConfirmPassword(event.target.value)}
               required
             />
             <small className="error-message"></small>

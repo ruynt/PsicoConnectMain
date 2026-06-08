@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Psychologist = {
   id: string;
@@ -55,8 +56,8 @@ export default function MeusPsicologosPage() {
       }
 
       setPsychologists(data.psychologists || []);
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar psicólogos vinculados.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar psicólogos vinculados."));
     } finally {
       setLoading(false);
     }

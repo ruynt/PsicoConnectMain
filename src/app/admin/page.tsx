@@ -1,7 +1,8 @@
-// src/app/admin/page.tsx
-
 "use client";
 
+// src/app/admin/page.tsx
+
+import { getErrorMessage } from "@/lib/errorUtils";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -105,8 +106,8 @@ export default function AdminPage() {
       }
 
       setData(responseData);
-    } catch (error: any) {
-      setError(error?.message || "Erro ao carregar dados administrativos.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar dados administrativos."));
     } finally {
       setLoading(false);
     }
@@ -296,8 +297,8 @@ export default function AdminPage() {
           ? "Psicólogo aprovado com sucesso. O e-mail de aprovação foi enviado."
           : "Psicólogo rejeitado com sucesso. O e-mail com o motivo foi enviado.",
       );
-    } catch (error: any) {
-      showFeedback("error", error?.message || "Erro ao atualizar CRP.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao atualizar CRP."));
     } finally {
       setUpdatingId("");
     }

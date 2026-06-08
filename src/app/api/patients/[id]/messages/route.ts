@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import type { Prisma } from "@prisma/client";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -9,7 +11,9 @@ type Params = {
   }>;
 };
 
-function mapMessage(message: any) {
+type PatientMessage = Prisma.PatientMessageGetPayload<Record<string, never>>;
+
+function mapMessage(message: PatientMessage) {
   return {
     id: message.id,
     content: message.content,
@@ -96,14 +100,13 @@ export async function GET(req: NextRequest, context: Params) {
     return NextResponse.json({
       messages: messages.map(mapMessage),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar mensagens do paciente:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao listar mensagens do paciente.",
+          getErrorMessage(error, "Erro interno ao listar mensagens do paciente."),
         messages: [],
       },
       { status: 500 },
@@ -189,14 +192,13 @@ export async function POST(req: NextRequest, context: Params) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao enviar mensagem para paciente:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao enviar mensagem para o paciente.",
+          getErrorMessage(error, "Erro interno ao enviar mensagem para o paciente."),
       },
       { status: 500 },
     );

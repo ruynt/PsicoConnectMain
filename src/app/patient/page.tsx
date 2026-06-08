@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type PreSessionCheckin = {
   id: string;
@@ -189,8 +190,8 @@ export default function PatientHomePage() {
       }
 
       setAppointments(data.appointments || []);
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar informações.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar informações."));
     }
   }
 
@@ -210,8 +211,8 @@ export default function PatientHomePage() {
       }
 
       setTasks(data.tasks || []);
-    } catch (error: any) {
-      setTaskError(error.message || "Erro ao carregar tarefas.");
+    } catch (error: unknown) {
+      setTaskError(getErrorMessage(error, "Erro ao carregar tarefas."));
     } finally {
       setLoadingTasks(false);
     }
@@ -233,8 +234,8 @@ export default function PatientHomePage() {
       }
 
       setMaterials(data.materials || []);
-    } catch (error: any) {
-      setMaterialError(error.message || "Erro ao carregar materiais.");
+    } catch (error: unknown) {
+      setMaterialError(getErrorMessage(error, "Erro ao carregar materiais."));
     } finally {
       setLoadingMaterials(false);
     }
@@ -495,8 +496,8 @@ export default function PatientHomePage() {
 
       await loadAppointments();
       showFeedback("success", "Presença confirmada com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao confirmar presença.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao confirmar presença."));
     } finally {
       setUpdatingAppointmentId("");
     }
@@ -541,8 +542,8 @@ export default function PatientHomePage() {
         "success",
         "Solicitação de cancelamento enviada ao profissional.",
       );
-    } catch (error: any) {
-      setCancelRequestError(error.message || "Erro ao solicitar cancelamento.");
+    } catch (error: unknown) {
+      setCancelRequestError(getErrorMessage(error, "Erro ao solicitar cancelamento."));
     } finally {
       setSavingCancelRequest(false);
     }
@@ -572,10 +573,10 @@ export default function PatientHomePage() {
         "success",
         "Solicitação de cancelamento retirada com sucesso.",
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao cancelar solicitação de cancelamento.",
+        getErrorMessage(error, "Erro ao cancelar solicitação de cancelamento."),
       );
     } finally {
       setUpdatingAppointmentId("");
@@ -599,8 +600,8 @@ export default function PatientHomePage() {
       await loadTasks();
 
       showFeedback("success", "Tarefa marcada como concluída.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao concluir tarefa.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao concluir tarefa."));
     } finally {
       setCompletingTaskId("");
     }
@@ -628,10 +629,10 @@ export default function PatientHomePage() {
       await loadMaterials();
 
       showFeedback("success", "Material marcado como visualizado.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error?.message || "Erro ao marcar material como visualizado.",
+        getErrorMessage(error, "Erro ao marcar material como visualizado."),
       );
     } finally {
       setViewingMaterialId("");

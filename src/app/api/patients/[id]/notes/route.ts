@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 async function getPsychologistFromToken(req: NextRequest) {
   const token = await getToken({
@@ -144,12 +145,12 @@ export async function GET(
         updatedAt: note.updatedAt.toISOString(),
       })),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar anotações:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao listar anotações.",
+        error: getErrorMessage(error, "Erro interno ao listar anotações."),
         notes: [],
       },
       { status: 500 },
@@ -254,12 +255,12 @@ export async function POST(
         updatedAt: note.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar anotação:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao criar anotação.",
+        error: getErrorMessage(error, "Erro interno ao criar anotação."),
       },
       { status: 500 },
     );

@@ -7,6 +7,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type UserRole = "ADMIN" | "PSYCHOLOGIST" | "PATIENT";
 
@@ -418,8 +419,8 @@ export default function PerfilPage() {
 
         setProfile(loadedProfile);
         setForm(buildFormFromProfile(loadedProfile));
-      } catch (err: any) {
-        setError(err?.message || "Erro ao carregar perfil.");
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, "Erro ao carregar perfil."));
       } finally {
         setLoading(false);
       }
@@ -522,8 +523,8 @@ export default function PerfilPage() {
       );
 
       setSuccess("Foto de perfil atualizada com sucesso.");
-    } catch (err: any) {
-      setImageUploadError(err?.message || "Erro ao enviar foto de perfil.");
+    } catch (err: unknown) {
+      setImageUploadError(getErrorMessage(err, "Erro ao enviar foto de perfil."));
     } finally {
       setUploadingImage(false);
     }
@@ -630,8 +631,8 @@ export default function PerfilPage() {
             }
           : current,
       );
-    } catch (err: any) {
-      setError(err?.message || "Erro ao salvar perfil.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Erro ao salvar perfil."));
     } finally {
       setSaving(false);
     }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Appointment = {
   id: string;
@@ -256,8 +257,8 @@ export default function PatientDetailsPage() {
       }
 
       setPatient(data.patient);
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar paciente.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar paciente."));
     } finally {
       setLoading(false);
     }
@@ -282,8 +283,8 @@ export default function PatientDetailsPage() {
       }
 
       setNotes(data.notes || []);
-    } catch (error: any) {
-      setNoteError(error.message || "Erro ao carregar anotações.");
+    } catch (error: unknown) {
+      setNoteError(getErrorMessage(error, "Erro ao carregar anotações."));
     } finally {
       setLoadingNotes(false);
     }
@@ -305,8 +306,8 @@ export default function PatientDetailsPage() {
       }
 
       setCheckins(data.checkins || []);
-    } catch (error: any) {
-      setCheckinError(error.message || "Erro ao carregar checklists.");
+    } catch (error: unknown) {
+      setCheckinError(getErrorMessage(error, "Erro ao carregar checklists."));
     } finally {
       setLoadingCheckins(false);
     }
@@ -328,8 +329,8 @@ export default function PatientDetailsPage() {
       }
 
       setTasks(data.tasks || []);
-    } catch (error: any) {
-      setTaskError(error.message || "Erro ao carregar tarefas.");
+    } catch (error: unknown) {
+      setTaskError(getErrorMessage(error, "Erro ao carregar tarefas."));
     } finally {
       setLoadingTasks(false);
     }
@@ -351,8 +352,8 @@ export default function PatientDetailsPage() {
       }
 
       setMaterials(data.materials || []);
-    } catch (error: any) {
-      setMaterialError(error.message || "Erro ao carregar materiais.");
+    } catch (error: unknown) {
+      setMaterialError(getErrorMessage(error, "Erro ao carregar materiais."));
     } finally {
       setLoadingMaterials(false);
     }
@@ -374,8 +375,8 @@ export default function PatientDetailsPage() {
       }
 
       setMessages(data.messages || []);
-    } catch (error: any) {
-      setMessageError(error.message || "Erro ao carregar mensagens.");
+    } catch (error: unknown) {
+      setMessageError(getErrorMessage(error, "Erro ao carregar mensagens."));
     } finally {
       setLoadingMessages(false);
     }
@@ -398,8 +399,8 @@ export default function PatientDetailsPage() {
       }
 
       setSummaries(data.summaries || []);
-    } catch (error: any) {
-      setSummaryError(error.message || "Erro ao carregar resumos salvos.");
+    } catch (error: unknown) {
+      setSummaryError(getErrorMessage(error, "Erro ao carregar resumos salvos."));
     } finally {
       setLoadingSummaries(false);
     }
@@ -713,8 +714,8 @@ export default function PatientDetailsPage() {
           ? "Anotação atualizada com sucesso."
           : "Anotação salva com sucesso.",
       );
-    } catch (error: any) {
-      setNoteError(error.message || "Erro ao salvar anotação.");
+    } catch (error: unknown) {
+      setNoteError(getErrorMessage(error, "Erro ao salvar anotação."));
     } finally {
       setSavingNote(false);
     }
@@ -747,8 +748,8 @@ export default function PatientDetailsPage() {
       }
 
       showFeedback("success", "Anotação arquivada com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao arquivar anotação.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao arquivar anotação."));
     } finally {
       setArchivingNoteId("");
     }
@@ -778,10 +779,10 @@ export default function PatientDetailsPage() {
       setSummaryGeneratedAt(data.generatedAt || "");
       setSummarySourceNotesCount(data.sourceNotesCount || 0);
       showFeedback("success", "Resumo para prontuário gerado com sucesso.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       showFeedback(
         "error",
-        error.message || "Erro ao gerar resumo para prontuário.",
+        getErrorMessage(error, "Erro ao gerar resumo para prontuário."),
       );
     } finally {
       setGeneratingSummary(false);
@@ -837,8 +838,8 @@ export default function PatientDetailsPage() {
       setSummarySourceNotesCount(0);
       await loadSummaries();
       showFeedback("success", "Resumo salvo com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao salvar resumo.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao salvar resumo."));
     } finally {
       setSavingGeneratedSummary(false);
     }
@@ -889,8 +890,8 @@ export default function PatientDetailsPage() {
       await loadSummaries();
       handleCancelEditSummary();
       showFeedback("success", "Resumo atualizado com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao atualizar resumo.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao atualizar resumo."));
     } finally {
       setUpdatingSummaryId("");
     }
@@ -933,8 +934,8 @@ export default function PatientDetailsPage() {
       await loadSummaries();
       setSummaryToDelete(null);
       showFeedback("success", "Resumo apagado com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao apagar resumo.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao apagar resumo."));
     } finally {
       setDeletingSummaryId("");
     }
@@ -996,8 +997,8 @@ export default function PatientDetailsPage() {
       resetTaskForm();
 
       showFeedback("success", "Tarefa terapêutica criada com sucesso.");
-    } catch (error: any) {
-      setTaskError(error.message || "Erro ao criar tarefa terapêutica.");
+    } catch (error: unknown) {
+      setTaskError(getErrorMessage(error, "Erro ao criar tarefa terapêutica."));
     } finally {
       setSavingTask(false);
     }
@@ -1039,8 +1040,8 @@ export default function PatientDetailsPage() {
             ? "Tarefa cancelada com sucesso."
             : "Tarefa reaberta com sucesso.",
       );
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao atualizar tarefa.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao atualizar tarefa."));
     } finally {
       setUpdatingTaskId("");
     }
@@ -1097,8 +1098,8 @@ export default function PatientDetailsPage() {
       resetMaterialForm();
 
       showFeedback("success", "Material psicoeducativo enviado com sucesso.");
-    } catch (error: any) {
-      setMaterialError(error.message || "Erro ao enviar material.");
+    } catch (error: unknown) {
+      setMaterialError(getErrorMessage(error, "Erro ao enviar material."));
     } finally {
       setSavingMaterial(false);
     }
@@ -1137,8 +1138,8 @@ export default function PatientDetailsPage() {
       await loadMessages();
 
       showFeedback("success", "Mensagem enviada com sucesso.");
-    } catch (error: any) {
-      setMessageError(error.message || "Erro ao enviar mensagem.");
+    } catch (error: unknown) {
+      setMessageError(getErrorMessage(error, "Erro ao enviar mensagem."));
     } finally {
       setSendingMessage(false);
     }

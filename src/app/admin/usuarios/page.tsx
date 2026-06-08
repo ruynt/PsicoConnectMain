@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Role = "ADMIN" | "PSYCHOLOGIST" | "PATIENT";
 type CrpVerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -188,8 +189,8 @@ export default function AdminUsersPage() {
       }
 
       setData(responseData);
-    } catch (error: any) {
-      setError(error?.message || "Erro ao carregar usuários.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar usuários."));
     } finally {
       setLoading(false);
     }
@@ -371,8 +372,8 @@ export default function AdminUsersPage() {
 
       await loadUsers();
       showFeedback("success", responseData?.message || "Usuário atualizado.");
-    } catch (error: any) {
-      showFeedback("error", error?.message || "Erro ao atualizar usuário.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao atualizar usuário."));
     } finally {
       setUpdatingId("");
     }
@@ -399,8 +400,8 @@ export default function AdminUsersPage() {
 
       await loadUsers();
       showFeedback("success", "CRP aprovado com sucesso. O psicólogo receberá um e-mail de confirmação.");
-    } catch (error: any) {
-      showFeedback("error", error?.message || "Erro ao atualizar CRP.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao atualizar CRP."));
     } finally {
       setUpdatingId("");
     }
@@ -446,8 +447,8 @@ export default function AdminUsersPage() {
         "success",
         "CRP rejeitado com sucesso. O psicólogo receberá um e-mail com o motivo.",
       );
-    } catch (error: any) {
-      showFeedback("error", error?.message || "Erro ao rejeitar CRP.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao rejeitar CRP."));
     } finally {
       setRejectingCrp(false);
       setUpdatingId("");
@@ -515,8 +516,8 @@ export default function AdminUsersPage() {
       closeEditModal();
       await loadUsers();
       showFeedback("success", "Usuário editado com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error?.message || "Erro ao editar usuário.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao editar usuário."));
     } finally {
       setSavingEdit(false);
     }

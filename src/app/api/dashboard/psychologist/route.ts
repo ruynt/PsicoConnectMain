@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import type { Prisma } from "@prisma/client";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 function startOfToday() {
   const date = new Date();
@@ -35,7 +37,22 @@ function next24HoursFromNow() {
   return date;
 }
 
-function mapDashboardAppointment(appointment: any) {
+type DashboardAppointment = Prisma.AppointmentGetPayload<{
+  include: {
+    patient: {
+      include: {
+        user: {
+          select: {
+            name: true;
+            email: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
+function mapDashboardAppointment(appointment: DashboardAppointment) {
   return {
     id: appointment.id,
     title: appointment.title || "Consulta",
@@ -649,12 +666,12 @@ export async function GET(req: NextRequest) {
       })),
       recommendations,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao carregar dashboard do psicólogo:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao carregar dashboard.",
+        error: getErrorMessage(error, "Erro interno ao carregar dashboard."),
       },
       { status: 500 },
     );

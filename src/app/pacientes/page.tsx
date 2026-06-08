@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type PatientSummary = {
   id: string;
@@ -101,8 +102,8 @@ export default function PatientsPage() {
       }
 
       setPatients(data.patients || []);
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar pacientes.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar pacientes."));
     } finally {
       setLoading(false);
     }
@@ -216,8 +217,8 @@ export default function PatientsPage() {
       closeLinkModal();
 
       showFeedback("success", "Paciente vinculado com sucesso.");
-    } catch (error: any) {
-      setLinkError(error.message || "Erro ao vincular paciente.");
+    } catch (error: unknown) {
+      setLinkError(getErrorMessage(error, "Erro ao vincular paciente."));
     } finally {
       setLinkingPatient(false);
     }
@@ -250,8 +251,8 @@ export default function PatientsPage() {
       setPatientToUnlink(null);
 
       showFeedback("success", "Paciente desvinculado com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao desvincular paciente.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao desvincular paciente."));
     } finally {
       setUnlinkingPatientId("");
     }

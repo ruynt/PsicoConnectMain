@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 function normalizeScaleValue(value: unknown) {
   if (value === null || value === undefined || value === "") {
@@ -94,12 +95,12 @@ export async function GET(req: NextRequest) {
           }
         : null,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar checklist pré-sessão:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao buscar checklist.",
+        error: getErrorMessage(error, "Erro interno ao buscar checklist."),
         checkin: null,
       },
       { status: 500 },
@@ -217,12 +218,12 @@ export async function POST(req: NextRequest) {
         updatedAt: checkin.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao salvar checklist pré-sessão:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao salvar checklist.",
+        error: getErrorMessage(error, "Erro interno ao salvar checklist."),
       },
       { status: 500 },
     );

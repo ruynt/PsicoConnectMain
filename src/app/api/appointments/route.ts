@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 export async function GET(req: NextRequest) {
   const token = await getToken({
@@ -108,12 +109,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       events,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar consultas:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao listar consultas.",
+        error: getErrorMessage(error, "Erro interno ao listar consultas."),
         events: [],
       },
       { status: 500 },

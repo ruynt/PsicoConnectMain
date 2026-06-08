@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
 import type { Prisma, TherapeuticTaskStatus } from "@prisma/client";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type RouteContext = {
   params: Promise<{
@@ -170,12 +171,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         updatedAt: task.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar tarefa terapêutica:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao atualizar tarefa.",
+        error: getErrorMessage(error, "Erro interno ao atualizar tarefa."),
       },
       { status: 500 },
     );

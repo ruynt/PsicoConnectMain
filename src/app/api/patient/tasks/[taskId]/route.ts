@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -99,12 +100,12 @@ export async function PATCH(req: NextRequest, context: Params) {
         updatedAt: updatedTask.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar tarefa do paciente:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao atualizar tarefa.",
+        error: getErrorMessage(error, "Erro interno ao atualizar tarefa."),
       },
       { status: 500 },
     );

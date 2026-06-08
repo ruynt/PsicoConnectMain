@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type RouteContext = {
   params: Promise<{
@@ -106,12 +107,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
         updatedAt: material.updatedAt.toISOString(),
       })),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar materiais psicoeducativos:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao listar materiais.",
+        error: getErrorMessage(error, "Erro interno ao listar materiais."),
         materials: [],
       },
       { status: 500 },
@@ -195,12 +196,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
         updatedAt: material.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar material psicoeducativo:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao criar material.",
+        error: getErrorMessage(error, "Erro interno ao criar material."),
       },
       { status: 500 },
     );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type RouteContext = {
   params: Promise<{
@@ -110,13 +111,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
         },
       })),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar checklists do paciente:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message || "Erro interno ao listar checklists do paciente.",
+          getErrorMessage(error, "Erro interno ao listar checklists do paciente."),
         checkins: [],
       },
       { status: 500 },

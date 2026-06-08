@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -208,8 +209,7 @@ ${notesText}
       return NextResponse.json(
         {
           error:
-            openAiData?.error?.message ||
-            "Erro ao gerar resumo com inteligência artificial.",
+            getExternalApiErrorMessage(openAiData, "Erro ao gerar resumo com inteligência artificial."),
         },
         { status: 500 },
       );
@@ -231,14 +231,13 @@ ${notesText}
       warning:
         "Este texto foi gerado com apoio de IA e deve ser revisado pelo psicólogo antes de ser registrado no prontuário.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao gerar resumo para prontuário:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao gerar resumo para prontuário.",
+          getErrorMessage(error, "Erro interno ao gerar resumo para prontuário."),
       },
       { status: 500 },
     );

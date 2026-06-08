@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -150,13 +151,13 @@ export async function PATCH(req: NextRequest, context: Params) {
         },
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar pagamento da consulta:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message || "Erro interno ao atualizar pagamento da consulta.",
+          getErrorMessage(error, "Erro interno ao atualizar pagamento da consulta."),
       },
       { status: 500 },
     );

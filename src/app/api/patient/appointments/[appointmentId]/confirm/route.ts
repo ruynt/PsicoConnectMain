@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -89,12 +90,12 @@ export async function PATCH(req: NextRequest, context: Params) {
           updatedAppointment.cancellationRequestStatus || null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao confirmar presença:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao confirmar presença.",
+        error: getErrorMessage(error, "Erro interno ao confirmar presença."),
       },
       { status: 500 },
     );

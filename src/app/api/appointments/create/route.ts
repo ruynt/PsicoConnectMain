@@ -3,6 +3,21 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { sendAppointmentCreatedEmail } from "../../../../lib/emails";
+import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
+
+type GoogleCalendarEventPayload = {
+  summary: string;
+  description: string;
+  location: string;
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
+};
 
 async function refreshGoogleAccessToken(refreshToken: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -34,7 +49,10 @@ async function refreshGoogleAccessToken(refreshToken: string) {
   };
 }
 
-async function createGoogleEvent(accessToken: string, payload: any) {
+async function createGoogleEvent(
+  accessToken: string,
+  payload: GoogleCalendarEventPayload,
+) {
   const response = await fetch(
     "https://www.googleapis.com/calendar/v3/calendars/primary/events",
     {
@@ -246,7 +264,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            data?.error?.message || "Erro ao criar evento no Google Calendar.",
+            getExternalApiErrorMessage(data, "Erro ao criar evento no Google Calendar."),
           details: data,
         },
         { status: response.status },
@@ -316,12 +334,12 @@ export async function POST(req: NextRequest) {
       googleEvent: data,
       emailWarning,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar consulta:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao criar consulta.",
+        error: getErrorMessage(error, "Erro interno ao criar consulta."),
       },
       { status: 500 },
     );

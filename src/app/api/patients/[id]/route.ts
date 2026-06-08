@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 export async function GET(
   req: NextRequest,
@@ -179,12 +180,12 @@ export async function GET(
         appointments: appointments.map(mapAppointment),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar paciente:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao buscar paciente.",
+        error: getErrorMessage(error, "Erro interno ao buscar paciente."),
       },
       { status: 500 },
     );

@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { getErrorCode } from "@/lib/errorUtils";
 
 import { authConfig } from "../../../../../../lib/auth";
 import prisma from "../../../../../../lib/prisma";
@@ -55,10 +56,10 @@ export async function PATCH(_req: Request, context: RouteContext) {
         emailVerified: user.emailVerified?.toISOString() || null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao verificar e-mail do usuário:", error);
 
-    if (error?.code === "P2025") {
+    if (getErrorCode(error) === "P2025") {
       return NextResponse.json(
         { error: "Usuário não encontrado." },
         { status: 404 },

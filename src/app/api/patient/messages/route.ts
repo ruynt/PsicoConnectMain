@@ -2,8 +2,40 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import type { Prisma } from "@prisma/client";
+import { getErrorMessage } from "@/lib/errorUtils";
 
-function mapMessage(message: any) {
+type PatientMessageWithPsychologist = Prisma.PatientMessageGetPayload<{
+  include: {
+    psychologist: {
+      include: {
+        user: {
+          select: {
+            name: true;
+            email: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
+type PsychologistLinkWithUser = Prisma.PsychologistPatientGetPayload<{
+  include: {
+    psychologist: {
+      include: {
+        user: {
+          select: {
+            name: true;
+            email: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
+function mapMessage(message: PatientMessageWithPsychologist) {
   return {
     id: message.id,
     content: message.content,
@@ -24,7 +56,7 @@ function mapMessage(message: any) {
   };
 }
 
-function mapPsychologistLink(link: any) {
+function mapPsychologistLink(link: PsychologistLinkWithUser) {
   return {
     id: link.psychologist.id,
     name: link.psychologist.user.name,
@@ -118,13 +150,13 @@ export async function GET(req: NextRequest) {
       messages: messages.map(mapMessage),
       psychologists: patient.psychologistLinks.map(mapPsychologistLink),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar mensagens do paciente:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message || "Erro interno ao listar mensagens do paciente.",
+          getErrorMessage(error, "Erro interno ao listar mensagens do paciente."),
         messages: [],
         psychologists: [],
       },
@@ -246,12 +278,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao enviar mensagem do paciente:", error);
 
     return NextResponse.json(
       {
-        error: error?.message || "Erro interno ao enviar mensagem.",
+        error: getErrorMessage(error, "Erro interno ao enviar mensagem."),
       },
       { status: 500 },
     );

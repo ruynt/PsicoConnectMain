@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { sendAppointmentReminderEmail } from "../../../../../lib/emails";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type Params = {
   params: Promise<{
@@ -130,14 +131,13 @@ export async function POST(req: NextRequest, context: Params) {
         },
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao enviar lembrete de consulta:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Erro interno ao enviar lembrete de consulta por e-mail.",
+          getErrorMessage(error, "Erro interno ao enviar lembrete de consulta por e-mail."),
       },
       { status: 500 },
     );

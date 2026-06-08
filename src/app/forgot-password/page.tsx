@@ -3,10 +3,28 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
+type Feedback = {
+  type: "success" | "error";
+  message: string;
+};
+
+type ForgotPasswordResponse = {
+  error?: string;
+  message?: string;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Não foi possível solicitar a recuperação de senha.";
+}
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -28,22 +46,26 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: normalizedEmail }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as ForgotPasswordResponse;
 
       if (!response.ok) {
-        throw new Error(data?.error || "Não foi possível solicitar a recuperação de senha.");
+        throw new Error(
+          data.error || "Não foi possível solicitar a recuperação de senha.",
+        );
       }
 
       setFeedback({
         type: "success",
         message:
+          data.message ||
           "Se este e-mail estiver cadastrado, enviaremos um link para redefinir sua senha.",
       });
+
       setEmail("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       setFeedback({
         type: "error",
-        message: error?.message || "Não foi possível solicitar a recuperação de senha.",
+        message: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -62,6 +84,7 @@ export default function ForgotPasswordPage() {
               Connect
             </h1>
           </div>
+
           <p className="tagline">
             Recupere seu
             <br />
@@ -82,7 +105,8 @@ export default function ForgotPasswordPage() {
           <h2>Recuperar senha</h2>
 
           <p style={{ color: "#374151", lineHeight: 1.6, marginBottom: "18px" }}>
-            Informe o e-mail cadastrado. Enviaremos um link temporário para você criar uma nova senha.
+            Informe o e-mail cadastrado. Enviaremos um link temporário para você
+            criar uma nova senha.
           </p>
 
           {feedback && (
@@ -101,14 +125,16 @@ export default function ForgotPasswordPage() {
 
           <form id="login-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="email">Email</label>
+
             <input
               type="email"
               id="email"
               name="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
+
             <small id="email-error" className="error-message"></small>
 
             <button type="submit" className="btn-primary" disabled={isLoading}>

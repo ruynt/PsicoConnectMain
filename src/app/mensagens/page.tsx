@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { getErrorMessage } from "@/lib/errorUtils";
 
 type MessageSenderRole = "PSYCHOLOGIST" | "PATIENT";
 
@@ -66,8 +67,8 @@ export default function PatientMessagesPage() {
 
         setSelectedPsychologistId(firstPsychologistId);
       }
-    } catch (error: any) {
-      setError(error.message || "Erro ao carregar mensagens.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao carregar mensagens."));
     } finally {
       setLoading(false);
     }
@@ -146,8 +147,8 @@ export default function PatientMessagesPage() {
       setMessageContent("");
       await loadMessages();
       showFeedback("success", "Mensagem enviada com sucesso.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erro ao enviar mensagem.");
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao enviar mensagem."));
     } finally {
       setSending(false);
     }
