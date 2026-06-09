@@ -2621,7 +2621,6 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
   }
 }
 
-/* Celular: logo esquerda, entrar direita, menu abaixo */
 @media (max-width: 768px) {
   .landing-hero-area {
     padding: 18px 22px 54px !important;
@@ -2708,7 +2707,7 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
     max-width: 320px !important;
     margin: 0 auto 28px !important;
     text-align: center !important;
-    font-size: 38px !important;
+    font-size: 45px !important;
     line-height: 1.08 !important;
   }
 
@@ -2774,7 +2773,7 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
 
   .landing-hero-content h1 {
     max-width: 292px !important;
-    font-size: 31px !important;
+    font-size: 40px !important;
     margin-bottom: 26px !important;
   }
 
@@ -2808,7 +2807,7 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
   }
 
   .landing-hero-content h1 {
-    font-size: 29px !important;
+    font-size: 33px !important;
   }
 }
 
@@ -3119,5 +3118,58 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
     font-size: 16px !important;
     min-height: 48px !important;
     height: 48px;
+  }
+}
+
+/* =========================================================
+   Home: links do rodapé com aparência de botões
+   ========================================================= */
+
+.landing-footer-links {
+  gap: 10px !important;
+}
+
+.landing-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.landing-footer-links a:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.34);
+  transform: translateY(-1px);
+}
+
+.landing-footer-links a:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .landing-footer-links {
+    gap: 8px !important;
+  }
+
+  .landing-footer-links a {
+    min-height: 34px;
+    padding: 7px 12px;
+    font-size: 13px;
   }
 }

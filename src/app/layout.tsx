@@ -36,12 +36,12 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/og-psicoconnect.png?v=2",
+        url: "/icon.png?v=6",
         type: "image/png",
       },
     ],
-    shortcut: "/og-psicoconnect.png?v=2",
-    apple: "/og-psicoconnect.png?v=2",
+    shortcut: "/icon.png?v=6",
+    apple: "/apple-icon.png?v=6",
   },
   openGraph: {
     title: "PsicoConnect | Apoio à prática psicológica",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     siteName: "PsicoConnect",
     images: [
       {
-        url: "/og-psicoconnect.png?v=2",
+        url: "/og-psicoconnect.png?v=6",
         width: 1200,
         height: 1200,
         alt: "PsicoConnect - Plataforma de apoio à prática psicológica",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     title: "PsicoConnect | Apoio à prática psicológica",
     description:
       "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
-    images: ["/og-psicoconnect.png?v=2"],
+    images: ["/og-psicoconnect.png?v=6"],
   },
 };
 
