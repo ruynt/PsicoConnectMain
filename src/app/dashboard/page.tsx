@@ -2186,7 +2186,7 @@ export default function PsychologistDashboardPage() {
             padding: 16px !important;
           }
 
-          .dashboard-metric-card p:last-child {
+          .dashboard-metric-card > p:last-child {
             font-size: 12px !important;
           }
         }
@@ -2250,7 +2250,7 @@ export default function PsychologistDashboardPage() {
             font-size: 22px !important;
           }
 
-          .dashboard-metric-card p:last-child {
+          .dashboard-metric-card > p:last-child {
             display: none !important;
           }
 
@@ -2454,8 +2454,8 @@ export default function PsychologistDashboardPage() {
             line-height: 1 !important;
           }
 
-          .chat-main-wrapper .dashboard-page .dashboard-metric-card p:last-child,
-          .dashboard-page .dashboard-metric-card p:last-child {
+          .chat-main-wrapper .dashboard-page .dashboard-metric-card > p:last-child,
+          .dashboard-page .dashboard-metric-card > p:last-child {
             display: none !important;
           }
 
