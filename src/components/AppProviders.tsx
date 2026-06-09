@@ -197,7 +197,6 @@ function AuthGuard({ children }: PropsWithChildren) {
           }
 
           .menu-toggle-button {
-            display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
             text-align: center !important;
