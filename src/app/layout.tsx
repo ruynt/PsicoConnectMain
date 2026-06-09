@@ -33,22 +33,23 @@ export const metadata: Metadata = {
   },
   description:
     "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       {
-        url: "/favicon.ico?v=7",
+        url: "/favicon.ico?v=8",
       },
       {
-        url: "/favicon.png?v=7",
+        url: "/favicon.png?v=8",
         type: "image/png",
       },
       {
-        url: "/icon.png?v=7",
+        url: "/icon.png?v=8",
         type: "image/png",
       },
     ],
-    shortcut: "/favicon.ico?v=7",
-    apple: "/apple-touch-icon.png?v=7",
+    shortcut: "/favicon.ico?v=8",
+    apple: "/apple-touch-icon.png?v=8",
   },
   openGraph: {
     title: "PsicoConnect | Apoio à prática psicológica",
@@ -58,7 +59,7 @@ export const metadata: Metadata = {
     siteName: "PsicoConnect",
     images: [
       {
-        url: "/og-psicoconnect.png?v=7",
+        url: "/og-psicoconnect.png?v=8",
         width: 1200,
         height: 1200,
         alt: "PsicoConnect - Plataforma de apoio à prática psicológica",
@@ -72,7 +73,7 @@ export const metadata: Metadata = {
     title: "PsicoConnect | Apoio à prática psicológica",
     description:
       "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
-    images: ["/og-psicoconnect.png?v=7"],
+    images: ["/og-psicoconnect.png?v=8"],
   },
 };
 
@@ -83,10 +84,12 @@ export default function RootLayout({ children }: PropsWithChildren) {
       className={`${inter.variable} ${montserrat.variable} ${poppins.variable}`}
     >
       <head>
-        <link rel="icon" href="/favicon.ico?v=7" sizes="any" />
-        <link rel="icon" href="/favicon.png?v=7" type="image/png" />
-        <link rel="shortcut icon" href="/favicon.ico?v=7" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+
+        <link rel="icon" href="/favicon.ico?v=8" sizes="any" />
+        <link rel="icon" href="/favicon.png?v=8" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico?v=8" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=8" />
 
         <link
           rel="stylesheet"
