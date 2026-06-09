@@ -101,7 +101,6 @@ export default function AguardandoVerificacaoPage() {
 
   const status = data?.psychologist.crpVerificationStatus;
   const isRejected = status === "REJECTED";
-  const isPending = status === "PENDING";
   const isApproved = status === "APPROVED";
 
   const selectedState = useMemo(

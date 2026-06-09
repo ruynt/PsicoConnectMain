@@ -523,17 +523,6 @@ export default function PatientDetailsPage() {
     return value || "Não informado";
   }
 
-  function getWhatsappUrl(value: string | null | undefined) {
-    const digits = onlyDigits(value);
-
-    if (!digits) return "";
-
-    const phoneWithCountryCode = digits.startsWith("55")
-      ? digits
-      : `55${digits}`;
-
-    return `https://wa.me/${phoneWithCountryCode}`;
-  }
 
   function formatBirthDate(dateString: string | null | undefined) {
     if (!dateString) return "Não informado";

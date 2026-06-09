@@ -438,12 +438,15 @@ export default function ChatBotPage() {
                     <div>
                       <ReactMarkdown
                         components={{
-                          a: ({ node, ...props }) => (
+                          a: ({ href, title, children }) => (
                             <a
-                              {...props}
+                              href={href}
+                              title={title}
                               target="_blank"
                               rel="noopener noreferrer"
-                            />
+                            >
+                              {children}
+                            </a>
                           ),
                         }}
                       >

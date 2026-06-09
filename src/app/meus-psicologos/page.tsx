@@ -383,7 +383,6 @@ export default function MeusPsicologosPage() {
         >
           {psychologists.map((psychologist) => {
             const whatsappUrl = getWhatsappUrl(psychologist.phone);
-            const instagramUser = getInstagramUser(psychologist.instagramUrl);
             const instagramUrl = getInstagramUrl(psychologist.instagramUrl);
             const isExpanded = expandedPsychologistIds.includes(
               psychologist.id,

@@ -153,14 +153,6 @@ export default function AdminPage() {
     );
   }, [data]);
 
-  const latestPsychologists = useMemo(() => {
-    return [...(data?.psychologists || [])]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )
-      .slice(0, 3);
-  }, [data]);
 
   function showFeedback(type: "success" | "error", message: string) {
     setFeedback({ type, message });

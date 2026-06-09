@@ -106,8 +106,8 @@ export default function SignupPage() {
     setAcceptedSensitiveAiError("");
   }
 
-  function handleCrpNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 8);
+  function handleCrpNumberChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const value = event.target.value.replace(/\D/g, "").slice(0, 8);
     setCrpNumber(value);
 
     if (crpNumberError) {
@@ -262,6 +262,7 @@ export default function SignupPage() {
               Connect
             </h1>
           </div>
+
           <p className="tagline">
             Um espaço
             <br />
@@ -271,377 +272,313 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <div className="login-panel-right">
-          <div className="public-top-actions">
-            <Link href="/" className="back-home-btn">
-              <i className="fa-solid fa-arrow-left"></i>
-              Voltar para a home
-            </Link>
+        <div className="login-panel-right signup-panel-right">
+          <div className="signup-fixed-top">
+            <div className="public-top-actions">
+              <Link href="/" className="back-home-btn">
+                <i className="fa-solid fa-arrow-left"></i>
+                Voltar para a home
+              </Link>
+            </div>
+
+            <h2>Criar Conta</h2>
+
+            {apiMessage && (
+              <small
+                style={{
+                  display: "block",
+                  color: apiMessageType === "success" ? "#15803d" : "#D93025",
+                  backgroundColor:
+                    apiMessageType === "success" ? "#ecfdf3" : "#fef2f2",
+                  border:
+                    apiMessageType === "success"
+                      ? "1px solid #bbf7d0"
+                      : "1px solid #fecaca",
+                  borderRadius: "10px",
+                  padding: "10px 12px",
+                  marginBottom: "12px",
+                  textAlign: "center",
+                  lineHeight: 1.4,
+                  fontWeight: 600,
+                }}
+              >
+                {apiMessage}
+              </small>
+            )}
           </div>
 
-          <h2>Criar Conta</h2>
-
-          {apiMessage && (
-            <small
-              style={{
-                display: "block",
-                color: apiMessageType === "success" ? "#15803d" : "#D93025",
-                backgroundColor:
-                  apiMessageType === "success" ? "#ecfdf3" : "#fef2f2",
-                border:
-                  apiMessageType === "success"
-                    ? "1px solid #bbf7d0"
-                    : "1px solid #fecaca",
-                borderRadius: "10px",
-                padding: "10px 12px",
-                marginBottom: "15px",
-                textAlign: "center",
-                lineHeight: 1.4,
-                fontWeight: 600,
-              }}
-            >
-              {apiMessage}
-            </small>
-          )}
-
-          <form id="cadastro-form" onSubmit={handleSubmit} noValidate>
-            <label htmlFor="nome">Nome</label>
-            <input
-              type="text"
-              id="nome"
-              name="nome"
-              value={nome}
-              onChange={(e) => {
-                setNome(e.target.value);
-                if (nomeError) setNomeError("");
-              }}
-              className={nomeError ? "error" : ""}
-              required
-            />
-            <small id="nome-error" className="error-message">
-              {nomeError}
-            </small>
-
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError) setEmailError("");
-              }}
-              className={emailError ? "error" : ""}
-              required
-            />
-            <small id="email-error" className="error-message">
-              {emailError}
-            </small>
-
-            <label htmlFor="senha">Senha (mín. 8 caracteres)</label>
-            <input
-              type="password"
-              id="senha"
-              name="senha"
-              value={senha}
-              onChange={(e) => {
-                setSenha(e.target.value);
-                if (senhaError) setSenhaError("");
-              }}
-              className={senhaError ? "error" : ""}
-              required
-            />
-            <small id="senha-error" className="error-message">
-              {senhaError}
-            </small>
-
-            <label htmlFor="confirmar-senha">Confirmar Senha</label>
-            <input
-              type="password"
-              id="confirmar-senha"
-              name="confirmar-senha"
-              value={confirmarSenha}
-              onChange={(e) => {
-                setConfirmarSenha(e.target.value);
-                if (confirmarSenhaError) setConfirmarSenhaError("");
-              }}
-              className={confirmarSenhaError ? "error" : ""}
-              required
-            />
-            <small id="confirmar-senha-error" className="error-message">
-              {confirmarSenhaError}
-            </small>
-
-            <label>Você é:</label>
-            <div className="role-selector">
-              <input
-                type="radio"
-                id="role-paciente"
-                name="role"
-                value="paciente"
-                checked={role === "paciente"}
-                onChange={(e) => setRole(e.target.value)}
-              />
-              <label htmlFor="role-paciente" className="radio-label">
-                Paciente
-              </label>
-
-              <input
-                type="radio"
-                id="role-psicologo"
-                name="role"
-                value="psicologo"
-                checked={role === "psicologo"}
-                onChange={(e) => setRole(e.target.value)}
-              />
-              <label htmlFor="role-psicologo" className="radio-label">
-                Psicólogo
-              </label>
-            </div>
-
-            <div
-              id="crp-field"
-              className={
-                role === "psicologo" ? "hidden-field visible" : "hidden-field"
-              }
-            >
-              <label htmlFor="crpState">Estado/Regional do CRP</label>
-              <select
-                id="crpState"
-                name="crpState"
-                value={crpState}
-                onChange={(e) => {
-                  setCrpState(e.target.value);
-                  if (crpStateError) setCrpStateError("");
-                }}
-                className={crpStateError ? "error" : ""}
-                style={{
-                  width: "100%",
-                  padding: "12px 15px",
-                  border: crpStateError
-                    ? "1px solid #d93025"
-                    : "1px solid #dcdcdc",
-                  borderRadius: "8px",
-                  marginBottom: "3px",
-                  fontSize: "15px",
-                  outlineColor: "#528cff",
-                  backgroundColor: "#ffffff",
-                }}
-              >
-                <option value="">Selecione o estado/regional</option>
-                {CRP_OPTIONS.map((option) => (
-                  <option key={option.state} value={option.state}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <small id="crp-state-error" className="error-message">
-                {crpStateError}
-              </small>
-
-              <label htmlFor="crpNumber">Número do CRP</label>
+          <form
+            id="cadastro-form"
+            className="signup-form-layout"
+            onSubmit={handleSubmit}
+            noValidate
+          >
+            <div className="signup-form-scroll">
+              <label htmlFor="nome">Nome</label>
               <input
                 type="text"
-                id="crpNumber"
-                name="crpNumber"
-                value={crpNumber}
-                onChange={handleCrpNumberChange}
-                className={crpNumberError ? "error" : ""}
-                maxLength={8}
-                placeholder="Ex: 123456"
+                id="nome"
+                name="nome"
+                value={nome}
+                onChange={(event) => {
+                  setNome(event.target.value);
+                  if (nomeError) setNomeError("");
+                }}
+                className={nomeError ? "error" : ""}
+                required
               />
-              <small id="crp-number-error" className="error-message">
-                {crpNumberError}
+              <small id="nome-error" className="error-message">
+                {nomeError}
               </small>
 
-              {fullCrp && (
-                <small
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  if (emailError) setEmailError("");
+                }}
+                className={emailError ? "error" : ""}
+                required
+              />
+              <small id="email-error" className="error-message">
+                {emailError}
+              </small>
+
+              <label htmlFor="senha">Senha (mín. 8 caracteres)</label>
+              <input
+                type="password"
+                id="senha"
+                name="senha"
+                value={senha}
+                onChange={(event) => {
+                  setSenha(event.target.value);
+                  if (senhaError) setSenhaError("");
+                }}
+                className={senhaError ? "error" : ""}
+                required
+              />
+              <small id="senha-error" className="error-message">
+                {senhaError}
+              </small>
+
+              <label htmlFor="confirmar-senha">Confirmar Senha</label>
+              <input
+                type="password"
+                id="confirmar-senha"
+                name="confirmar-senha"
+                value={confirmarSenha}
+                onChange={(event) => {
+                  setConfirmarSenha(event.target.value);
+                  if (confirmarSenhaError) setConfirmarSenhaError("");
+                }}
+                className={confirmarSenhaError ? "error" : ""}
+                required
+              />
+              <small id="confirmar-senha-error" className="error-message">
+                {confirmarSenhaError}
+              </small>
+
+              <label>Você é:</label>
+              <div className="role-selector">
+                <input
+                  type="radio"
+                  id="role-paciente"
+                  name="role"
+                  value="paciente"
+                  checked={role === "paciente"}
+                  onChange={(event) => setRole(event.target.value)}
+                />
+                <label htmlFor="role-paciente" className="radio-label">
+                  Paciente
+                </label>
+
+                <input
+                  type="radio"
+                  id="role-psicologo"
+                  name="role"
+                  value="psicologo"
+                  checked={role === "psicologo"}
+                  onChange={(event) => setRole(event.target.value)}
+                />
+                <label htmlFor="role-psicologo" className="radio-label">
+                  Psicólogo
+                </label>
+              </div>
+
+              <div
+                id="crp-field"
+                className={
+                  role === "psicologo" ? "hidden-field visible" : "hidden-field"
+                }
+              >
+                <label htmlFor="crpState">Estado/Regional do CRP</label>
+                <select
+                  id="crpState"
+                  name="crpState"
+                  value={crpState}
+                  onChange={(event) => {
+                    setCrpState(event.target.value);
+                    if (crpStateError) setCrpStateError("");
+                  }}
+                  className={crpStateError ? "error" : ""}
                   style={{
-                    display: "block",
-                    color: "#001e5e",
-                    fontWeight: 700,
-                    marginTop: "2px",
-                    marginBottom: "8px",
+                    width: "100%",
+                    padding: "12px 15px",
+                    border: crpStateError
+                      ? "1px solid #d93025"
+                      : "1px solid #dcdcdc",
+                    borderRadius: "8px",
+                    marginBottom: "3px",
+                    fontSize: "15px",
+                    outlineColor: "#528cff",
+                    backgroundColor: "#ffffff",
                   }}
                 >
-                  CRP completo: {fullCrp}
+                  <option value="">Selecione o estado/regional</option>
+                  {CRP_OPTIONS.map((option) => (
+                    <option key={option.state} value={option.state}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <small id="crp-state-error" className="error-message">
+                  {crpStateError}
                 </small>
-              )}
+
+                <label htmlFor="crpNumber">Número do CRP</label>
+                <input
+                  type="text"
+                  id="crpNumber"
+                  name="crpNumber"
+                  value={crpNumber}
+                  onChange={handleCrpNumberChange}
+                  className={crpNumberError ? "error" : ""}
+                  maxLength={8}
+                  placeholder="Ex: 123456"
+                />
+                <small id="crp-number-error" className="error-message">
+                  {crpNumberError}
+                </small>
+
+                {fullCrp && (
+                  <small
+                    style={{
+                      display: "block",
+                      color: "#001e5e",
+                      fontWeight: 700,
+                      marginTop: "2px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    CRP completo: {fullCrp}
+                  </small>
+                )}
+              </div>
+
+              <div className="signup-legal-box">
+                <label htmlFor="acceptedLegal" className="signup-check-label">
+                  <input
+                    type="checkbox"
+                    id="acceptedLegal"
+                    checked={acceptedLegal}
+                    onChange={(event) => {
+                      setAcceptedLegal(event.target.checked);
+                      if (acceptedLegalError) setAcceptedLegalError("");
+                    }}
+                  />
+
+                  <span>
+                    Li e aceito os{" "}
+                    <Link
+                      href="/legal#termos"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Termos de Uso
+                    </Link>{" "}
+                    e a{" "}
+                    <Link
+                      href="/legal#privacidade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Política de Privacidade
+                    </Link>{" "}
+                    do PsicoConnect.
+                  </span>
+                </label>
+
+                {acceptedLegalError && (
+                  <small className="signup-check-error">
+                    {acceptedLegalError}
+                  </small>
+                )}
+
+                <label
+                  htmlFor="acceptedSensitiveAi"
+                  className="signup-check-label"
+                >
+                  <input
+                    type="checkbox"
+                    id="acceptedSensitiveAi"
+                    checked={acceptedSensitiveAi}
+                    onChange={(event) => {
+                      setAcceptedSensitiveAi(event.target.checked);
+                      if (acceptedSensitiveAiError) {
+                        setAcceptedSensitiveAiError("");
+                      }
+                    }}
+                  />
+
+                  <span>
+                    Autorizo o tratamento de{" "}
+                    <Link
+                      href="/legal#dados-sensiveis"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      dados pessoais sensíveis
+                    </Link>{" "}
+                    necessários para uso da plataforma e compreendo os limites da{" "}
+                    <Link
+                      href="/legal#ia"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Inteligência Artificial
+                    </Link>{" "}
+                    no PsicoConnect.
+                  </span>
+                </label>
+
+                {acceptedSensitiveAiError && (
+                  <small className="signup-check-error">
+                    {acceptedSensitiveAiError}
+                  </small>
+                )}
+              </div>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-                marginTop: "10px",
-                marginBottom: "4px",
-              }}
-            >
-              <label
-                htmlFor="acceptedLegal"
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "10px",
-                  color: "#374151",
-                  fontSize: "13px",
-                  lineHeight: 1.45,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
+            <div className="signup-form-actions">
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={isLoading}
               >
-                <input
-                  type="checkbox"
-                  id="acceptedLegal"
-                  checked={acceptedLegal}
-                  onChange={(e) => {
-                    setAcceptedLegal(e.target.checked);
-                    if (acceptedLegalError) setAcceptedLegalError("");
-                  }}
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    marginTop: "2px",
-                    flexShrink: 0,
-                    accentColor: "#528cff",
-                  }}
-                />
+                {isLoading ? "Aguarde..." : "Cadastrar"}
+              </button>
 
-                <span>
-                  Li e aceito os{" "}
-                  <Link
-                    href="/legal#termos"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      color: "#001e5e",
-                      fontWeight: 700,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Termos de Uso
-                  </Link>{" "}
-                  e a{" "}
-                  <Link
-                    href="/legal#privacidade"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      color: "#001e5e",
-                      fontWeight: 700,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Política de Privacidade
-                  </Link>{" "}
-                  do PsicoConnect.
-                </span>
-              </label>
+              <div className="separator">ou</div>
 
-              {acceptedLegalError && (
-                <small
-                  style={{
-                    color: "#d93025",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    lineHeight: 1.3,
-                    marginTop: "-4px",
-                  }}
-                >
-                  {acceptedLegalError}
-                </small>
-              )}
-
-              <label
-                htmlFor="acceptedSensitiveAi"
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "10px",
-                  color: "#374151",
-                  fontSize: "13px",
-                  lineHeight: 1.45,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  id="acceptedSensitiveAi"
-                  checked={acceptedSensitiveAi}
-                  onChange={(e) => {
-                    setAcceptedSensitiveAi(e.target.checked);
-                    if (acceptedSensitiveAiError) {
-                      setAcceptedSensitiveAiError("");
-                    }
-                  }}
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    marginTop: "2px",
-                    flexShrink: 0,
-                    accentColor: "#528cff",
-                  }}
-                />
-
-                <span>
-                  Autorizo o tratamento de{" "}
-                  <Link
-                    href="/legal#dados-sensiveis"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      color: "#001e5e",
-                      fontWeight: 700,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    dados pessoais sensíveis
-                  </Link>{" "}
-                  necessários para uso da plataforma e compreendo os limites da{" "}
-                  <Link
-                    href="/legal#ia"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      color: "#001e5e",
-                      fontWeight: 700,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Inteligência Artificial
-                  </Link>{" "}
-                  no PsicoConnect.
-                </span>
-              </label>
-
-              {acceptedSensitiveAiError && (
-                <small
-                  style={{
-                    color: "#d93025",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    lineHeight: 1.3,
-                    marginTop: "-4px",
-                  }}
-                >
-                  {acceptedSensitiveAiError}
-                </small>
-              )}
+              <Link href="/login" className="btn-secondary">
+                Já tenho uma conta
+              </Link>
             </div>
-
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? "Aguarde..." : "Cadastrar"}
-            </button>
           </form>
-
-          <div className="separator">ou</div>
-
-          <Link href="/login" className="btn-secondary">
-            Já tenho uma conta
-          </Link>
         </div>
       </div>
     </main>

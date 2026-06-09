@@ -134,7 +134,7 @@ export default function AgendaPage() {
 
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleCalendarEmail, setGoogleCalendarEmail] = useState("");
-  const [loadingGoogleStatus, setLoadingGoogleStatus] = useState(false);
+  const [, setLoadingGoogleStatus] = useState(false);
 
   const [patients, setPatients] = useState<PatientOption[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
@@ -462,66 +462,6 @@ export default function AgendaPage() {
     return event.paymentNote || "";
   }
 
-  function getConfirmationLabel(event: CalendarEvent) {
-    if (event.status === "CANCELLED") return "Consulta cancelada";
-
-    if (
-      event.confirmationStatus === "CANCELLATION_REQUESTED" &&
-      event.cancellationRequestStatus === "PENDING"
-    ) {
-      return "Cancelamento solicitado";
-    }
-
-    if (event.confirmationStatus === "CONFIRMED") return "Presença confirmada";
-    if (event.cancellationRequestStatus === "REJECTED") {
-      return "Solicitação rejeitada";
-    }
-
-    return "Aguardando confirmação";
-  }
-
-  function getConfirmationStyle(event: CalendarEvent) {
-    if (event.status === "CANCELLED") {
-      return {
-        backgroundColor: "#fef2f2",
-        color: "#b91c1c",
-        border: "1px solid #fecaca",
-      };
-    }
-
-    if (
-      event.confirmationStatus === "CANCELLATION_REQUESTED" &&
-      event.cancellationRequestStatus === "PENDING"
-    ) {
-      return {
-        backgroundColor: "#fffbeb",
-        color: "#92400e",
-        border: "1px solid #fde68a",
-      };
-    }
-
-    if (event.confirmationStatus === "CONFIRMED") {
-      return {
-        backgroundColor: "#ecfdf5",
-        color: "#065f46",
-        border: "1px solid #a7f3d0",
-      };
-    }
-
-    if (event.cancellationRequestStatus === "REJECTED") {
-      return {
-        backgroundColor: "#eff6ff",
-        color: "#1d4ed8",
-        border: "1px solid #bfdbfe",
-      };
-    }
-
-    return {
-      backgroundColor: "#f8fafc",
-      color: "#475569",
-      border: "1px solid #e2e8f0",
-    };
-  }
 
   function isCancellationRequestPending(event: CalendarEvent) {
     return (
@@ -1391,7 +1331,6 @@ export default function AgendaPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 {events.map((event) => {
                   const appointmentId = getAppointmentId(event);
-                  const isGoogleSynced = Boolean(event.googleEventId || event.htmlLink);
                   const isCancelled = event.status === "CANCELLED";
                   const isExpandedPayment = expandedPaymentId === appointmentId;
                   const isAppointmentExpanded =

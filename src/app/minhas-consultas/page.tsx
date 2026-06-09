@@ -64,7 +64,6 @@ type MetricCardProps = {
 
 const NAVY = "#001e5e";
 const NAVY_SOFT = "#102a56";
-const BLUE = "#2563eb";
 const MUTED = "#5272a6";
 const BORDER = "#e6edf7";
 
