@@ -167,6 +167,8 @@ export default function AdminUsersPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectingCrp, setRejectingCrp] = useState(false);
   const [expandedUserIds, setExpandedUserIds] = useState<string[]>([]);
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState("");
 
   async function loadUsers() {
     try {
@@ -319,6 +321,52 @@ export default function AdminUsersPage() {
     setRejectingUser(null);
     setRejectReason("");
     setRejectingCrp(false);
+  }
+
+  function openDeleteModal(user: AdminUser) {
+    setDeletingUser(user);
+    setFeedback(null);
+  }
+
+  function closeDeleteModal() {
+    if (deletingUserId) return;
+
+    setDeletingUser(null);
+  }
+
+  async function submitDeleteUser() {
+    if (!deletingUser) return;
+
+    try {
+      setDeletingUserId(deletingUser.id);
+      setFeedback(null);
+
+      const response = await fetch(`/api/admin/users/${deletingUser.id}`, {
+        method: "DELETE",
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData?.error || "Erro ao excluir usuário.");
+      }
+
+      setExpandedUserIds((currentIds) =>
+        currentIds.filter((id) => id !== deletingUser.id),
+      );
+
+      setDeletingUser(null);
+      await loadUsers();
+
+      showFeedback(
+        "success",
+        responseData?.message || "Usuário excluído com sucesso.",
+      );
+    } catch (error: unknown) {
+      showFeedback("error", getErrorMessage(error, "Erro ao excluir usuário."));
+    } finally {
+      setDeletingUserId("");
+    }
   }
 
   function updateEditForm<K extends keyof EditForm>(key: K, value: EditForm[K]) {
@@ -1372,6 +1420,31 @@ export default function AdminUsersPage() {
                             Editar
                           </button>
 
+                          <button
+                            type="button"
+                            disabled={updatingId === user.id || deletingUserId === user.id}
+                            onClick={() => openDeleteModal(user)}
+                            style={{
+                              backgroundColor: "#fef2f2",
+                              color: "#b91c1c",
+                              border: "1px solid #fecaca",
+                              borderRadius: "14px",
+                              padding: "10px 14px",
+                              fontWeight: 900,
+                              cursor:
+                                updatingId === user.id || deletingUserId === user.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity:
+                                updatingId === user.id || deletingUserId === user.id
+                                  ? 0.7
+                                  : 1,
+                              fontSize: "13px",
+                            }}
+                          >
+                            Excluir
+                          </button>
+
                           {!user.emailVerified && (
                             <button
                               type="button"
@@ -1919,6 +1992,155 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {deletingUser && (
+        <div
+          onClick={closeDeleteModal}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10001,
+            backgroundColor: "rgba(15, 23, 42, 0.56)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "620px",
+              backgroundColor: "#ffffff",
+              borderRadius: "24px",
+              padding: "28px",
+              boxShadow: "0 28px 80px rgba(15, 23, 42, 0.28)",
+              border: "1px solid #fecaca",
+            }}
+          >
+            <div style={{ marginBottom: "18px" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#fef2f2",
+                  color: "#b91c1c",
+                  border: "1px solid #fecaca",
+                  borderRadius: "999px",
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: 900,
+                  marginBottom: "12px",
+                }}
+              >
+                <i className="fa-solid fa-trash"></i>
+                Excluir usuário
+              </span>
+
+              <h2
+                style={{
+                  color: "#001e5e",
+                  fontSize: "30px",
+                  fontWeight: 900,
+                  marginBottom: "6px",
+                }}
+              >
+                {deletingUser.name}
+              </h2>
+
+              <p style={{ color: "#5272a6", marginBottom: "10px" }}>
+                Esta ação removerá o usuário e os registros vinculados a ele no
+                PsicoConnect.
+              </p>
+
+              <p
+                style={{
+                  color: "#001e5e",
+                  fontWeight: 900,
+                  margin: 0,
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {deletingUser.email}
+              </p>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: "#fffbeb",
+                border: "1px solid #fde68a",
+                color: "#92400e",
+                borderRadius: "14px",
+                padding: "12px",
+                marginBottom: "18px",
+                fontWeight: 800,
+                lineHeight: 1.5,
+              }}
+            >
+              Ao confirmar, consultas, vínculos, mensagens, tarefas, materiais,
+              checklists, anotações e resumos associados serão removidos do
+              sistema. Essa ação não poderá ser desfeita.
+            </div>
+
+            <div
+              style={{
+                backgroundColor: "#fef2f2",
+                border: "1px solid #fecaca",
+                color: "#991b1b",
+                borderRadius: "14px",
+                padding: "12px",
+                marginBottom: "18px",
+                fontWeight: 800,
+                lineHeight: 1.5,
+              }}
+            >
+              Observação: caso alguma consulta também tenha sido criada no
+              Google Calendar, ela será removida apenas do PsicoConnect. A
+              exclusão no Google Calendar externo precisaria ser feita pela
+              integração do calendário.
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={Boolean(deletingUserId)}
+                style={secondaryButtonStyle}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={submitDeleteUser}
+                disabled={Boolean(deletingUserId)}
+                style={{
+                  backgroundColor: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "12px 18px",
+                  fontWeight: 900,
+                  cursor: deletingUserId ? "not-allowed" : "pointer",
+                  opacity: deletingUserId ? 0.7 : 1,
+                }}
+              >
+                {deletingUserId ? "Excluindo..." : "Excluir definitivamente"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
