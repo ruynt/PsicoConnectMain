@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
 type PreSessionCheckin = {
@@ -118,7 +118,7 @@ export default function MyAppointmentsPage() {
   const [checkinError, setCheckinError] = useState("");
   const [savingCheckin, setSavingCheckin] = useState(false);
 
-  async function loadAppointments() {
+  const loadAppointments = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -139,13 +139,13 @@ export default function MyAppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadAppointments();
-  }, []);
+  }, [loadAppointments]);
 
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
 
   const upcomingAppointments = useMemo(() => {
     return appointments
@@ -158,7 +158,7 @@ export default function MyAppointmentsPage() {
         (a, b) =>
           new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
       );
-  }, [appointments]);
+  }, [appointments, now]);
 
   const cancelledAppointments = useMemo(() => {
     return appointments
@@ -181,7 +181,7 @@ export default function MyAppointmentsPage() {
         (a, b) =>
           new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime(),
       );
-  }, [appointments]);
+  }, [appointments, now]);
 
   const answeredCheckinsCount = useMemo(() => {
     return appointments.filter((appointment) => appointment.preSessionCheckin)

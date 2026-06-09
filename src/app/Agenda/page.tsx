@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getErrorMessage } from "@/lib/errorUtils";
 
@@ -205,7 +205,7 @@ export default function AgendaPage() {
 
   const currentStatusInfo = statusInfo[appointmentStatusFilter];
 
-  async function loadEvents() {
+  const loadEvents = useCallback(async () => {
     if (status !== "authenticated") {
       setEvents([]);
       return;
@@ -250,9 +250,9 @@ export default function AgendaPage() {
     } finally {
       setLoadingEvents(false);
     }
-  }
+  }, [appointmentStatusFilter, isPsychologist, status]);
 
-  async function loadPatients() {
+  const loadPatients = useCallback(async () => {
     if (status !== "authenticated" || !isPsychologist) {
       setPatients([]);
       return;
@@ -283,9 +283,9 @@ export default function AgendaPage() {
     } finally {
       setLoadingPatients(false);
     }
-  }
+  }, [isPsychologist, status]);
 
-  async function loadGoogleStatus() {
+  const loadGoogleStatus = useCallback(async () => {
     if (status !== "authenticated" || !isPsychologist) {
       setGoogleConnected(false);
       setGoogleCalendarEmail("");
@@ -316,20 +316,20 @@ export default function AgendaPage() {
     } finally {
       setLoadingGoogleStatus(false);
     }
-  }
+  }, [isPsychologist, status]);
 
 
   useEffect(() => {
     loadEvents();
-  }, [status, isPsychologist, googleConnected, appointmentStatusFilter]);
+  }, [googleConnected, loadEvents]);
 
   useEffect(() => {
     loadPatients();
-  }, [status, isPsychologist]);
+  }, [loadPatients]);
 
   useEffect(() => {
     loadGoogleStatus();
-  }, [status, isPsychologist]);
+  }, [loadGoogleStatus]);
 
   useEffect(() => {
     if (status === "unauthenticated") {

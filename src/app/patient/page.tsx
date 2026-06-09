@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
 type PreSessionCheckin = {
@@ -175,7 +175,7 @@ export default function PatientHomePage() {
     }));
   }
 
-  async function loadAppointments() {
+  const loadAppointments = useCallback(async () => {
     try {
       setError("");
 
@@ -193,9 +193,9 @@ export default function PatientHomePage() {
     } catch (error: unknown) {
       setError(getErrorMessage(error, "Erro ao carregar informações."));
     }
-  }
+  }, []);
 
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     try {
       setLoadingTasks(true);
       setTaskError("");
@@ -216,9 +216,9 @@ export default function PatientHomePage() {
     } finally {
       setLoadingTasks(false);
     }
-  }
+  }, []);
 
-  async function loadMaterials() {
+  const loadMaterials = useCallback(async () => {
     try {
       setLoadingMaterials(true);
       setMaterialError("");
@@ -239,20 +239,20 @@ export default function PatientHomePage() {
     } finally {
       setLoadingMaterials(false);
     }
-  }
+  }, []);
 
-  async function loadPageData() {
+  const loadPageData = useCallback(async () => {
     try {
       setLoading(true);
       await Promise.all([loadAppointments(), loadTasks(), loadMaterials()]);
     } finally {
       setLoading(false);
     }
-  }
+  }, [loadAppointments, loadMaterials, loadTasks]);
 
   useEffect(() => {
     loadPageData();
-  }, []);
+  }, [loadPageData]);
 
   useEffect(() => {
     function updateMobileLayout() {
@@ -267,7 +267,7 @@ export default function PatientHomePage() {
     };
   }, []);
 
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
 
   const upcomingAppointments = useMemo(() => {
     return appointments
@@ -280,7 +280,7 @@ export default function PatientHomePage() {
         (a, b) =>
           new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
       );
-  }, [appointments]);
+  }, [appointments, now]);
 
   const cancelledAppointments = useMemo(() => {
     return appointments.filter(

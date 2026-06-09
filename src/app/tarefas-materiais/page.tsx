@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
 type TaskStatus = "PENDING" | "COMPLETED" | "CANCELLED";
@@ -56,6 +56,22 @@ const NAVY_SOFT = "#102a56";
 const MUTED = "#5272a6";
 const BORDER = "#e6edf7";
 
+async function readJsonSafely(response: Response) {
+  const text = await response.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      "A rota respondeu em formato inesperado. Verifique se o caminho da API existe.",
+    );
+  }
+}
+
 export default function TarefasMateriaisPage() {
   const [tasks, setTasks] = useState<PatientTask[]>([]);
   const [materials, setMaterials] = useState<PatientMaterial[]>([]);
@@ -72,23 +88,7 @@ export default function TarefasMateriaisPage() {
   const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([]);
   const [expandedMaterialIds, setExpandedMaterialIds] = useState<string[]>([]);
 
-  async function readJsonSafely(response: Response) {
-    const text = await response.text();
-
-    if (!text) {
-      return {};
-    }
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error(
-        "A rota respondeu em formato inesperado. Verifique se o caminho da API existe.",
-      );
-    }
-  }
-
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     try {
       setLoadingTasks(true);
       setTaskError("");
@@ -109,9 +109,9 @@ export default function TarefasMateriaisPage() {
     } finally {
       setLoadingTasks(false);
     }
-  }
+  }, []);
 
-  async function loadMaterials() {
+  const loadMaterials = useCallback(async () => {
     try {
       setLoadingMaterials(true);
       setMaterialError("");
@@ -132,12 +132,12 @@ export default function TarefasMateriaisPage() {
     } finally {
       setLoadingMaterials(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadTasks();
     loadMaterials();
-  }, []);
+  }, [loadMaterials, loadTasks]);
 
   const taskStats = useMemo(() => {
     return {

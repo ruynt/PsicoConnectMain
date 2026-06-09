@@ -11,10 +11,7 @@ type GuideSection = {
   content: string[];
 };
 
-export default function OrientacoesPage() {
-  const [activeSectionId, setActiveSectionId] = useState("uso-plataforma");
-
-  const guideSections: GuideSection[] = [
+const guideSections: GuideSection[] = [
     {
       id: "uso-plataforma",
       title: "Como usar o PsicoConnect",
@@ -82,12 +79,15 @@ export default function OrientacoesPage() {
     },
   ];
 
+export default function OrientacoesPage() {
+  const [activeSectionId, setActiveSectionId] = useState("uso-plataforma");
+
   const activeSection = useMemo(() => {
     return (
       guideSections.find((section) => section.id === activeSectionId) ||
       guideSections[0]
     );
-  }, [activeSectionId, guideSections]);
+  }, [activeSectionId]);
 
   const pageStyle = {
     padding: "36px",

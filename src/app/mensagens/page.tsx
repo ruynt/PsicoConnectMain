@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
 type MessageSenderRole = "PSYCHOLOGIST" | "PATIENT";
@@ -41,7 +41,7 @@ export default function PatientMessagesPage() {
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     try {
       setError("");
 
@@ -61,22 +61,22 @@ export default function PatientMessagesPage() {
       setPsychologists(loadedPsychologists);
       setMessages(loadedMessages);
 
-      if (!selectedPsychologistId) {
-        const firstPsychologistId =
-          loadedMessages[0]?.psychologistId || loadedPsychologists[0]?.id || "";
+      const firstPsychologistId =
+        loadedMessages[0]?.psychologistId || loadedPsychologists[0]?.id || "";
 
-        setSelectedPsychologistId(firstPsychologistId);
-      }
+      setSelectedPsychologistId((currentPsychologistId) =>
+        currentPsychologistId || firstPsychologistId,
+      );
     } catch (error: unknown) {
       setError(getErrorMessage(error, "Erro ao carregar mensagens."));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadMessages();
-  }, []);
+  }, [loadMessages]);
 
   const filteredMessages = useMemo(() => {
     if (!selectedPsychologistId) return messages;

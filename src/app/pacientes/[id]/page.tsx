@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
 type Appointment = {
@@ -242,7 +242,7 @@ export default function PatientDetailsPage() {
     title: string;
   } | null>(null);
 
-  async function loadPatient() {
+  const loadPatient = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -263,9 +263,9 @@ export default function PatientDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [patientId]);
 
-  async function loadNotes(filter: NoteFilter = noteFilter) {
+  const loadNotes = useCallback(async (filter: NoteFilter) => {
     try {
       setLoadingNotes(true);
       setNoteError("");
@@ -289,9 +289,9 @@ export default function PatientDetailsPage() {
     } finally {
       setLoadingNotes(false);
     }
-  }
+  }, [patientId]);
 
-  async function loadCheckins() {
+  const loadCheckins = useCallback(async () => {
     try {
       setLoadingCheckins(true);
       setCheckinError("");
@@ -312,9 +312,9 @@ export default function PatientDetailsPage() {
     } finally {
       setLoadingCheckins(false);
     }
-  }
+  }, [patientId]);
 
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     try {
       setLoadingTasks(true);
       setTaskError("");
@@ -335,9 +335,9 @@ export default function PatientDetailsPage() {
     } finally {
       setLoadingTasks(false);
     }
-  }
+  }, [patientId]);
 
-  async function loadMaterials() {
+  const loadMaterials = useCallback(async () => {
     try {
       setLoadingMaterials(true);
       setMaterialError("");
@@ -358,9 +358,9 @@ export default function PatientDetailsPage() {
     } finally {
       setLoadingMaterials(false);
     }
-  }
+  }, [patientId]);
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     try {
       setLoadingMessages(true);
       setMessageError("");
@@ -381,10 +381,10 @@ export default function PatientDetailsPage() {
     } finally {
       setLoadingMessages(false);
     }
-  }
+  }, [patientId]);
 
 
-  async function loadSummaries() {
+  const loadSummaries = useCallback(async () => {
     try {
       setLoadingSummaries(true);
       setSummaryError("");
@@ -405,49 +405,49 @@ export default function PatientDetailsPage() {
     } finally {
       setLoadingSummaries(false);
     }
-  }
+  }, [patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadPatient();
     }
-  }, [patientId]);
+  }, [loadPatient, patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadNotes(noteFilter);
     }
-  }, [patientId, noteFilter]);
+  }, [loadNotes, noteFilter, patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadCheckins();
     }
-  }, [patientId]);
+  }, [loadCheckins, patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadTasks();
     }
-  }, [patientId]);
+  }, [loadTasks, patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadMaterials();
     }
-  }, [patientId]);
+  }, [loadMaterials, patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadMessages();
     }
-  }, [patientId]);
+  }, [loadMessages, patientId]);
 
   useEffect(() => {
     if (patientId) {
       loadSummaries();
     }
-  }, [patientId]);
+  }, [loadSummaries, patientId]);
 
   const appointmentOptions = useMemo(() => {
     if (!patient) return [];
