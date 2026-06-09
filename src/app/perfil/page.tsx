@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   useEffect,
   useState,
@@ -373,9 +374,11 @@ function ProfilePhoto({
       }}
     >
       {imageUrl ? (
-        <img
+        <Image
           src={imageUrl}
           alt="Foto de perfil"
+          width={size}
+          height={size}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
           onError={(event) => {
             event.currentTarget.style.display = "none";

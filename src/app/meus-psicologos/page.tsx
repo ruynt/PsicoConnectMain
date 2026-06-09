@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
@@ -422,10 +423,12 @@ export default function MeusPsicologosPage() {
                     }}
                   >
                     {psychologist.profileImageUrl ? (
-                      <img
+                      <Image
                         className="meus-psicologos-avatar"
                         src={psychologist.profileImageUrl}
                         alt={`Foto de ${psychologist.name}`}
+                        width={78}
+                        height={78}
                         style={{
                           width: "78px",
                           height: "78px",

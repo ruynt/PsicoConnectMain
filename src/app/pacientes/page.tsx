@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 
@@ -758,9 +759,11 @@ export default function PatientsPage() {
                 >
                   <div>
                     {patient.profileImageUrl ? (
-                      <img
+                      <Image
                         src={patient.profileImageUrl}
                         alt={`Foto de ${patient.name}`}
+                        width={58}
+                        height={58}
                         style={{
                           width: "58px",
                           height: "58px",

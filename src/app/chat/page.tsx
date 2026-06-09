@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
@@ -359,7 +360,13 @@ export default function ChatBotPage() {
       <main className="chat-panel-wrapper">
         <header className="chat-header">
           <div className="icon psicobot-header-icon">
-            <img src="/psicobot_icon_white.png" alt="" aria-hidden="true" />
+            <Image
+              src="/psicobot_icon_white.png"
+              alt=""
+              aria-hidden="true"
+              width={40}
+              height={40}
+            />
           </div>
 
           <div className="chat-header-title">
@@ -431,7 +438,12 @@ export default function ChatBotPage() {
                   <div className={`message ${msg.sender} break-words`}>
                     {isBotMessage && (
                       <span className="bot-message-mini-icon" aria-hidden="true">
-                        <img src="/psicobot_icon_white.png" alt="" />
+                        <Image
+                          src="/psicobot_icon_white.png"
+                          alt=""
+                          width={13}
+                          height={13}
+                        />
                       </span>
                     )}
 

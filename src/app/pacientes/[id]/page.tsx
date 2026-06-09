@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -1339,9 +1340,11 @@ export default function PatientDetailsPage() {
                 }}
               >
                 {patient.profileImageUrl ? (
-                  <img
+                  <Image
                     src={patient.profileImageUrl}
                     alt={`Foto de ${getPatientDisplayName()}`}
+                    width={86}
+                    height={86}
                     style={{
                       width: "86px",
                       height: "86px",

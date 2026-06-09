@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { SessionProvider, useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -56,13 +57,13 @@ const menuIconStyle = {
 
 function PsicoBotMenuIcon() {
   return (
-    <img
+    <Image
       src="/psicobot_icon_white.png"
       alt=""
       aria-hidden="true"
+      width={42}
+      height={42}
       style={{
-        width: "42px",
-        height: "42px",
         objectFit: "contain",
         marginRight: "16px",
         flexShrink: 0,
@@ -274,7 +275,13 @@ function AuthGuard({ children }: PropsWithChildren) {
                 }}
               >
                 <div className="logo">
-                  <img src="/logo.png" alt="Logo PsicoConnect" />
+                  <Image
+                    src="/logo.png"
+                    alt="Logo PsicoConnect"
+                    width={120}
+                    height={130}
+                    priority
+                  />
                 </div>
                 <h1>
                   Psico

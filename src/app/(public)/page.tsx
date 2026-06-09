@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -8,10 +9,13 @@ export default function LandingPage() {
       <section className="landing-hero-area">
         <header className="landing-topbar">
           <div className="landing-brand">
-            <img
+            <Image
               src="/logo.png"
               alt="Logo PsicoConnect"
+              width={64}
+              height={64}
               className="landing-brand-logo"
+              priority
             />
             <div className="landing-brand-text">
               <span>Psico</span>
@@ -85,13 +89,13 @@ export default function LandingPage() {
             className="landing-icon-circle"
             style={{ backgroundColor: "#ffffff" }}
           >
-            <img
+            <Image
               src="/psicobot_icon_white.png"
               alt=""
               aria-hidden="true"
+              width={42}
+              height={42}
               style={{
-                width: "42px",
-                height: "42px",
                 objectFit: "contain",
                 filter:
                   "brightness(0) saturate(100%) invert(53%) sepia(94%) saturate(2690%) hue-rotate(202deg) brightness(101%) contrast(101%)",

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -255,7 +256,14 @@ export default function SignupPage() {
       <div className="login-container">
         <div className="login-panel-left">
           <div className="logo-container">
-            <img src="/logo.png" alt="Logo PsicoConnect" className="logo-img" />
+            <Image
+              src="/logo.png"
+              alt="Logo PsicoConnect"
+              width={130}
+              height={130}
+              className="logo-img"
+              priority
+            />
             <h1>
               Psico
               <br />
