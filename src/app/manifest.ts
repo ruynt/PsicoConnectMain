@@ -13,17 +13,17 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#1c4bb3",
     icons: [
       {
-        src: "/favicon.png?v=8",
+        src: "/favicon.png",
         sizes: "any",
         type: "image/png",
       },
       {
-        src: "/icon.png?v=8",
+        src: "/icon.png",
         sizes: "512x512",
         type: "image/png",
       },
       {
-        src: "/apple-touch-icon.png?v=8",
+        src: "/apple-touch-icon.png",
         sizes: "512x512",
         type: "image/png",
       },
