@@ -2,9 +2,19 @@ import { Resend } from "resend";
 import prisma from "./prisma";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
 const emailFrom =
   process.env.EMAIL_FROM || "PsicoConnect <nao-responda@psicoconnect.site>";
+
+function getBaseUrl() {
+  const url =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    process.env.APP_URL ||
+    "http://localhost:3000";
+
+  return url.replace(/\/+$/, "");
+}
 
 function formatDateTime(date: Date | string | null | undefined) {
   if (!date) return "--";
@@ -45,7 +55,7 @@ export async function generateVerificationToken(email: string) {
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
-  const confirmLink = `${baseUrl}/api/confirm-email/${token}`;
+  const confirmLink = `${getBaseUrl()}/api/confirm-email/${token}`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5;">
@@ -69,6 +79,11 @@ export async function sendVerificationEmail(email: string, token: string) {
       >
         Confirmar e-mail
       </a>
+
+      <p style="margin-top: 16px; color: #4b5563; font-size: 13px;">
+        Caso o botão não funcione, copie e cole este link no navegador:<br />
+        <a href="${confirmLink}" style="color: #2563eb; word-break: break-all;">${confirmLink}</a>
+      </p>
 
       <p style="margin-top: 20px; color: #4b5563; font-size: 14px;">
         Esta é uma mensagem automática do PsicoConnect. Não responda este e-mail.
@@ -295,6 +310,7 @@ export async function sendAppointmentCancelledEmail({
     throw error;
   }
 }
+
 export async function sendAppointmentReminderEmail({
   patientEmail,
   patientName,
@@ -313,7 +329,7 @@ export async function sendAppointmentReminderEmail({
   const safeTitle = escapeHtml(title || "Consulta");
   const safeLocation = escapeHtml(location || "Não informado");
   const safeDescription = escapeHtml(description || "");
-  const patientAppointmentsLink = `${baseUrl}/minhas-consultas`;
+  const patientAppointmentsLink = `${getBaseUrl()}/minhas-consultas`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5;">
@@ -437,7 +453,9 @@ function formatCrpDetails({
 >) {
   const safeCrp = escapeHtml(crp || "Não informado");
   const safeCrpState = escapeHtml(crpState || "Não informado");
-  const safeCrpRegion = escapeHtml(crpRegion ? `CRP-${crpRegion}` : "Não informado");
+  const safeCrpRegion = escapeHtml(
+    crpRegion ? `CRP-${crpRegion}` : "Não informado",
+  );
   const safeCrpNumber = escapeHtml(crpNumber || "Não informado");
 
   return `
@@ -465,7 +483,7 @@ export async function sendCrpApprovedEmail({
   crpNumber,
 }: CrpVerificationEmailPayload) {
   const safeName = escapeHtml(name || "profissional");
-  const loginLink = `${baseUrl}/login`;
+  const loginLink = `${getBaseUrl()}/login`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5;">
@@ -535,8 +553,10 @@ export async function sendCrpRejectedEmail({
   reason,
 }: CrpRejectedEmailPayload) {
   const safeName = escapeHtml(name || "profissional");
-  const safeReason = escapeHtml(reason || "Não foi informado um motivo específico.");
-  const loginLink = `${baseUrl}/login`;
+  const safeReason = escapeHtml(
+    reason || "Não foi informado um motivo específico.",
+  );
+  const loginLink = `${getBaseUrl()}/login`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5;">
