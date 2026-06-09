@@ -36,12 +36,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/icon.png?v=6",
+        url: "/favicon.ico?v=7",
+      },
+      {
+        url: "/favicon.png?v=7",
+        type: "image/png",
+      },
+      {
+        url: "/icon.png?v=7",
         type: "image/png",
       },
     ],
-    shortcut: "/icon.png?v=6",
-    apple: "/apple-icon.png?v=6",
+    shortcut: "/favicon.ico?v=7",
+    apple: "/apple-touch-icon.png?v=7",
   },
   openGraph: {
     title: "PsicoConnect | Apoio à prática psicológica",
@@ -51,7 +58,7 @@ export const metadata: Metadata = {
     siteName: "PsicoConnect",
     images: [
       {
-        url: "/og-psicoconnect.png?v=6",
+        url: "/og-psicoconnect.png?v=7",
         width: 1200,
         height: 1200,
         alt: "PsicoConnect - Plataforma de apoio à prática psicológica",
@@ -65,7 +72,7 @@ export const metadata: Metadata = {
     title: "PsicoConnect | Apoio à prática psicológica",
     description:
       "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
-    images: ["/og-psicoconnect.png?v=6"],
+    images: ["/og-psicoconnect.png?v=7"],
   },
 };
 
@@ -76,6 +83,11 @@ export default function RootLayout({ children }: PropsWithChildren) {
       className={`${inter.variable} ${montserrat.variable} ${poppins.variable}`}
     >
       <head>
+        <link rel="icon" href="/favicon.ico?v=7" sizes="any" />
+        <link rel="icon" href="/favicon.png?v=7" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico?v=7" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" />
+
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
