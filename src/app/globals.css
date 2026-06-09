@@ -1,3 +1,7 @@
+/* =========================================================
+   Base global e telas públicas de autenticação
+   ========================================================= */
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -291,6 +295,10 @@ body {
   background-color: #001e5e;
   color: #ffffff;
 }
+
+/* =========================================================
+   Layout interno, sidebar e chat
+   ========================================================= */
 
 .chat-container {
   display: flex;
@@ -759,6 +767,10 @@ body {
   margin-right: 15px;
 }
 
+/* =========================================================
+   Home pública
+   ========================================================= */
+
 .landing-home {
   width: 100%;
   min-height: 100vh;
@@ -827,10 +839,6 @@ body {
   font-weight: 600;
   font-family: var(--font-poppins), sans-serif;
   transition: color 0.2s ease, opacity 0.2s ease, transform 0.05s ease;
-}
-
-.landing-menu a:hover {
-  color: #001e5e;
 }
 
 .landing-menu a:hover {
@@ -1304,6 +1312,10 @@ body {
   }
 }
 
+/* =========================================================
+   Tema global e ajustes visuais internos
+   ========================================================= */
+
 :root {
   --psico-navy: #001e5e;
   --psico-navy-soft: #102a56;
@@ -1588,6 +1600,10 @@ a:hover {
   color: #ffffff !important;
 }
 
+/* =========================================================
+   Responsividade geral do layout interno
+   ========================================================= */
+
 html,
 body {
   width: 100%;
@@ -1804,7 +1820,6 @@ select {
     max-width: 100%;
   }
 
-  
   .chat-page-shell {
     height: auto !important;
     min-height: calc(100vh - 32px) !important;
@@ -1841,7 +1856,6 @@ select {
     margin-right: 10px;
   }
 
-  
   .public-page-wrapper {
     padding: 24px 16px;
     align-items: flex-start;
@@ -2199,7 +2213,6 @@ select {
     box-shadow: 0 10px 24px rgba(0, 30, 94, 0.10) !important;
   }
 
-  
   body:has(.sidebar.sidebar-visible) .menu-toggle-button {
     display: none !important;
   }
@@ -2208,6 +2221,10 @@ select {
     padding-top: 12px !important;
   }
 }
+
+/* =========================================================
+   Ícones e estados de carregamento
+   ========================================================= */
 
 .fa-clipboard-question::before {
   content: "\f46d";
@@ -2283,6 +2300,9 @@ select {
   }
 }
 
+/* =========================================================
+   Correções específicas da Agenda
+   ========================================================= */
 
 /* Correção específica da Agenda: mantém cards superiores em colunas */
 .chat-main-wrapper .agenda-page .agenda-summary-grid,
@@ -2803,6 +2823,10 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
     margin-bottom: 54px !important;
   }
 }
+
+/* =========================================================
+   Cadastro com área de formulário scrollável
+   ========================================================= */
 
 .signup-page {
   padding: 32px 0 !important;
