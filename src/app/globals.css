@@ -60,7 +60,7 @@ body {
 }
 
 .logo-container h1 {
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   font-size: 35px;
   font-weight: 700;
   line-height: 0.85;
@@ -68,7 +68,7 @@ body {
 }
 
 .tagline {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.15;
@@ -112,7 +112,7 @@ body {
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 14px;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-weight: 600;
   transition: background-color 0.2s, color 0.2s, transform 0.05s ease;
 }
@@ -232,7 +232,7 @@ body {
   padding: 14px;
   border-radius: 8px;
   font-size: 16px;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.05s ease;
@@ -279,7 +279,7 @@ body {
   padding: 14px;
   border-radius: 8px;
   font-size: 16px;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -340,7 +340,7 @@ body {
 .sidebar-header h1 {
   font-size: 38px;
   font-weight: 700;
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   line-height: 0.9;
   margin-top: 7px;
 }
@@ -357,7 +357,7 @@ body {
   color: #ffffff;
   border-radius: 0;
   font-size: 20px;
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   font-weight: 700;
   line-height: 1;
   transition: background-color 0.3s ease;
@@ -385,7 +385,7 @@ body {
 }
 
 .sidebar-footer button {
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -470,7 +470,7 @@ body {
   font-size: 28px;
   font-weight: 700;
   color: #001e5e;
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   line-height: 1.1;
   white-space: normal;
   overflow: visible;
@@ -481,7 +481,7 @@ body {
 .chat-header-title p {
   font-size: 16px;
   color: #000000;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   margin-top: 2px;
   white-space: normal;
   word-break: break-word;
@@ -518,7 +518,7 @@ body {
   max-width: 60%;
   line-height: 1.4;
   font-size: 19px;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-weight: 500;
   overflow-wrap: break-word;
   display: flex;
@@ -576,7 +576,7 @@ body {
   line-height: 1.4;
   outline: none;
   resize: none;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   max-height: 100px;
   overflow-y: auto;
   margin-right: 16px;
@@ -586,7 +586,7 @@ body {
 
 .chat-input-area textarea::placeholder {
   color: #999;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
 }
 
 .chat-input-area button {
@@ -802,7 +802,7 @@ body {
 }
 
 .landing-brand-text span {
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   font-size: 26px;
   font-weight: 700;
   color: #ffffff;
@@ -825,7 +825,7 @@ body {
   text-decoration: none;
   font-size: 17px;
   font-weight: 600;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   transition: color 0.2s ease, opacity 0.2s ease, transform 0.05s ease;
 }
 
@@ -847,7 +847,7 @@ body {
   padding: 11px 24px;
   font-size: 16px;
   font-weight: 600;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   transition: background-color 0.2s, color 0.2s, transform 0.05s ease;
   z-index: 2;
 }
@@ -870,7 +870,7 @@ body {
 .landing-hero-content h1 {
   color: #ffffff;
   text-align: center;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 78px;
   line-height: 0.97;
   font-weight: 700;
@@ -895,7 +895,7 @@ body {
   padding: 14px 26px;
   font-size: 14px;
   font-weight: 600;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   transition: background-color 0.2s, color 0.2s, transform 0.05s ease;
 }
 
@@ -912,7 +912,7 @@ body {
 
 .landing-intro-section h2 {
   color: #001e5e;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 42px;
   font-weight: 700;
   margin-bottom: 12px;
@@ -920,7 +920,7 @@ body {
 
 .landing-intro-section p {
   color: #001e5e;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 18px;
   font-weight: 500;
 }
@@ -944,7 +944,7 @@ body {
 }
 
 .landing-card-block h3 {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 14px;
@@ -952,7 +952,7 @@ body {
 }
 
 .landing-card-block p {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 15px;
   line-height: 1.7;
   color: #1f2937;
@@ -969,7 +969,7 @@ body {
 .landing-card-block ul li {
   position: relative;
   padding-left: 18px;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 14px;
   color: #001e5e;
   line-height: 1.5;
@@ -1022,14 +1022,14 @@ body {
   color: #2d59cf;
   border-radius: 999px;
   padding: 8px 14px;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 18px;
 }
 
 .landing-about-text h2 {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 40px;
   font-weight: 700;
   color: #001e5e;
@@ -1037,7 +1037,7 @@ body {
 }
 
 .landing-about-text p {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 16px;
   line-height: 1.8;
   color: #374151;
@@ -1074,7 +1074,7 @@ body {
 }
 
 .landing-highlight-box span {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: #001e5e;
@@ -1104,13 +1104,13 @@ body {
 }
 
 .landing-footer-brand strong {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 20px;
   font-weight: 700;
 }
 
 .landing-footer-brand span {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 14px;
   opacity: 0.9;
 }
@@ -1124,7 +1124,7 @@ body {
 .landing-footer-links a {
   color: #ffffff;
   text-decoration: none;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 14px;
   font-weight: 500;
   transition: opacity 0.2s ease;
@@ -1140,7 +1140,7 @@ body {
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   text-align: center;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 13px;
   opacity: 0.9;
 }

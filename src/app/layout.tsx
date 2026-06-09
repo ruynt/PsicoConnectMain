@@ -1,10 +1,35 @@
 import type { PropsWithChildren } from "react";
+import { Inter, Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/AppProviders";
 
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
 export default function RootLayout({ children }: PropsWithChildren) {
   return (
-    <html lang="pt-br">
+    <html
+      lang="pt-br"
+      className={`${inter.variable} ${montserrat.variable} ${poppins.variable}`}
+    >
       <head>
         <title>PsicoConnect</title>
         <meta
@@ -19,16 +44,6 @@ export default function RootLayout({ children }: PropsWithChildren) {
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@500&family=Montserrat:wght@700&family=Poppins:wght@400;600;700&display=swap"
-          rel="stylesheet"
         />
       </head>
       <body>

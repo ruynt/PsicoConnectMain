@@ -660,7 +660,7 @@ export default function ChatBotPage() {
           font-size: 34px;
           font-weight: 900;
           color: #ffffff !important;
-          font-family: "Montserrat", sans-serif;
+          font-family: var(--font-montserrat), sans-serif;
           line-height: 1.05;
           letter-spacing: -0.03em;
           white-space: normal;
@@ -673,7 +673,7 @@ export default function ChatBotPage() {
         .chat-header-title p {
           font-size: 16px;
           color: #dbeafe !important;
-          font-family: "Inter", sans-serif;
+          font-family: var(--font-inter), sans-serif;
           margin-top: 4px;
           white-space: normal;
           word-break: break-word;
@@ -752,7 +752,7 @@ export default function ChatBotPage() {
           max-width: 60%;
           line-height: 1.4;
           font-size: 17px;
-          font-family: "Inter", sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-weight: 500;
           overflow-wrap: break-word;
           display: flex;
@@ -837,7 +837,7 @@ export default function ChatBotPage() {
           line-height: 1.35;
           outline: none;
           resize: none;
-          font-family: "Inter", sans-serif;
+          font-family: var(--font-inter), sans-serif;
           overflow-y: hidden;
           margin-right: 16px;
           box-sizing: border-box;
@@ -847,7 +847,7 @@ export default function ChatBotPage() {
 
         .chat-input-area textarea::placeholder {
           color: #999;
-          font-family: "Inter", sans-serif;
+          font-family: var(--font-inter), sans-serif;
         }
 
         .chat-input-area button {

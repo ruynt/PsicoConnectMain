@@ -26,7 +26,7 @@
   margin-bottom: 28px;
   color: #001e5e;
   text-decoration: none;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 14px;
   font-weight: 700;
 }
@@ -52,7 +52,7 @@
   border-radius: 999px;
   background: rgba(82, 140, 255, 0.14);
   color: #001e5e;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -63,7 +63,7 @@
   max-width: 840px;
   margin: 0;
   color: #001e5e;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: clamp(32px, 5vw, 54px);
   font-weight: 700;
   line-height: 1.08;
@@ -74,7 +74,7 @@
   max-width: 880px;
   margin: 18px 0 0;
   color: #42526b;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-size: 17px;
   line-height: 1.7;
 }
@@ -83,7 +83,7 @@
   display: inline-flex;
   margin-top: 22px;
   color: #667085;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-size: 14px;
   font-weight: 700;
 }
@@ -116,7 +116,7 @@
 .navigationCard h2 {
   margin: 0 0 16px;
   color: #001e5e;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 16px;
   font-weight: 700;
 }
@@ -134,7 +134,7 @@
   border-radius: 14px;
   color: #334155;
   text-decoration: none;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-size: 14px;
   font-weight: 700;
 }
@@ -179,7 +179,7 @@
   border-radius: 16px;
   background: linear-gradient(to right, #1c4bb3, #3f7afd);
   color: #ffffff;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 14px;
   font-weight: 900;
 }
@@ -191,7 +191,7 @@
 .documentTitleGroup h2 {
   margin: 0;
   color: #001e5e;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 25px;
   font-weight: 700;
   line-height: 1.25;
@@ -201,7 +201,7 @@
 .documentTitleGroup p {
   margin: 8px 0 0;
   color: #526173;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-size: 15px;
   line-height: 1.65;
 }
@@ -222,7 +222,7 @@
 .textBlock h3 {
   margin: 0 0 12px;
   color: #12336f;
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   font-size: 17px;
   font-weight: 700;
   line-height: 1.35;
@@ -231,7 +231,7 @@
 .textBlock p {
   margin: 0 0 12px;
   color: #344054;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-size: 15px;
   line-height: 1.75;
 }
@@ -250,7 +250,7 @@
 
 .textBlock li {
   color: #344054;
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-size: 15px;
   line-height: 1.65;
 }
