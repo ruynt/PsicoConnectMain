@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { PropsWithChildren } from "react";
 import { Inter, Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
@@ -24,28 +25,63 @@ const poppins = Poppins({
   display: "swap",
 });
 
+export const metadata: Metadata = {
+  metadataBase: new URL("https://psicoconnect.site"),
+  title: {
+    default: "PsicoConnect | Apoio à prática psicológica",
+    template: "%s | PsicoConnect",
+  },
+  description:
+    "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
+  icons: {
+    icon: [
+      {
+        url: "/og-psicoconnect.png?v=2",
+        type: "image/png",
+      },
+    ],
+    shortcut: "/og-psicoconnect.png?v=2",
+    apple: "/og-psicoconnect.png?v=2",
+  },
+  openGraph: {
+    title: "PsicoConnect | Apoio à prática psicológica",
+    description:
+      "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
+    url: "https://psicoconnect.site",
+    siteName: "PsicoConnect",
+    images: [
+      {
+        url: "/og-psicoconnect.png?v=2",
+        width: 1200,
+        height: 1200,
+        alt: "PsicoConnect - Plataforma de apoio à prática psicológica",
+      },
+    ],
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PsicoConnect | Apoio à prática psicológica",
+    description:
+      "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
+    images: ["/og-psicoconnect.png?v=2"],
+  },
+};
+
 export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html
-      lang="pt-br"
+      lang="pt-BR"
       className={`${inter.variable} ${montserrat.variable} ${poppins.variable}`}
     >
       <head>
-        <title>PsicoConnect</title>
-        <meta
-          name="description"
-          content="Plataforma de apoio à prática psicológica."
-        />
-
-        <link rel="icon" href="/logo.png" type="image/png" />
-        <link rel="shortcut icon" href="/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/logo.png" />
-
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
         />
       </head>
+
       <body>
         <AppProviders>{children}</AppProviders>
       </body>
