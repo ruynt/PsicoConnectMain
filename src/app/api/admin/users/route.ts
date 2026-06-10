@@ -28,6 +28,10 @@ function isValidCrpStatus(value: string): value is CrpVerificationStatus {
   return validCrpStatuses.includes(value as CrpVerificationStatus);
 }
 
+function normalizeSearch(value: string | null) {
+  return String(value || "").trim().slice(0, 120);
+}
+
 export async function GET(req: NextRequest) {
   try {
     const isAdmin = await requireAdmin();
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get("search")?.trim() || "";
+    const search = normalizeSearch(searchParams.get("search"));
     const role = searchParams.get("role") || "ALL";
     const crpStatus = searchParams.get("crpStatus") || "ALL";
 
@@ -99,7 +103,13 @@ export async function GET(req: NextRequest) {
           where,
           orderBy: { createdAt: "desc" },
           take: 100,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            emailVerified: true,
             patient: {
               select: {
                 id: true,

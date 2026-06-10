@@ -38,9 +38,8 @@ export async function PATCH(_req: Request, context: RouteContext) {
       );
     }
 
-    const user = await prisma.user.update({
+    const existingUser = await prisma.user.findUnique({
       where: { id },
-      data: { emailVerified: new Date() },
       select: {
         id: true,
         name: true,
@@ -48,6 +47,26 @@ export async function PATCH(_req: Request, context: RouteContext) {
         emailVerified: true,
       },
     });
+
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: "Usuário não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    const user = existingUser.emailVerified
+      ? existingUser
+      : await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { emailVerified: new Date() },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerified: true,
+          },
+        });
 
     return NextResponse.json({
       message: "E-mail marcado como verificado.",

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { getErrorCode } from "@/lib/errorUtils";
 
+import { getErrorCode } from "@/lib/errorUtils";
 import { authConfig } from "../../../../../../lib/auth";
 import { sendCrpRejectedEmail } from "../../../../../../lib/emails";
 import prisma from "../../../../../../lib/prisma";
@@ -17,6 +17,14 @@ async function requireAdmin() {
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   return role === "ADMIN";
+}
+
+function normalizeReason(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().slice(0, 1000);
 }
 
 export async function PATCH(req: Request, context: RouteContext) {
@@ -40,7 +48,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const reason = String(body?.reason || "").trim();
+    const reason = normalizeReason(body?.reason);
 
     if (!reason) {
       return NextResponse.json(
@@ -49,15 +57,50 @@ export async function PATCH(req: Request, context: RouteContext) {
       );
     }
 
-    const psychologist = await prisma.psychologist.update({
+    const existingPsychologist = await prisma.psychologist.findUnique({
       where: { id },
+      select: {
+        id: true,
+        user: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!existingPsychologist) {
+      return NextResponse.json(
+        { error: "Psicólogo não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    if (existingPsychologist.user.role !== "PSYCHOLOGIST") {
+      return NextResponse.json(
+        { error: "Este usuário não está ativo como psicólogo." },
+        { status: 400 },
+      );
+    }
+
+    const psychologist = await prisma.psychologist.update({
+      where: { id: existingPsychologist.id },
       data: {
         crpVerificationStatus: "REJECTED",
         crpVerifiedAt: null,
         crpRejectedAt: new Date(),
         crpRejectionReason: reason,
       },
-      include: {
+      select: {
+        id: true,
+        crp: true,
+        crpState: true,
+        crpRegion: true,
+        crpNumber: true,
+        crpVerificationStatus: true,
+        crpVerifiedAt: true,
+        crpRejectedAt: true,
+        crpRejectionReason: true,
         user: {
           select: {
             id: true,

@@ -20,14 +20,22 @@ type AdminSession = {
 };
 
 const schema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres."),
-  email: z.string().email("E-mail inválido."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Nome deve ter pelo menos 2 caracteres.")
+    .max(120, "Nome deve ter no máximo 120 caracteres."),
+  email: z
+    .string()
+    .trim()
+    .email("E-mail inválido.")
+    .max(180, "E-mail deve ter no máximo 180 caracteres."),
   role: z.enum(["ADMIN", "PSYCHOLOGIST", "PATIENT"]),
   emailVerified: z.boolean(),
-  password: z.string().optional(),
-  crpState: z.string().optional(),
-  crpRegion: z.string().optional(),
-  crpNumber: z.string().optional(),
+  password: z.string().max(120).optional(),
+  crpState: z.string().max(10).optional(),
+  crpRegion: z.string().max(10).optional(),
+  crpNumber: z.string().max(30).optional(),
   crpVerificationStatus: z
     .enum(["PENDING", "APPROVED", "REJECTED"])
     .optional(),
@@ -54,11 +62,14 @@ function normalizeCrpParts(data: {
   crpRegion?: string;
   crpNumber?: string;
 }) {
-  const crpState = String(data.crpState || "").trim().toUpperCase();
+  const crpState = String(data.crpState || "")
+    .trim()
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase();
   const crpRegion = onlyDigits(String(data.crpRegion || "")).slice(0, 2);
-  const crpNumber = onlyDigits(String(data.crpNumber || ""));
+  const crpNumber = onlyDigits(String(data.crpNumber || "")).slice(0, 12);
 
-  if (!crpState || !crpRegion || !crpNumber) {
+  if (!/^[A-Z]{2}$/.test(crpState) || !crpRegion || !crpNumber) {
     throw new Error("INVALID_CRP_DATA");
   }
 
@@ -68,6 +79,28 @@ function normalizeCrpParts(data: {
     crpNumber,
     crp: `${crpRegion}/${crpNumber}`,
   };
+}
+
+async function ensureAdminCanChangeRole(targetUserId: string, newRole: string) {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!targetUser) {
+    return;
+  }
+
+  if (targetUser.role === "ADMIN" && newRole !== "ADMIN") {
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+
+    if (adminCount <= 1) {
+      throw new Error("LAST_ADMIN_ROLE_CHANGE");
+    }
+  }
 }
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
@@ -82,12 +115,19 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const data = schema.parse(body);
 
     if (!id) {
       return NextResponse.json(
         { error: "Usuário inválido." },
+        { status: 400 },
+      );
+    }
+
+    if (admin.userId === id && data.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Você não pode remover seu próprio acesso administrativo." },
         { status: 400 },
       );
     }
@@ -113,6 +153,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    await ensureAdminCanChangeRole(id, data.role);
 
     const normalizedEmail = data.email.trim().toLowerCase();
 
@@ -178,6 +220,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
       if (data.role === "PSYCHOLOGIST" && crpData) {
         const verificationStatus = data.crpVerificationStatus || "PENDING";
+        const crpVerifiedAt =
+          verificationStatus === "APPROVED"
+            ? user.psychologist?.crpVerifiedAt || new Date()
+            : null;
 
         if (user.psychologist) {
           await tx.psychologist.update({
@@ -188,9 +234,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
               crpRegion: crpData.crpRegion,
               crpNumber: crpData.crpNumber,
               crpVerificationStatus: verificationStatus,
-              crpVerifiedAt:
-                verificationStatus === "APPROVED"
-                  ? user.psychologist.crpVerifiedAt || new Date()
+              crpVerifiedAt,
+              crpRejectedAt:
+                verificationStatus === "REJECTED"
+                  ? user.psychologist.crpRejectedAt || new Date()
+                  : null,
+              crpRejectionReason:
+                verificationStatus === "REJECTED"
+                  ? user.psychologist.crpRejectionReason
                   : null,
             },
           });
@@ -203,8 +254,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
               crpRegion: crpData.crpRegion,
               crpNumber: crpData.crpNumber,
               crpVerificationStatus: verificationStatus,
-              crpVerifiedAt:
-                verificationStatus === "APPROVED" ? new Date() : null,
+              crpVerifiedAt,
+              crpRejectedAt: verificationStatus === "REJECTED" ? new Date() : null,
             },
           });
         }
@@ -229,6 +280,13 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (error instanceof Error && error.message === "INVALID_CRP_DATA") {
       return NextResponse.json(
         { error: "Informe estado, regional e número do CRP." },
+        { status: 400 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "LAST_ADMIN_ROLE_CHANGE") {
+      return NextResponse.json(
+        { error: "Não é possível remover o acesso do último administrador." },
         { status: 400 },
       );
     }

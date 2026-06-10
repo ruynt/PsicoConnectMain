@@ -1,11 +1,9 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { getErrorCode } from "@/lib/errorUtils";
 
+import { getErrorCode } from "@/lib/errorUtils";
 import { authConfig } from "../../../../../../lib/auth";
-import {
-  sendCrpApprovedEmail,
-} from "../../../../../../lib/emails";
+import { sendCrpApprovedEmail } from "../../../../../../lib/emails";
 import prisma from "../../../../../../lib/prisma";
 
 type RouteContext = {
@@ -41,15 +39,50 @@ export async function PATCH(_req: Request, context: RouteContext) {
       );
     }
 
-    const psychologist = await prisma.psychologist.update({
+    const existingPsychologist = await prisma.psychologist.findUnique({
       where: { id },
+      select: {
+        id: true,
+        user: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!existingPsychologist) {
+      return NextResponse.json(
+        { error: "Psicólogo não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    if (existingPsychologist.user.role !== "PSYCHOLOGIST") {
+      return NextResponse.json(
+        { error: "Este usuário não está ativo como psicólogo." },
+        { status: 400 },
+      );
+    }
+
+    const psychologist = await prisma.psychologist.update({
+      where: { id: existingPsychologist.id },
       data: {
         crpVerificationStatus: "APPROVED",
         crpVerifiedAt: new Date(),
         crpRejectedAt: null,
         crpRejectionReason: null,
       },
-      include: {
+      select: {
+        id: true,
+        crp: true,
+        crpState: true,
+        crpRegion: true,
+        crpNumber: true,
+        crpVerificationStatus: true,
+        crpVerifiedAt: true,
+        crpRejectedAt: true,
+        crpRejectionReason: true,
         user: {
           select: {
             id: true,
