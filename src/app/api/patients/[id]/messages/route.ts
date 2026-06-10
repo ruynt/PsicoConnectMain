@@ -28,57 +28,92 @@ function mapMessage(message: PatientMessage) {
   };
 }
 
-export async function GET(req: NextRequest, context: Params) {
+async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PSYCHOLOGIST") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado.", messages: [] },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const psychologist = await prisma.psychologist.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!psychologist) {
+    return {
+      error: NextResponse.json(
+        { error: "Psicólogo não encontrado." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  const patientLink = await prisma.psychologistPatient.findFirst({
+    where: {
+      patientId,
+      psychologistId: psychologist.id,
+      active: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patientLink) {
+    return {
+      error: NextResponse.json(
+        { error: "Você não tem acesso às mensagens deste paciente." },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return {
+    psychologist,
+  };
+}
+
+function parseMessageContent(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+export async function GET(req: NextRequest, context: Params) {
   try {
     const { id: patientId } = await context.params;
 
-    const psychologist = await prisma.psychologist.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (!psychologist) {
-      return NextResponse.json(
-        { error: "Psicólogo não encontrado.", messages: [] },
-        { status: 404 },
-      );
-    }
-
-    const patientLink = await prisma.psychologistPatient.findFirst({
-      where: {
-        patientId,
-        psychologistId: psychologist.id,
-        active: true,
-      },
-    });
-
-    if (!patientLink) {
+    if (auth.error) {
       return NextResponse.json(
         {
-          error: "Você não tem acesso às mensagens deste paciente.",
+          error: "Acesso não autorizado.",
           messages: [],
         },
-        { status: 403 },
+        { status: auth.error.status },
       );
     }
 
     await prisma.patientMessage.updateMany({
       where: {
         patientId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
         senderRole: "PATIENT",
         readByPsychologistAt: null,
       },
@@ -90,7 +125,7 @@ export async function GET(req: NextRequest, context: Params) {
     const messages = await prisma.patientMessage.findMany({
       where: {
         patientId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
       },
       orderBy: {
         createdAt: "asc",
@@ -105,8 +140,10 @@ export async function GET(req: NextRequest, context: Params) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao listar mensagens do paciente."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao listar mensagens do paciente.",
+        ),
         messages: [],
       },
       { status: 500 },
@@ -115,24 +152,11 @@ export async function GET(req: NextRequest, context: Params) {
 }
 
 export async function POST(req: NextRequest, context: Params) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  if (!token || token.role !== "PSYCHOLOGIST") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
-  }
-
   try {
     const { id: patientId } = await context.params;
     const body = await req.json();
 
-    const content =
-      typeof body?.content === "string" ? body.content.trim() : "";
+    const content = parseMessageContent(body?.content);
 
     if (!content) {
       return NextResponse.json(
@@ -148,32 +172,10 @@ export async function POST(req: NextRequest, context: Params) {
       );
     }
 
-    const psychologist = await prisma.psychologist.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (!psychologist) {
-      return NextResponse.json(
-        { error: "Psicólogo não encontrado." },
-        { status: 404 },
-      );
-    }
-
-    const patientLink = await prisma.psychologistPatient.findFirst({
-      where: {
-        patientId,
-        psychologistId: psychologist.id,
-        active: true,
-      },
-    });
-
-    if (!patientLink) {
-      return NextResponse.json(
-        { error: "Você não tem acesso a este paciente." },
-        { status: 403 },
-      );
+    if (auth.error) {
+      return auth.error;
     }
 
     const message = await prisma.patientMessage.create({
@@ -181,7 +183,7 @@ export async function POST(req: NextRequest, context: Params) {
         content,
         senderRole: "PSYCHOLOGIST",
         patientId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
         readByPsychologistAt: new Date(),
       },
     });
@@ -197,8 +199,10 @@ export async function POST(req: NextRequest, context: Params) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao enviar mensagem para o paciente."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao enviar mensagem para o paciente.",
+        ),
       },
       { status: 500 },
     );

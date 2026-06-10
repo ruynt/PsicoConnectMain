@@ -17,78 +17,95 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-export async function POST(req: NextRequest, context: Params) {
+async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PSYCHOLOGIST") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const psychologist = await prisma.psychologist.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!psychologist) {
+    return {
+      error: NextResponse.json(
+        { error: "Psicólogo não encontrado." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  const patient = await prisma.patient.findFirst({
+    where: {
+      id: patientId,
+      psychologistLinks: {
+        some: {
+          psychologistId: psychologist.id,
+          active: true,
+        },
+      },
+    },
+    select: {
+      id: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!patient) {
+    return {
+      error: NextResponse.json(
+        { error: "Paciente não vinculado a este psicólogo." },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return {
+    psychologist,
+    patient,
+  };
+}
+
+export async function POST(req: NextRequest, context: Params) {
   try {
     const { id: patientId } = await context.params;
 
-    const psychologist = await prisma.psychologist.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (!psychologist) {
-      return NextResponse.json(
-        { error: "Psicólogo não encontrado." },
-        { status: 404 },
-      );
-    }
-
-    const patientLink = await prisma.psychologistPatient.findFirst({
-      where: {
-        patientId,
-        psychologistId: psychologist.id,
-        active: true,
-      },
-    });
-
-    if (!patientLink) {
-      return NextResponse.json(
-        { error: "Paciente não vinculado a este psicólogo." },
-        { status: 403 },
-      );
-    }
-
-    const patient = await prisma.patient.findUnique({
-      where: {
-        id: patientId,
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
-      );
+    if (auth.error) {
+      return auth.error;
     }
 
     const notes = await prisma.sessionNote.findMany({
       where: {
-        patientId,
-        psychologistId: psychologist.id,
+        patientId: auth.patient.id,
+        psychologistId: auth.psychologist.id,
         archived: false,
       },
-      include: {
+      select: {
+        title: true,
+        content: true,
+        createdAt: true,
         appointment: {
           select: {
             title: true,
@@ -160,7 +177,7 @@ Regras obrigatórias:
 - Se as anotações forem insuficientes, informe isso no próprio resumo.
 
 Paciente:
-${patient.user.name}
+${auth.patient.user.name}
 
 Estrutura desejada:
 1. Período e fonte das informações
@@ -208,8 +225,10 @@ ${notesText}
 
       return NextResponse.json(
         {
-          error:
-            getExternalApiErrorMessage(openAiData, "Erro ao gerar resumo com inteligência artificial."),
+          error: getExternalApiErrorMessage(
+            openAiData,
+            "Erro ao gerar resumo com inteligência artificial.",
+          ),
         },
         { status: 500 },
       );
@@ -224,9 +243,9 @@ ${notesText}
       sourceNotesCount: notes.length,
       generatedAt: new Date().toISOString(),
       patient: {
-        id: patient.id,
-        name: patient.user.name,
-        email: patient.user.email,
+        id: auth.patient.id,
+        name: auth.patient.user.name,
+        email: auth.patient.user.email,
       },
       warning:
         "Este texto foi gerado com apoio de IA e deve ser revisado pelo psicólogo antes de ser registrado no prontuário.",
@@ -236,8 +255,10 @@ ${notesText}
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao gerar resumo para prontuário."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao gerar resumo para prontuário.",
+        ),
       },
       { status: 500 },
     );

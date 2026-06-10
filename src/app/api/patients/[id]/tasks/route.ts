@@ -11,7 +11,9 @@ type RouteContext = {
 };
 
 function normalizeText(value: unknown) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
@@ -19,16 +21,56 @@ function normalizeText(value: unknown) {
 }
 
 function normalizeDate(value: unknown) {
-  if (typeof value !== "string" || !value) return null;
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
 
   const date = new Date(`${value}T00:00:00-03:00`);
 
-  if (Number.isNaN(date.getTime())) return null;
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
 
   return date;
 }
 
-async function getPsychologistFromToken(req: NextRequest) {
+function mapTask(task: {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: Date | null;
+  status: string;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  appointment?: {
+    id: string;
+    title: string | null;
+    dateTime: Date;
+  } | null;
+}) {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description || "",
+    dueDate: task.dueDate?.toISOString() || null,
+    status: task.status,
+    completedAt: task.completedAt?.toISOString() || null,
+    cancelledAt: task.cancelledAt?.toISOString() || null,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+    appointment: task.appointment
+      ? {
+          id: task.appointment.id,
+          title: task.appointment.title || "Consulta",
+          dateTime: task.appointment.dateTime.toISOString(),
+        }
+      : null,
+  };
+}
+
+async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -40,13 +82,15 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Acesso não autorizado." },
         { status: 403 },
       ),
-      psychologist: null,
     };
   }
 
   const psychologist = await prisma.psychologist.findUnique({
     where: {
       userId: String(token.id),
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -56,12 +100,30 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Psicólogo não encontrado." },
         { status: 404 },
       ),
-      psychologist: null,
+    };
+  }
+
+  const patientLink = await prisma.psychologistPatient.findFirst({
+    where: {
+      psychologistId: psychologist.id,
+      patientId,
+      active: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patientLink) {
+    return {
+      error: NextResponse.json(
+        { error: "Você não possui vínculo ativo com este paciente." },
+        { status: 403 },
+      ),
     };
   }
 
   return {
-    error: null,
     psychologist,
   };
 }
@@ -70,31 +132,19 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const { id: patientId } = await context.params;
 
-    const { error, psychologist } = await getPsychologistFromToken(req);
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (error || !psychologist) {
-      return error;
-    }
-
-    const patientLink = await prisma.psychologistPatient.findFirst({
-      where: {
-        psychologistId: psychologist.id,
-        patientId,
-        active: true,
-      },
-    });
-
-    if (!patientLink) {
+    if (auth.error) {
       return NextResponse.json(
         { error: "Você não possui vínculo ativo com este paciente.", tasks: [] },
-        { status: 403 },
+        { status: auth.error.status },
       );
     }
 
     const tasks = await prisma.therapeuticTask.findMany({
       where: {
         patientId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
       },
       include: {
         appointment: {
@@ -105,32 +155,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
           },
         },
       },
-      orderBy: [
-        { status: "asc" },
-        { dueDate: "asc" },
-        { createdAt: "desc" },
-      ],
+      orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }],
     });
 
     return NextResponse.json({
-      tasks: tasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || "",
-        dueDate: task.dueDate?.toISOString() || null,
-        status: task.status,
-        completedAt: task.completedAt?.toISOString() || null,
-        cancelledAt: task.cancelledAt?.toISOString() || null,
-        createdAt: task.createdAt.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
-        appointment: task.appointment
-          ? {
-              id: task.appointment.id,
-              title: task.appointment.title || "Consulta",
-              dateTime: task.appointment.dateTime.toISOString(),
-            }
-          : null,
-      })),
+      tasks: tasks.map(mapTask),
     });
   } catch (error: unknown) {
     console.error("Erro ao listar tarefas terapêuticas:", error);
@@ -149,10 +178,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const { id: patientId } = await context.params;
 
-    const { error, psychologist } = await getPsychologistFromToken(req);
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (error || !psychologist) {
-      return error;
+    if (auth.error) {
+      return auth.error;
     }
 
     const body = await req.json();
@@ -169,18 +198,24 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const patientLink = await prisma.psychologistPatient.findFirst({
-      where: {
-        psychologistId: psychologist.id,
-        patientId,
-        active: true,
-      },
-    });
-
-    if (!patientLink) {
+    if (title.length > 120) {
       return NextResponse.json(
-        { error: "Você não possui vínculo ativo com este paciente." },
-        { status: 403 },
+        { error: "O título deve ter no máximo 120 caracteres." },
+        { status: 400 },
+      );
+    }
+
+    if (description && description.length > 1000) {
+      return NextResponse.json(
+        { error: "A descrição deve ter no máximo 1000 caracteres." },
+        { status: 400 },
+      );
+    }
+
+    if (body.dueDate && !dueDate) {
+      return NextResponse.json(
+        { error: "Informe uma data válida para o prazo da tarefa." },
+        { status: 400 },
       );
     }
 
@@ -189,7 +224,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
         where: {
           id: appointmentId,
           patientId,
-          psychologistId: psychologist.id,
+          psychologistId: auth.psychologist.id,
+        },
+        select: {
+          id: true,
         },
       });
 
@@ -207,24 +245,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
         description,
         dueDate,
         patientId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
         appointmentId,
       },
     });
 
     return NextResponse.json({
       message: "Tarefa terapêutica criada com sucesso.",
-      task: {
-        id: task.id,
-        title: task.title,
-        description: task.description || "",
-        dueDate: task.dueDate?.toISOString() || null,
-        status: task.status,
-        completedAt: task.completedAt?.toISOString() || null,
-        cancelledAt: task.cancelledAt?.toISOString() || null,
-        createdAt: task.createdAt.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
-      },
+      task: mapTask(task),
     });
   } catch (error: unknown) {
     console.error("Erro ao criar tarefa terapêutica:", error);

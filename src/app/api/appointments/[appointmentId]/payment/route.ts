@@ -35,20 +35,95 @@ function normalizeAmount(value: unknown) {
   return numericValue;
 }
 
-export async function PATCH(req: NextRequest, context: Params) {
+function normalizePaymentNote(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+async function getAuthorizedPsychologist(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PSYCHOLOGIST") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const psychologist = await prisma.psychologist.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!psychologist) {
+    return {
+      error: NextResponse.json(
+        { error: "Psicólogo não encontrado." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    psychologist,
+  };
+}
+
+function mapAppointment(
+  appointment: {
+    id: string;
+    title: string | null;
+    dateTime: Date;
+    endDateTime: Date | null;
+    status: string;
+    paymentStatus: string;
+    paymentAmount: unknown;
+    paymentNote: string | null;
+    paidAt: Date | null;
+  },
+  patient: {
+    id: string;
+    name: string;
+    email: string;
+  },
+) {
+  return {
+    id: appointment.id,
+    title: appointment.title || "Consulta",
+    dateTime: appointment.dateTime.toISOString(),
+    endDateTime: appointment.endDateTime?.toISOString() || null,
+    status: appointment.status,
+    paymentStatus: appointment.paymentStatus,
+    paymentAmount:
+      appointment.paymentAmount !== null && appointment.paymentAmount !== undefined
+        ? Number(appointment.paymentAmount)
+        : null,
+    paymentNote: appointment.paymentNote,
+    paidAt: appointment.paidAt?.toISOString() || null,
+    patient,
+  };
+}
+
+export async function PATCH(req: NextRequest, context: Params) {
   try {
+    const auth = await getAuthorizedPsychologist(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
     const { appointmentId } = await context.params;
     const body = await req.json();
 
@@ -64,30 +139,26 @@ export async function PATCH(req: NextRequest, context: Params) {
     }
 
     const paymentAmount = normalizeAmount(body?.paymentAmount);
-    const paymentNote =
-      typeof body?.paymentNote === "string" ? body.paymentNote.trim() : "";
+    const paymentNote = normalizePaymentNote(body?.paymentNote);
 
-    const psychologist = await prisma.psychologist.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!psychologist) {
+    if (paymentNote.length > 500) {
       return NextResponse.json(
-        { error: "Psicólogo não encontrado." },
-        { status: 404 },
+        { error: "A observação do pagamento deve ter no máximo 500 caracteres." },
+        { status: 400 },
       );
     }
 
     const appointment = await prisma.appointment.findFirst({
       where: {
         id: appointmentId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
       },
-      include: {
+      select: {
+        id: true,
+        patientId: true,
+        status: true,
         patient: {
-          include: {
+          select: {
             user: {
               select: {
                 name: true,
@@ -128,36 +199,36 @@ export async function PATCH(req: NextRequest, context: Params) {
         paymentNote: paymentNote || null,
         paidAt: paymentStatus === "PAID" ? now : null,
       },
+      select: {
+        id: true,
+        title: true,
+        dateTime: true,
+        endDateTime: true,
+        status: true,
+        paymentStatus: true,
+        paymentAmount: true,
+        paymentNote: true,
+        paidAt: true,
+      },
     });
 
     return NextResponse.json({
       message: "Pagamento atualizado com sucesso.",
-      appointment: {
-        id: updatedAppointment.id,
-        title: updatedAppointment.title || "Consulta",
-        dateTime: updatedAppointment.dateTime.toISOString(),
-        endDateTime: updatedAppointment.endDateTime?.toISOString() || null,
-        status: updatedAppointment.status,
-        paymentStatus: updatedAppointment.paymentStatus,
-        paymentAmount: updatedAppointment.paymentAmount
-          ? Number(updatedAppointment.paymentAmount)
-          : null,
-        paymentNote: updatedAppointment.paymentNote,
-        paidAt: updatedAppointment.paidAt?.toISOString() || null,
-        patient: {
-          id: appointment.patientId,
-          name: appointment.patient.user.name,
-          email: appointment.patient.user.email,
-        },
-      },
+      appointment: mapAppointment(updatedAppointment, {
+        id: appointment.patientId,
+        name: appointment.patient.user.name,
+        email: appointment.patient.user.email,
+      }),
     });
   } catch (error: unknown) {
     console.error("Erro ao atualizar pagamento da consulta:", error);
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao atualizar pagamento da consulta."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao atualizar pagamento da consulta.",
+        ),
       },
       { status: 500 },
     );

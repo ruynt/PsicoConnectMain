@@ -4,7 +4,73 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-async function getPsychologistFromToken(req: NextRequest) {
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+function normalizeText(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed || null;
+}
+
+function getArchivedFilter(statusParam: string | null) {
+  if (statusParam === "ALL") {
+    return undefined;
+  }
+
+  if (statusParam === "ARCHIVED") {
+    return true;
+  }
+
+  return false;
+}
+
+function mapNote(note: {
+  id: string;
+  title: string | null;
+  content: string;
+  archived: boolean;
+  archivedAt: Date | null;
+  patientId: string;
+  appointmentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  appointment: {
+    id: string;
+    title: string | null;
+    dateTime: Date;
+    status: string;
+  } | null;
+}) {
+  return {
+    id: note.id,
+    title: note.title || "",
+    content: note.content,
+    archived: note.archived,
+    archivedAt: note.archivedAt?.toISOString() || null,
+    patientId: note.patientId,
+    appointmentId: note.appointmentId,
+    appointment: note.appointment
+      ? {
+          id: note.appointment.id,
+          title: note.appointment.title || "Consulta",
+          dateTime: note.appointment.dateTime.toISOString(),
+          status: note.appointment.status,
+        }
+      : null,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+  };
+}
+
+async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -16,13 +82,15 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Acesso não autorizado.", notes: [] },
         { status: 403 },
       ),
-      psychologist: null,
     };
   }
 
   const psychologist = await prisma.psychologist.findUnique({
     where: {
       userId: String(token.id),
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -32,82 +100,57 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Psicólogo não encontrado.", notes: [] },
         { status: 404 },
       ),
-      psychologist: null,
     };
   }
 
-  return {
-    error: null,
-    psychologist,
-  };
-}
-
-async function checkPatientAccess(patientId: string, psychologistId: string) {
   const patientAccess = await prisma.patient.findFirst({
     where: {
       id: patientId,
       psychologistLinks: {
         some: {
-          psychologistId,
+          psychologistId: psychologist.id,
           active: true,
         },
       },
     },
+    select: {
+      id: true,
+    },
   });
 
-  return patientAccess;
-}
-
-export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
-  try {
-    const { id } = await context.params;
-
-    const { searchParams } = new URL(req.url);
-    const statusParam = searchParams.get("status") || "ACTIVE";
-
-    const { error, psychologist } = await getPsychologistFromToken(req);
-
-    if (error || !psychologist) {
-      return error;
-    }
-
-    const patient = await prisma.patient.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Paciente não encontrado.", notes: [] },
-        { status: 404 },
-      );
-    }
-
-    const patientAccess = await checkPatientAccess(id, psychologist.id);
-
-    if (!patientAccess) {
-      return NextResponse.json(
+  if (!patientAccess) {
+    return {
+      error: NextResponse.json(
         { error: "Você não tem acesso a este paciente.", notes: [] },
         { status: 403 },
-      );
-    }
+      ),
+    };
+  }
 
-    const archivedFilter =
-      statusParam === "ALL"
-        ? {}
-        : statusParam === "ARCHIVED"
-          ? { archived: true }
-          : { archived: false };
+  return {
+    psychologist,
+    patient: patientAccess,
+  };
+}
+
+export async function GET(req: NextRequest, context: RouteContext) {
+  try {
+    const { id: patientId } = await context.params;
+
+    const { searchParams } = new URL(req.url);
+    const archived = getArchivedFilter(searchParams.get("status"));
+
+    const auth = await getAuthorizedPsychologist(req, patientId);
+
+    if (auth.error) {
+      return auth.error;
+    }
 
     const notes = await prisma.sessionNote.findMany({
       where: {
-        patientId: id,
-        psychologistId: psychologist.id,
-        ...archivedFilter,
+        patientId,
+        psychologistId: auth.psychologist.id,
+        ...(archived === undefined ? {} : { archived }),
       },
       include: {
         appointment: {
@@ -125,25 +168,7 @@ export async function GET(
     });
 
     return NextResponse.json({
-      notes: notes.map((note) => ({
-        id: note.id,
-        title: note.title || "",
-        content: note.content,
-        archived: note.archived,
-        archivedAt: note.archivedAt?.toISOString() || null,
-        patientId: note.patientId,
-        appointmentId: note.appointmentId,
-        appointment: note.appointment
-          ? {
-              id: note.appointment.id,
-              title: note.appointment.title || "Consulta",
-              dateTime: note.appointment.dateTime.toISOString(),
-              status: note.appointment.status,
-            }
-          : null,
-        createdAt: note.createdAt.toISOString(),
-        updatedAt: note.updatedAt.toISOString(),
-      })),
+      notes: notes.map(mapNote),
     });
   } catch (error: unknown) {
     console.error("Erro ao listar anotações:", error);
@@ -158,84 +183,70 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, context: RouteContext) {
   try {
-    const { id } = await context.params;
+    const { id: patientId } = await context.params;
 
-    const { error, psychologist } = await getPsychologistFromToken(req);
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (error || !psychologist) {
-      return error;
+    if (auth.error) {
+      return auth.error;
     }
 
     const body = await req.json();
 
-    const { title, content, appointmentId } = body;
+    const title = normalizeText(body.title);
+    const content = normalizeText(body.content);
+    const appointmentId = normalizeText(body.appointmentId);
 
-    if (!content || !content.trim()) {
+    if (!content) {
       return NextResponse.json(
         { error: "O conteúdo da anotação é obrigatório." },
         { status: 400 },
       );
     }
 
-    const patient = await prisma.patient.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!patient) {
+    if (title && title.length > 120) {
       return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
+        { error: "O título deve ter no máximo 120 caracteres." },
+        { status: 400 },
       );
     }
 
-    const patientAccess = await checkPatientAccess(id, psychologist.id);
-
-    if (!patientAccess) {
+    if (content.length > 10000) {
       return NextResponse.json(
-        { error: "Você não tem acesso a este paciente." },
-        { status: 403 },
+        { error: "O conteúdo deve ter no máximo 10000 caracteres." },
+        { status: 400 },
       );
     }
 
     if (appointmentId) {
-      const appointment = await prisma.appointment.findUnique({
+      const appointment = await prisma.appointment.findFirst({
         where: {
           id: appointmentId,
+          patientId: auth.patient.id,
+          psychologistId: auth.psychologist.id,
+        },
+        select: {
+          id: true,
         },
       });
 
       if (!appointment) {
         return NextResponse.json(
-          { error: "Consulta não encontrada." },
+          { error: "Consulta não encontrada para este paciente." },
           { status: 404 },
-        );
-      }
-
-      if (
-        appointment.patientId !== patient.id ||
-        appointment.psychologistId !== psychologist.id
-      ) {
-        return NextResponse.json(
-          { error: "Consulta não pertence a este paciente ou psicólogo." },
-          { status: 403 },
         );
       }
     }
 
     const note = await prisma.sessionNote.create({
       data: {
-        title: title?.trim() || null,
-        content: content.trim(),
-        patientId: patient.id,
-        psychologistId: psychologist.id,
-        appointmentId: appointmentId || null,
+        title,
+        content,
+        patientId: auth.patient.id,
+        psychologistId: auth.psychologist.id,
+        appointmentId,
         archived: false,
         archivedAt: null,
       },

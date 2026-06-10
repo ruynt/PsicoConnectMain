@@ -65,23 +65,78 @@ function mapPsychologistLink(link: PsychologistLinkWithUser) {
   };
 }
 
-export async function GET(req: NextRequest) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado.", messages: [], psychologists: [] },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patient) {
+    return {
+      error: NextResponse.json(
+        { error: "Paciente não encontrado." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+function parseMessageContent(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function parsePsychologistId(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+export async function GET(req: NextRequest) {
   try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return NextResponse.json(
+        {
+          error: "Acesso não autorizado.",
+          messages: [],
+          psychologists: [],
+        },
+        { status: auth.error.status },
+      );
+    }
+
     const patient = await prisma.patient.findUnique({
       where: {
-        userId: String(token.id),
+        id: auth.patient.id,
       },
       include: {
         psychologistLinks: {
@@ -155,8 +210,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao listar mensagens do paciente."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao listar mensagens do paciente.",
+        ),
         messages: [],
         psychologists: [],
       },
@@ -166,26 +223,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
-  }
-
   try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
     const body = await req.json();
 
-    const content =
-      typeof body?.content === "string" ? body.content.trim() : "";
-
-    let psychologistId =
-      typeof body?.psychologistId === "string" ? body.psychologistId : "";
+    const content = parseMessageContent(body?.content);
+    let psychologistId = parsePsychologistId(body?.psychologistId);
 
     if (!content) {
       return NextResponse.json(
@@ -201,24 +249,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
-      );
-    }
-
     if (!psychologistId) {
       const onlyLink = await prisma.psychologistPatient.findFirst({
         where: {
-          patientId: patient.id,
+          patientId: auth.patient.id,
           active: true,
+        },
+        select: {
+          psychologistId: true,
         },
         orderBy: {
           createdAt: "asc",
@@ -237,9 +275,12 @@ export async function POST(req: NextRequest) {
 
     const patientLink = await prisma.psychologistPatient.findFirst({
       where: {
-        patientId: patient.id,
+        patientId: auth.patient.id,
         psychologistId,
         active: true,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -254,7 +295,7 @@ export async function POST(req: NextRequest) {
       data: {
         content,
         senderRole: "PATIENT",
-        patientId: patient.id,
+        patientId: auth.patient.id,
         psychologistId,
         readByPatientAt: new Date(),
       },

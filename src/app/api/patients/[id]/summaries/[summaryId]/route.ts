@@ -29,6 +29,9 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
     where: {
       userId: String(token.id),
     },
+    select: {
+      id: true,
+    },
   });
 
   if (!psychologist) {
@@ -45,6 +48,9 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
       patientId,
       psychologistId: psychologist.id,
       active: true,
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -95,6 +101,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         patientId,
         psychologistId: auth.psychologist.id,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!existingSummary) {
@@ -106,7 +115,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     const summary = await prisma.patientSummary.update({
       where: {
-        id: summaryId,
+        id: existingSummary.id,
       },
       data: {
         title,
@@ -144,6 +153,9 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
         patientId,
         psychologistId: auth.psychologist.id,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!existingSummary) {
@@ -155,7 +167,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
     await prisma.patientSummary.delete({
       where: {
-        id: summaryId,
+        id: existingSummary.id,
       },
     });
 

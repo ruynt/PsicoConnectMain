@@ -10,39 +10,86 @@ type RouteContext = {
   }>;
 };
 
-export async function PATCH(req: NextRequest, context: RouteContext) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
-  try {
-    const { taskId } = await context.params;
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
 
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
+  if (!patient) {
+    return {
+      error: NextResponse.json(
         { error: "Paciente não encontrado." },
         { status: 404 },
-      );
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+function mapTask(task: {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: Date | null;
+  status: string;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description || "",
+    dueDate: task.dueDate?.toISOString() || null,
+    status: task.status,
+    completedAt: task.completedAt?.toISOString() || null,
+    cancelledAt: task.cancelledAt?.toISOString() || null,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
+export async function PATCH(req: NextRequest, context: RouteContext) {
+  try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
     }
+
+    const { taskId } = await context.params;
 
     const task = await prisma.therapeuticTask.findFirst({
       where: {
         id: taskId,
-        patientId: patient.id,
+        patientId: auth.patient.id,
+      },
+      select: {
+        id: true,
+        status: true,
       },
     });
 
@@ -73,17 +120,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({
       message: "Tarefa marcada como concluída.",
-      task: {
-        id: updatedTask.id,
-        title: updatedTask.title,
-        description: updatedTask.description || "",
-        dueDate: updatedTask.dueDate?.toISOString() || null,
-        status: updatedTask.status,
-        completedAt: updatedTask.completedAt?.toISOString() || null,
-        cancelledAt: updatedTask.cancelledAt?.toISOString() || null,
-        createdAt: updatedTask.createdAt.toISOString(),
-        updatedAt: updatedTask.updatedAt.toISOString(),
-      },
+      task: mapTask(updatedTask),
     });
   } catch (error: unknown) {
     console.error("Erro ao concluir tarefa:", error);

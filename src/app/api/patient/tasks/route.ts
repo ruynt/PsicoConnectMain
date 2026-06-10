@@ -4,40 +4,119 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-export async function GET(req: NextRequest) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado.", tasks: [] },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado.", tasks: [] },
+        { status: 403 },
+      ),
+    };
   }
 
-  try {
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
 
-    if (!patient) {
-      return NextResponse.json(
+  if (!patient) {
+    return {
+      error: NextResponse.json(
         { error: "Paciente não encontrado.", tasks: [] },
         { status: 404 },
-      );
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+function mapTask(task: {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: Date | null;
+  status: string;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  psychologistId: string;
+  psychologist: {
+    id: string;
+    user: {
+      name: string;
+      email: string;
+    };
+  };
+  appointment: {
+    id: string;
+    title: string | null;
+    dateTime: Date;
+  } | null;
+}) {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description || "",
+    dueDate: task.dueDate?.toISOString() || null,
+    status: task.status,
+    completedAt: task.completedAt?.toISOString() || null,
+    cancelledAt: task.cancelledAt?.toISOString() || null,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+    psychologist: {
+      id: task.psychologist.id || task.psychologistId,
+      name: task.psychologist.user.name,
+      email: task.psychologist.user.email,
+    },
+    appointment: task.appointment
+      ? {
+          id: task.appointment.id,
+          title: task.appointment.title || "Consulta",
+          dateTime: task.appointment.dateTime.toISOString(),
+        }
+      : null,
+  };
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
     }
 
     const tasks = await prisma.therapeuticTask.findMany({
       where: {
-        patientId: patient.id,
+        patientId: auth.patient.id,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        dueDate: true,
+        status: true,
+        completedAt: true,
+        cancelledAt: true,
+        createdAt: true,
+        updatedAt: true,
+        psychologistId: true,
         psychologist: {
-          include: {
+          select: {
+            id: true,
             user: {
               select: {
                 name: true,
@@ -68,29 +147,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      tasks: tasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || "",
-        dueDate: task.dueDate?.toISOString() || null,
-        status: task.status,
-        completedAt: task.completedAt?.toISOString() || null,
-        cancelledAt: task.cancelledAt?.toISOString() || null,
-        createdAt: task.createdAt.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
-        psychologist: {
-          id: task.psychologistId,
-          name: task.psychologist.user.name,
-          email: task.psychologist.user.email,
-        },
-        appointment: task.appointment
-          ? {
-              id: task.appointment.id,
-              title: task.appointment.title || "Consulta",
-              dateTime: task.appointment.dateTime.toISOString(),
-            }
-          : null,
-      })),
+      tasks: tasks.map(mapTask),
     });
   } catch (error: unknown) {
     console.error("Erro ao listar tarefas do paciente:", error);

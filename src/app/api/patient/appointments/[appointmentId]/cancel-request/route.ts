@@ -10,24 +10,91 @@ type Params = {
   }>;
 };
 
-export async function POST(req: NextRequest, context: Params) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patient) {
+    return {
+      error: NextResponse.json(
+        { error: "Paciente não encontrado." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+function normalizeReason(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function mapAppointment(appointment: {
+  id: string;
+  title: string | null;
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+  confirmationStatus: string;
+  confirmedAt: Date | null;
+  cancellationRequestedAt: Date | null;
+  cancellationRequestReason: string | null;
+  cancellationRequestStatus: string | null;
+}) {
+  return {
+    id: appointment.id,
+    title: appointment.title || "Consulta",
+    dateTime: appointment.dateTime.toISOString(),
+    endDateTime: appointment.endDateTime?.toISOString() || null,
+    status: appointment.status,
+    confirmationStatus: appointment.confirmationStatus,
+    confirmedAt: appointment.confirmedAt?.toISOString() || null,
+    cancellationRequestedAt:
+      appointment.cancellationRequestedAt?.toISOString() || null,
+    cancellationRequestReason: appointment.cancellationRequestReason || null,
+    cancellationRequestStatus: appointment.cancellationRequestStatus || null,
+  };
+}
+
+export async function POST(req: NextRequest, context: Params) {
   try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
     const { appointmentId } = await context.params;
     const body = await req.json();
 
-    const reason = String(body?.reason || "").trim();
+    const reason = normalizeReason(body?.reason);
 
     if (!reason) {
       return NextResponse.json(
@@ -36,23 +103,21 @@ export async function POST(req: NextRequest, context: Params) {
       );
     }
 
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!patient) {
+    if (reason.length > 1000) {
       return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
+        { error: "O motivo deve ter no máximo 1000 caracteres." },
+        { status: 400 },
       );
     }
 
     const appointment = await prisma.appointment.findFirst({
       where: {
         id: appointmentId,
-        patientId: patient.id,
+        patientId: auth.patient.id,
+      },
+      select: {
+        id: true,
+        status: true,
       },
     });
 
@@ -81,24 +146,22 @@ export async function POST(req: NextRequest, context: Params) {
         cancellationRequestStatus: "PENDING",
         confirmedAt: null,
       },
+      select: {
+        id: true,
+        title: true,
+        dateTime: true,
+        endDateTime: true,
+        status: true,
+        confirmationStatus: true,
+        confirmedAt: true,
+        cancellationRequestedAt: true,
+        cancellationRequestReason: true,
+        cancellationRequestStatus: true,
+      },
     });
 
     return NextResponse.json({
-      appointment: {
-        id: updatedAppointment.id,
-        title: updatedAppointment.title,
-        dateTime: updatedAppointment.dateTime.toISOString(),
-        endDateTime: updatedAppointment.endDateTime?.toISOString() || null,
-        status: updatedAppointment.status,
-        confirmationStatus: updatedAppointment.confirmationStatus,
-        confirmedAt: updatedAppointment.confirmedAt?.toISOString() || null,
-        cancellationRequestedAt:
-          updatedAppointment.cancellationRequestedAt?.toISOString() || null,
-        cancellationRequestReason:
-          updatedAppointment.cancellationRequestReason || null,
-        cancellationRequestStatus:
-          updatedAppointment.cancellationRequestStatus || null,
-      },
+      appointment: mapAppointment(updatedAppointment),
     });
   } catch (error: unknown) {
     console.error("Erro ao solicitar cancelamento:", error);
@@ -113,38 +176,24 @@ export async function POST(req: NextRequest, context: Params) {
 }
 
 export async function DELETE(req: NextRequest, context: Params) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
-  }
-
   try {
-    const { appointmentId } = await context.params;
+    const auth = await getAuthenticatedPatient(req);
 
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
-      );
+    if (auth.error) {
+      return auth.error;
     }
+
+    const { appointmentId } = await context.params;
 
     const appointment = await prisma.appointment.findFirst({
       where: {
         id: appointmentId,
-        patientId: patient.id,
+        patientId: auth.patient.id,
+      },
+      select: {
+        id: true,
+        status: true,
+        confirmationStatus: true,
       },
     });
 
@@ -181,32 +230,32 @@ export async function DELETE(req: NextRequest, context: Params) {
         cancellationRequestReason: null,
         cancellationRequestStatus: null,
       },
+      select: {
+        id: true,
+        title: true,
+        dateTime: true,
+        endDateTime: true,
+        status: true,
+        confirmationStatus: true,
+        confirmedAt: true,
+        cancellationRequestedAt: true,
+        cancellationRequestReason: true,
+        cancellationRequestStatus: true,
+      },
     });
 
     return NextResponse.json({
-      appointment: {
-        id: updatedAppointment.id,
-        title: updatedAppointment.title,
-        dateTime: updatedAppointment.dateTime.toISOString(),
-        endDateTime: updatedAppointment.endDateTime?.toISOString() || null,
-        status: updatedAppointment.status,
-        confirmationStatus: updatedAppointment.confirmationStatus,
-        confirmedAt: updatedAppointment.confirmedAt?.toISOString() || null,
-        cancellationRequestedAt:
-          updatedAppointment.cancellationRequestedAt?.toISOString() || null,
-        cancellationRequestReason:
-          updatedAppointment.cancellationRequestReason || null,
-        cancellationRequestStatus:
-          updatedAppointment.cancellationRequestStatus || null,
-      },
+      appointment: mapAppointment(updatedAppointment),
     });
   } catch (error: unknown) {
     console.error("Erro ao cancelar solicitação de cancelamento:", error);
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao cancelar solicitação de cancelamento."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao cancelar solicitação de cancelamento.",
+        ),
       },
       { status: 500 },
     );

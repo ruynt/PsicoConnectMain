@@ -10,39 +10,62 @@ type RouteContext = {
   }>;
 };
 
-export async function PATCH(req: NextRequest, context: RouteContext) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
-  try {
-    const { materialId } = await context.params;
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
 
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
+  if (!patient) {
+    return {
+      error: NextResponse.json(
         { error: "Paciente não encontrado." },
         { status: 404 },
-      );
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+export async function PATCH(req: NextRequest, context: RouteContext) {
+  try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
     }
+
+    const { materialId } = await context.params;
 
     const material = await prisma.patientMaterial.findFirst({
       where: {
         id: materialId,
-        patientId: patient.id,
+        patientId: auth.patient.id,
+      },
+      select: {
+        id: true,
+        viewedAt: true,
       },
     });
 
@@ -53,20 +76,29 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const updatedMaterial = await prisma.patientMaterial.update({
-      where: {
-        id: material.id,
-      },
-      data: {
-        viewedAt: material.viewedAt || new Date(),
-      },
-    });
+    let viewedAt = material.viewedAt;
+
+    if (!viewedAt) {
+      const updatedMaterial = await prisma.patientMaterial.update({
+        where: {
+          id: material.id,
+        },
+        data: {
+          viewedAt: new Date(),
+        },
+        select: {
+          viewedAt: true,
+        },
+      });
+
+      viewedAt = updatedMaterial.viewedAt;
+    }
 
     return NextResponse.json({
       message: "Material marcado como visualizado.",
       material: {
-        id: updatedMaterial.id,
-        viewedAt: updatedMaterial.viewedAt?.toISOString() || null,
+        id: material.id,
+        viewedAt: viewedAt?.toISOString() || null,
       },
     });
   } catch (error: unknown) {
@@ -74,8 +106,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao marcar material como visualizado."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao marcar material como visualizado.",
+        ),
       },
       { status: 500 },
     );

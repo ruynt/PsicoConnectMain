@@ -6,9 +6,41 @@ import type { Prisma } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
 
 type PatientAppointment = Prisma.AppointmentGetPayload<{
-  include: {
+  select: {
+    id: true;
+    title: true;
+    description: true;
+    location: true;
+    dateTime: true;
+    endDateTime: true;
+    status: true;
+    googleEventLink: true;
+
+    cancellationReason: true;
+    cancelledAt: true;
+
+    confirmationStatus: true;
+    confirmedAt: true;
+
+    cancellationRequestedAt: true;
+    cancellationRequestReason: true;
+    cancellationRequestStatus: true;
+
+    lastReminderSentAt: true;
+    reminderEmailSentAt: true;
+
+    paymentStatus: true;
+    paymentAmount: true;
+    paymentNote: true;
+    paidAt: true;
+
+    createdAt: true;
+    updatedAt: true;
+
     psychologist: {
-      include: {
+      select: {
+        id: true;
+        crp: true;
         user: {
           select: {
             name: true;
@@ -19,6 +51,44 @@ type PatientAppointment = Prisma.AppointmentGetPayload<{
     };
   };
 }>;
+
+async function getAuthenticatedPatient(req: NextRequest) {
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  if (!token || token.role !== "PATIENT") {
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado.", appointments: [] },
+        { status: 403 },
+      ),
+    };
+  }
+
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patient) {
+    return {
+      error: NextResponse.json(
+        { error: "Paciente não encontrado.", appointments: [] },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
 
 function mapAppointment(appointment: PatientAppointment) {
   return {
@@ -46,9 +116,10 @@ function mapAppointment(appointment: PatientAppointment) {
     reminderEmailSentAt: appointment.reminderEmailSentAt?.toISOString() || null,
 
     paymentStatus: appointment.paymentStatus,
-    paymentAmount: appointment.paymentAmount
-      ? Number(appointment.paymentAmount)
-      : null,
+    paymentAmount:
+      appointment.paymentAmount !== null && appointment.paymentAmount !== undefined
+        ? Number(appointment.paymentAmount)
+        : null,
     paymentNote: appointment.paymentNote || null,
     paidAt: appointment.paidAt?.toISOString() || null,
 
@@ -65,39 +136,52 @@ function mapAppointment(appointment: PatientAppointment) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado.", appointments: [] },
-      { status: 403 },
-    );
-  }
-
   try {
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
+    const auth = await getAuthenticatedPatient(req);
 
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Paciente não encontrado.", appointments: [] },
-        { status: 404 },
-      );
+    if (auth.error) {
+      return auth.error;
     }
 
     const appointments = await prisma.appointment.findMany({
       where: {
-        patientId: patient.id,
+        patientId: auth.patient.id,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        dateTime: true,
+        endDateTime: true,
+        status: true,
+        googleEventLink: true,
+
+        cancellationReason: true,
+        cancelledAt: true,
+
+        confirmationStatus: true,
+        confirmedAt: true,
+
+        cancellationRequestedAt: true,
+        cancellationRequestReason: true,
+        cancellationRequestStatus: true,
+
+        lastReminderSentAt: true,
+        reminderEmailSentAt: true,
+
+        paymentStatus: true,
+        paymentAmount: true,
+        paymentNote: true,
+        paidAt: true,
+
+        createdAt: true,
+        updatedAt: true,
+
         psychologist: {
-          include: {
+          select: {
+            id: true,
+            crp: true,
             user: {
               select: {
                 name: true,
@@ -120,8 +204,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao listar consultas do paciente."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao listar consultas do paciente.",
+        ),
         appointments: [],
       },
       { status: 500 },

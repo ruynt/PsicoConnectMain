@@ -4,40 +4,70 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-export async function GET(req: NextRequest) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado.", materials: [] },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado.", materials: [] },
+        { status: 403 },
+      ),
+    };
   }
 
-  try {
-    const patient = await prisma.patient.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
 
-    if (!patient) {
-      return NextResponse.json(
+  if (!patient) {
+    return {
+      error: NextResponse.json(
         { error: "Paciente não encontrado.", materials: [] },
         { status: 404 },
-      );
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
     }
 
     const materials = await prisma.patientMaterial.findMany({
       where: {
-        patientId: patient.id,
+        patientId: auth.patient.id,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        url: true,
+        content: true,
+        viewedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        psychologistId: true,
         psychologist: {
-          include: {
+          select: {
+            id: true,
             user: {
               select: {
                 name: true,
@@ -64,7 +94,7 @@ export async function GET(req: NextRequest) {
         createdAt: material.createdAt.toISOString(),
         updatedAt: material.updatedAt.toISOString(),
         psychologist: {
-          id: material.psychologistId,
+          id: material.psychologist.id || material.psychologistId,
           name: material.psychologist.user.name,
           email: material.psychologist.user.email,
         },

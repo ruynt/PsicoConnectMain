@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+
+const MAX_PROMPT_LENGTH = 2000;
+const MAX_HISTORY_ITEMS = 12;
+const MAX_HISTORY_TEXT_LENGTH = 1500;
 
 type ChatHistoryItem = {
   role: string;
@@ -36,6 +42,42 @@ type GeminiResponse = {
   }[];
 };
 
+function normalizePrompt(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function normalizeHistory(value: unknown): ChatHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .slice(-MAX_HISTORY_ITEMS)
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const record = item as Record<string, unknown>;
+      const role = record.role === "model" ? "model" : "user";
+      const text = normalizePrompt(record.text).slice(0, MAX_HISTORY_TEXT_LENGTH);
+
+      if (!text) {
+        return null;
+      }
+
+      return {
+        role,
+        text,
+      };
+    })
+    .filter(Boolean) as ChatHistoryItem[];
+}
+
 function formatHistory(history: ChatHistoryItem[]): GeminiContent[] {
   return history.map((message) => ({
     role: message.role,
@@ -55,7 +97,19 @@ function getSources(result: GeminiResponse): GeminiSource[] {
     .filter((source) => Boolean(source.uri && source.title));
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  if (!token?.id) {
+    return NextResponse.json(
+      { error: "Acesso não autorizado." },
+      { status: 403 },
+    );
+  }
+
   if (!GEMINI_API_KEY) {
     return NextResponse.json(
       { error: "Chave GEMINI_API_KEY não configurada no servidor." },
@@ -64,12 +118,25 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { prompt, history } = (await req.json()) as {
-      prompt: string;
-      history: ChatHistoryItem[];
-    };
+    const body = await req.json().catch(() => ({}));
+    const prompt = normalizePrompt(body?.prompt);
+    const history = normalizeHistory(body?.history);
 
-    const contents = formatHistory(history || []);
+    if (!prompt) {
+      return NextResponse.json(
+        { error: "Mensagem inválida ou ausente." },
+        { status: 400 },
+      );
+    }
+
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      return NextResponse.json(
+        { error: `A mensagem deve ter no máximo ${MAX_PROMPT_LENGTH} caracteres.` },
+        { status: 400 },
+      );
+    }
+
+    const contents = formatHistory(history);
     contents.push({ role: "user", parts: [{ text: prompt }] });
 
     const systemInstruction =

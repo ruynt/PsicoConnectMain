@@ -4,7 +4,62 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-async function getPsychologistFromToken(req: NextRequest) {
+type RouteContext = {
+  params: Promise<{
+    id: string;
+    noteId: string;
+  }>;
+};
+
+function normalizeText(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed || null;
+}
+
+function mapNote(note: {
+  id: string;
+  title: string | null;
+  content: string;
+  archived: boolean;
+  archivedAt: Date | null;
+  patientId: string;
+  appointmentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  appointment?: {
+    id: string;
+    title: string | null;
+    dateTime: Date;
+    status: string;
+  } | null;
+}) {
+  return {
+    id: note.id,
+    title: note.title || "",
+    content: note.content,
+    archived: note.archived,
+    archivedAt: note.archivedAt?.toISOString() || null,
+    patientId: note.patientId,
+    appointmentId: note.appointmentId,
+    appointment: note.appointment
+      ? {
+          id: note.appointment.id,
+          title: note.appointment.title || "Consulta",
+          dateTime: note.appointment.dateTime.toISOString(),
+          status: note.appointment.status,
+        }
+      : null,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+  };
+}
+
+async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -16,13 +71,15 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Acesso não autorizado." },
         { status: 403 },
       ),
-      psychologist: null,
     };
   }
 
   const psychologist = await prisma.psychologist.findUnique({
     where: {
       userId: String(token.id),
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -32,30 +89,37 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Psicólogo não encontrado." },
         { status: 404 },
       ),
-      psychologist: null,
     };
   }
 
-  return {
-    error: null,
-    psychologist,
-  };
-}
-
-async function checkPatientAccess(patientId: string, psychologistId: string) {
   const patientAccess = await prisma.patient.findFirst({
     where: {
       id: patientId,
       psychologistLinks: {
         some: {
-          psychologistId,
+          psychologistId: psychologist.id,
           active: true,
         },
       },
     },
+    select: {
+      id: true,
+    },
   });
 
-  return patientAccess;
+  if (!patientAccess) {
+    return {
+      error: NextResponse.json(
+        { error: "Você não tem acesso a este paciente." },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return {
+    psychologist,
+    patient: patientAccess,
+  };
 }
 
 async function validateAppointmentLink(
@@ -69,29 +133,22 @@ async function validateAppointmentLink(
     };
   }
 
-  const appointment = await prisma.appointment.findUnique({
+  const appointment = await prisma.appointment.findFirst({
     where: {
       id: appointmentId,
+      patientId,
+      psychologistId,
+    },
+    select: {
+      id: true,
     },
   });
 
   if (!appointment) {
     return {
       error: NextResponse.json(
-        { error: "Consulta não encontrada." },
+        { error: "Consulta não encontrada para este paciente." },
         { status: 404 },
-      ),
-    };
-  }
-
-  if (
-    appointment.patientId !== patientId ||
-    appointment.psychologistId !== psychologistId
-  ) {
-    return {
-      error: NextResponse.json(
-        { error: "Consulta não pertence a este paciente ou psicólogo." },
-        { status: 403 },
       ),
     };
   }
@@ -101,33 +158,24 @@ async function validateAppointmentLink(
   };
 }
 
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ id: string; noteId: string }> },
-) {
+export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const { id, noteId } = await context.params;
+    const { id: patientId, noteId } = await context.params;
 
-    const { error, psychologist } = await getPsychologistFromToken(req);
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (error || !psychologist) {
-      return error;
-    }
-
-    const patientAccess = await checkPatientAccess(id, psychologist.id);
-
-    if (!patientAccess) {
-      return NextResponse.json(
-        { error: "Você não tem acesso a este paciente." },
-        { status: 403 },
-      );
+    if (auth.error) {
+      return auth.error;
     }
 
     const note = await prisma.sessionNote.findFirst({
       where: {
         id: noteId,
-        patientId: id,
-        psychologistId: psychologist.id,
+        patientId: auth.patient.id,
+        psychologistId: auth.psychologist.id,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -140,21 +188,35 @@ export async function PATCH(
 
     const body = await req.json();
 
-    const { title, content, appointmentId } = body;
+    const title = normalizeText(body.title);
+    const content = normalizeText(body.content);
+    const appointmentId = normalizeText(body.appointmentId);
 
-    if (!content || !content.trim()) {
+    if (!content) {
       return NextResponse.json(
         { error: "O conteúdo da anotação é obrigatório." },
         { status: 400 },
       );
     }
 
-    const normalizedAppointmentId = appointmentId || null;
+    if (title && title.length > 120) {
+      return NextResponse.json(
+        { error: "O título deve ter no máximo 120 caracteres." },
+        { status: 400 },
+      );
+    }
+
+    if (content.length > 10000) {
+      return NextResponse.json(
+        { error: "O conteúdo deve ter no máximo 10000 caracteres." },
+        { status: 400 },
+      );
+    }
 
     const appointmentValidation = await validateAppointmentLink(
-      normalizedAppointmentId,
-      id,
-      psychologist.id,
+      appointmentId,
+      auth.patient.id,
+      auth.psychologist.id,
     );
 
     if (appointmentValidation.error) {
@@ -166,25 +228,15 @@ export async function PATCH(
         id: note.id,
       },
       data: {
-        title: title?.trim() || null,
-        content: content.trim(),
-        appointmentId: normalizedAppointmentId,
+        title,
+        content,
+        appointmentId,
       },
     });
 
     return NextResponse.json({
       message: "Anotação atualizada com sucesso.",
-      note: {
-        id: updatedNote.id,
-        title: updatedNote.title || "",
-        content: updatedNote.content,
-        archived: updatedNote.archived,
-        archivedAt: updatedNote.archivedAt?.toISOString() || null,
-        patientId: updatedNote.patientId,
-        appointmentId: updatedNote.appointmentId,
-        createdAt: updatedNote.createdAt.toISOString(),
-        updatedAt: updatedNote.updatedAt.toISOString(),
-      },
+      note: mapNote(updatedNote),
     });
   } catch (error: unknown) {
     console.error("Erro ao atualizar anotação:", error);
@@ -198,33 +250,25 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  context: { params: Promise<{ id: string; noteId: string }> },
-) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const { id, noteId } = await context.params;
+    const { id: patientId, noteId } = await context.params;
 
-    const { error, psychologist } = await getPsychologistFromToken(req);
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (error || !psychologist) {
-      return error;
-    }
-
-    const patientAccess = await checkPatientAccess(id, psychologist.id);
-
-    if (!patientAccess) {
-      return NextResponse.json(
-        { error: "Você não tem acesso a este paciente." },
-        { status: 403 },
-      );
+    if (auth.error) {
+      return auth.error;
     }
 
     const note = await prisma.sessionNote.findFirst({
       where: {
         id: noteId,
-        patientId: id,
-        psychologistId: psychologist.id,
+        patientId: auth.patient.id,
+        psychologistId: auth.psychologist.id,
+      },
+      select: {
+        id: true,
+        archived: true,
       },
     });
 
@@ -254,17 +298,7 @@ export async function DELETE(
 
     return NextResponse.json({
       message: "Anotação arquivada com sucesso.",
-      note: {
-        id: archivedNote.id,
-        title: archivedNote.title || "",
-        content: archivedNote.content,
-        archived: archivedNote.archived,
-        archivedAt: archivedNote.archivedAt?.toISOString() || null,
-        patientId: archivedNote.patientId,
-        appointmentId: archivedNote.appointmentId,
-        createdAt: archivedNote.createdAt.toISOString(),
-        updatedAt: archivedNote.updatedAt.toISOString(),
-      },
+      note: mapNote(archivedNote),
     });
   } catch (error: unknown) {
     console.error("Erro ao arquivar anotação:", error);

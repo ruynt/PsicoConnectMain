@@ -4,24 +4,62 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-export async function POST(req: NextRequest) {
+function normalizeEmail(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().toLowerCase();
+}
+
+async function getAuthorizedPsychologist(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PSYCHOLOGIST") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const psychologist = await prisma.psychologist.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!psychologist) {
+    return {
+      error: NextResponse.json(
+        { error: "Psicólogo não encontrado para este usuário." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    psychologist,
+  };
+}
+
+export async function POST(req: NextRequest) {
   try {
+    const auth = await getAuthorizedPsychologist(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
     const body = await req.json();
-    const email = String(body.email || "")
-      .trim()
-      .toLowerCase();
+    const email = normalizeEmail(body.email);
 
     if (!email) {
       return NextResponse.json(
@@ -30,16 +68,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const psychologist = await prisma.psychologist.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!psychologist) {
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
       return NextResponse.json(
-        { error: "Psicólogo não encontrado para este usuário." },
-        { status: 404 },
+        { error: "Informe um e-mail válido." },
+        { status: 400 },
       );
     }
 
@@ -47,8 +79,16 @@ export async function POST(req: NextRequest) {
       where: {
         email,
       },
-      include: {
-        patient: true,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        patient: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
@@ -72,7 +112,7 @@ export async function POST(req: NextRequest) {
     const link = await prisma.psychologistPatient.upsert({
       where: {
         psychologistId_patientId: {
-          psychologistId: psychologist.id,
+          psychologistId: auth.psychologist.id,
           patientId: user.patient.id,
         },
       },
@@ -80,9 +120,17 @@ export async function POST(req: NextRequest) {
         active: true,
       },
       create: {
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
         patientId: user.patient.id,
         active: true,
+      },
+      select: {
+        id: true,
+        psychologistId: true,
+        patientId: true,
+        active: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 

@@ -36,7 +36,7 @@ export async function GET(
       );
     }
 
-    const patientAccess = await prisma.patient.findFirst({
+    const patient = await prisma.patient.findFirst({
       where: {
         id,
         psychologistLinks: {
@@ -45,19 +45,6 @@ export async function GET(
             active: true,
           },
         },
-      },
-    });
-
-    if (!patientAccess) {
-      return NextResponse.json(
-        { error: "Você não tem acesso a este paciente." },
-        { status: 403 },
-      );
-    }
-
-    const patient = await prisma.patient.findUnique({
-      where: {
-        id,
       },
       include: {
         user: {
@@ -85,8 +72,8 @@ export async function GET(
 
     if (!patient) {
       return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
+        { error: "Você não tem acesso a este paciente." },
+        { status: 403 },
       );
     }
 

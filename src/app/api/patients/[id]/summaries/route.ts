@@ -28,6 +28,9 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
     where: {
       userId: String(token.id),
     },
+    select: {
+      id: true,
+    },
   });
 
   if (!psychologist) {
@@ -45,6 +48,9 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
       psychologistId: psychologist.id,
       active: true,
     },
+    select: {
+      id: true,
+    },
   });
 
   if (!patientLink) {
@@ -59,6 +65,36 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   return {
     psychologist,
   };
+}
+
+function parseGeneratedAt(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function parseSourceNotesCount(value: unknown) {
+  if (typeof value !== "number") {
+    return null;
+  }
+
+  if (!Number.isInteger(value) || value < 0) {
+    return null;
+  }
+
+  return value;
 }
 
 export async function GET(req: NextRequest, context: RouteContext) {
@@ -121,10 +157,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const sourceNotesCount =
-      typeof body.sourceNotesCount === "number" ? body.sourceNotesCount : null;
-
-    const generatedAt = body.generatedAt ? new Date(body.generatedAt) : null;
+    const sourceNotesCount = parseSourceNotesCount(body.sourceNotesCount);
+    const generatedAt = parseGeneratedAt(body.generatedAt);
 
     const summary = await prisma.patientSummary.create({
       data: {

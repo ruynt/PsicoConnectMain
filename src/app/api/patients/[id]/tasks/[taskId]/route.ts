@@ -13,28 +13,74 @@ type RouteContext = {
 };
 
 function normalizeText(value: unknown) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
   return trimmed || null;
 }
 
-function normalizeDate(value: unknown) {
-  if (typeof value !== "string" || !value) return null;
+function parseDueDate(value: unknown) {
+  if (value === null || value === "") {
+    return {
+      valid: true,
+      date: null,
+    };
+  }
+
+  if (typeof value !== "string") {
+    return {
+      valid: false,
+      date: null,
+    };
+  }
 
   const date = new Date(`${value}T00:00:00-03:00`);
 
-  if (Number.isNaN(date.getTime())) return null;
+  if (Number.isNaN(date.getTime())) {
+    return {
+      valid: false,
+      date: null,
+    };
+  }
 
-  return date;
+  return {
+    valid: true,
+    date,
+  };
 }
 
 function isValidStatus(value: unknown): value is TherapeuticTaskStatus {
   return value === "PENDING" || value === "COMPLETED" || value === "CANCELLED";
 }
 
-async function getPsychologistFromToken(req: NextRequest) {
+function mapTask(task: {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: Date | null;
+  status: TherapeuticTaskStatus;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description || "",
+    dueDate: task.dueDate?.toISOString() || null,
+    status: task.status,
+    completedAt: task.completedAt?.toISOString() || null,
+    cancelledAt: task.cancelledAt?.toISOString() || null,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
+async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -46,13 +92,15 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Acesso não autorizado." },
         { status: 403 },
       ),
-      psychologist: null,
     };
   }
 
   const psychologist = await prisma.psychologist.findUnique({
     where: {
       userId: String(token.id),
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -62,12 +110,30 @@ async function getPsychologistFromToken(req: NextRequest) {
         { error: "Psicólogo não encontrado." },
         { status: 404 },
       ),
-      psychologist: null,
+    };
+  }
+
+  const patientLink = await prisma.psychologistPatient.findFirst({
+    where: {
+      patientId,
+      psychologistId: psychologist.id,
+      active: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patientLink) {
+    return {
+      error: NextResponse.json(
+        { error: "Você não possui vínculo ativo com este paciente." },
+        { status: 403 },
+      ),
     };
   }
 
   return {
-    error: null,
     psychologist,
   };
 }
@@ -76,10 +142,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const { id: patientId, taskId } = await context.params;
 
-    const { error, psychologist } = await getPsychologistFromToken(req);
+    const auth = await getAuthorizedPsychologist(req, patientId);
 
-    if (error || !psychologist) {
-      return error;
+    if (auth.error) {
+      return auth.error;
     }
 
     const body = await req.json();
@@ -88,7 +154,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       where: {
         id: taskId,
         patientId,
-        psychologistId: psychologist.id,
+        psychologistId: auth.psychologist.id,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -111,15 +180,40 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         );
       }
 
+      if (title.length > 120) {
+        return NextResponse.json(
+          { error: "O título deve ter no máximo 120 caracteres." },
+          { status: 400 },
+        );
+      }
+
       data.title = title;
     }
 
     if (body.description !== undefined) {
-      data.description = normalizeText(body.description);
+      const description = normalizeText(body.description);
+
+      if (description && description.length > 1000) {
+        return NextResponse.json(
+          { error: "A descrição deve ter no máximo 1000 caracteres." },
+          { status: 400 },
+        );
+      }
+
+      data.description = description;
     }
 
     if (body.dueDate !== undefined) {
-      data.dueDate = normalizeDate(body.dueDate);
+      const dueDate = parseDueDate(body.dueDate);
+
+      if (!dueDate.valid) {
+        return NextResponse.json(
+          { error: "Informe uma data válida para o prazo da tarefa." },
+          { status: 400 },
+        );
+      }
+
+      data.dueDate = dueDate.date;
     }
 
     if (body.status !== undefined) {
@@ -150,26 +244,23 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       }
     }
 
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(
+        { error: "Nenhum dado informado para atualizar." },
+        { status: 400 },
+      );
+    }
+
     const task = await prisma.therapeuticTask.update({
       where: {
-        id: taskId,
+        id: existingTask.id,
       },
       data,
     });
 
     return NextResponse.json({
       message: "Tarefa atualizada com sucesso.",
-      task: {
-        id: task.id,
-        title: task.title,
-        description: task.description || "",
-        dueDate: task.dueDate?.toISOString() || null,
-        status: task.status,
-        completedAt: task.completedAt?.toISOString() || null,
-        cancelledAt: task.cancelledAt?.toISOString() || null,
-        createdAt: task.createdAt.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
-      },
+      task: mapTask(task),
     });
   } catch (error: unknown) {
     console.error("Erro ao atualizar tarefa terapêutica:", error);

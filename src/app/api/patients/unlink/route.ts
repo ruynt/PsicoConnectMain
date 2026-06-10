@@ -4,22 +4,62 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-export async function POST(req: NextRequest) {
+function normalizeText(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+async function getAuthorizedPsychologist(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PSYCHOLOGIST") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado." },
+        { status: 403 },
+      ),
+    };
   }
 
+  const psychologist = await prisma.psychologist.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!psychologist) {
+    return {
+      error: NextResponse.json(
+        { error: "Psicólogo não encontrado para este usuário." },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    psychologist,
+  };
+}
+
+export async function POST(req: NextRequest) {
   try {
+    const auth = await getAuthorizedPsychologist(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
     const body = await req.json();
-    const { patientId } = body;
+    const patientId = normalizeText(body.patientId);
 
     if (!patientId) {
       return NextResponse.json(
@@ -28,25 +68,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const psychologist = await prisma.psychologist.findUnique({
-      where: {
-        userId: String(token.id),
-      },
-    });
-
-    if (!psychologist) {
-      return NextResponse.json(
-        { error: "Psicólogo não encontrado para este usuário." },
-        { status: 404 },
-      );
-    }
-
     const link = await prisma.psychologistPatient.findUnique({
       where: {
         psychologistId_patientId: {
-          psychologistId: psychologist.id,
+          psychologistId: auth.psychologist.id,
           patientId,
         },
+      },
+      select: {
+        id: true,
+        active: true,
       },
     });
 
@@ -63,6 +94,14 @@ export async function POST(req: NextRequest) {
       },
       data: {
         active: false,
+      },
+      select: {
+        id: true,
+        psychologistId: true,
+        patientId: true,
+        active: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 

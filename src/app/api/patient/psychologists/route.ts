@@ -4,61 +4,93 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
-export async function GET(req: NextRequest) {
+async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   if (!token || token.role !== "PATIENT") {
-    return NextResponse.json(
-      { error: "Acesso não autorizado." },
-      { status: 403 },
-    );
+    return {
+      error: NextResponse.json(
+        { error: "Acesso não autorizado.", psychologists: [] },
+        { status: 403 },
+      ),
+    };
   }
 
+  const patient = await prisma.patient.findUnique({
+    where: {
+      userId: String(token.id),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!patient) {
+    return {
+      error: NextResponse.json(
+        { error: "Paciente não encontrado.", psychologists: [] },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    patient,
+  };
+}
+
+export async function GET(req: NextRequest) {
   try {
-    const patient = await prisma.patient.findUnique({
+    const auth = await getAuthenticatedPatient(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
+    const links = await prisma.psychologistPatient.findMany({
       where: {
-        userId: String(token.id),
+        patientId: auth.patient.id,
+        active: true,
       },
-      include: {
-        psychologistLinks: {
-          where: {
-            active: true,
-          },
-          include: {
-            psychologist: {
-              include: {
-                user: {
-                  select: {
-                    name: true,
-                    email: true,
-                    profileImageUrl: true,
-                    phone: true,
-                    city: true,
-                    state: true,
-                    bio: true,
-                  },
-                },
+      select: {
+        id: true,
+        createdAt: true,
+        psychologist: {
+          select: {
+            id: true,
+            crp: true,
+            crpState: true,
+            crpRegion: true,
+            crpNumber: true,
+            professionalTitle: true,
+            approach: true,
+            specialties: true,
+            education: true,
+            targetAudience: true,
+            instagramUrl: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+                profileImageUrl: true,
+                phone: true,
+                city: true,
+                state: true,
+                bio: true,
               },
             },
           },
-          orderBy: {
-            createdAt: "desc",
-          },
         },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Paciente não encontrado." },
-        { status: 404 },
-      );
-    }
-
-    const psychologists = patient.psychologistLinks.map((link) => {
+    const psychologists = links.map((link) => {
       const psychologist = link.psychologist;
 
       return {
@@ -97,8 +129,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao buscar psicólogos vinculados."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao buscar psicólogos vinculados.",
+        ),
+        psychologists: [],
       },
       { status: 500 },
     );
