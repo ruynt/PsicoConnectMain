@@ -502,7 +502,7 @@ export default function SignupPage() {
                   <span>
                     Li e aceito os{" "}
                     <Link
-                      href="/legal#termos"
+                      href="/termos-de-uso"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -510,7 +510,7 @@ export default function SignupPage() {
                     </Link>{" "}
                     e a{" "}
                     <Link
-                      href="/legal#privacidade"
+                      href="/politica-de-privacidade"
                       target="_blank"
                       rel="noopener noreferrer"
                     >

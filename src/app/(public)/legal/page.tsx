@@ -3,6 +3,49 @@ import { legalBlocks } from "@/lib/legal/legalContent";
 import LegalHashScroller from "./LegalHashScroller";
 import styles from "./legal.module.css";
 
+const legalHubLinks = [
+  {
+    id: "termos",
+    title: "Termos de Uso",
+    description:
+      "Regras de acesso, responsabilidades dos usuários e limites de uso da plataforma.",
+    href: "/termos-de-uso",
+    icon: "fa-solid fa-file-contract",
+  },
+  {
+    id: "privacidade",
+    title: "Política de Privacidade",
+    description:
+      "Tratamento de dados pessoais, dados sensíveis, segurança e uso do Google Calendar.",
+    href: "/politica-de-privacidade",
+    icon: "fa-solid fa-user-shield",
+  },
+  {
+    id: "exclusao-dados",
+    title: "Exclusão de Dados",
+    description:
+      "Como solicitar exclusão de conta, dados pessoais e desconexão do Google Calendar.",
+    href: "/exclusao-de-dados",
+    icon: "fa-solid fa-user-slash",
+  },
+  {
+    id: "dados-sensiveis",
+    title: "Dados Sensíveis",
+    description:
+      "Consentimento para tratamento de dados relacionados à saúde mental e acompanhamento psicológico.",
+    href: "#dados-sensiveis",
+    icon: "fa-solid fa-lock",
+  },
+  {
+    id: "ia",
+    title: "Uso da Inteligência Artificial",
+    description:
+      "Limites do PsicoBot, necessidade de revisão profissional e uso responsável da IA.",
+    href: "#ia",
+    icon: "fa-solid fa-brain",
+  },
+];
+
 export const metadata = {
   title: "Termos e Privacidade | PsicoConnect",
   description:
@@ -27,9 +70,10 @@ export default function LegalPage() {
             <h1>Termos, Privacidade e Consentimentos</h1>
 
             <p>
-              Consulte as regras de uso do PsicoConnect, a política de
-              privacidade, os limites do uso da inteligência artificial e o
-              consentimento para tratamento de dados sensíveis.
+              Consulte os documentos legais do PsicoConnect, incluindo
+              termos de uso, política de privacidade, exclusão de dados,
+              consentimento para dados sensíveis e limites da inteligência
+              artificial.
             </p>
 
             <span className={styles.updated}>
@@ -39,6 +83,37 @@ export default function LegalPage() {
         </div>
       </section>
 
+
+      <section className={styles.hubSection} aria-label="Central legal">
+        <div className={styles.hubInner}>
+          <div className={styles.hubHeader}>
+            <span className={styles.badge}>Central legal</span>
+            <h2>Documentos principais</h2>
+            <p>
+              Estes links ficam separados para facilitar a revisão do Google,
+              o acesso dos usuários e a consulta durante o cadastro.
+            </p>
+          </div>
+
+          <div className={styles.hubGrid}>
+            {legalHubLinks.map((item) => (
+              <Link
+                key={item.id}
+                id={`atalho-${item.id}`}
+                href={item.href}
+                className={styles.hubCard}
+              >
+                <span className={styles.hubIcon}>
+                  <i className={item.icon} aria-hidden="true" />
+                </span>
+
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
       <section className={styles.contentSection}>
         <div className={styles.contentInner}>
           <aside className={styles.navigationCard}>

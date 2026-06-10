@@ -194,7 +194,9 @@ export default function LandingPage() {
             <a href="#inicio">Início</a>
             <a href="#como-funciona">Como funciona</a>
             <a href="#sobre">Sobre</a>
-            <Link href="/legal">Termos e Privacidade</Link>
+            <Link href="/termos-de-uso">Termos de Uso</Link>
+            <Link href="/politica-de-privacidade">Privacidade</Link>
+            <Link href="/exclusao-de-dados">Exclusão de Dados</Link>
           </div>
         </div>
 

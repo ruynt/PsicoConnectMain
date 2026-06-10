@@ -184,6 +184,9 @@ function isPublicPath(pathname: string) {
     pathname === "/forgot-password" ||
     pathname === "/legal" ||
     pathname.startsWith("/legal/") ||
+    pathname === "/termos-de-uso" ||
+    pathname === "/politica-de-privacidade" ||
+    pathname === "/exclusao-de-dados" ||
     pathname.startsWith("/reset-password/") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/signup") ||

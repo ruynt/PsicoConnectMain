@@ -154,7 +154,22 @@ export const legalBlocks: LegalBlock[] = [
         ],
       },
       {
-        heading: "5. Compartilhamento de dados",
+        heading: "5. Uso de dados do Google Calendar",
+        paragraphs: [
+          "O PsicoConnect pode solicitar acesso ao Google Calendar somente quando o psicólogo optar por conectar voluntariamente sua agenda Google à plataforma.",
+          "Essa integração é usada para permitir a organização da agenda profissional, a criação de eventos de consulta e a sincronização de informações de calendário relacionadas às consultas cadastradas pelo próprio psicólogo.",
+          "Os dados obtidos por meio da integração com Google Calendar não são vendidos, não são usados para publicidade, não são compartilhados com terceiros para finalidades externas ao funcionamento da plataforma e não são utilizados para treinamento de modelos de inteligência artificial.",
+          "O usuário pode desconectar a integração com Google Calendar a qualquer momento pela área de agenda da plataforma ou revogar o acesso diretamente nas configurações da própria conta Google.",
+        ],
+        items: [
+          "Escopo utilizado: acesso a eventos do calendário necessário para criar e gerenciar eventos de consulta autorizados pelo usuário.",
+          "Finalidade: sincronização e organização de consultas na agenda do psicólogo.",
+          "Compartilhamento: não há venda, publicidade ou compartilhamento externo dos dados do Google Calendar.",
+          "Controle do usuário: a conexão pode ser removida pelo usuário quando desejar.",
+        ],
+      },
+      {
+        heading: "6. Compartilhamento de dados",
         paragraphs: [
           "O PsicoConnect não vende dados pessoais de usuários.",
           "Dados poderão ser compartilhados apenas quando necessário para funcionamento da plataforma, cumprimento de obrigações legais, segurança ou prestação dos serviços contratados.",
@@ -169,14 +184,14 @@ export const legalBlocks: LegalBlock[] = [
         ],
       },
       {
-        heading: "6. Cookies",
+        heading: "7. Cookies",
         paragraphs: [
           "A plataforma poderá utilizar cookies essenciais para autenticação, manutenção de sessão, segurança e funcionamento básico do sistema.",
           "A desativação de cookies essenciais pode impedir o uso adequado de determinadas funcionalidades.",
         ],
       },
       {
-        heading: "7. Segurança da informação",
+        heading: "8. Segurança da informação",
         paragraphs: [
           "O PsicoConnect adota medidas técnicas e administrativas razoáveis para proteger dados pessoais contra acessos não autorizados, perda, alteração, comunicação indevida ou tratamento inadequado.",
         ],
@@ -190,28 +205,72 @@ export const legalBlocks: LegalBlock[] = [
         ],
       },
       {
-        heading: "8. Direitos do titular",
+        heading: "9. Direitos do titular",
         paragraphs: [
           "O titular dos dados poderá solicitar, nos termos da legislação aplicável, confirmação de tratamento, acesso, correção, anonimização, bloqueio, eliminação, portabilidade, informação sobre compartilhamento e revogação do consentimento, quando aplicável.",
         ],
       },
       {
-        heading: "9. Retenção e exclusão",
+        heading: "10. Retenção e exclusão",
         paragraphs: [
           "Os dados pessoais serão mantidos pelo tempo necessário para cumprir as finalidades descritas nesta Política, atender obrigações legais, preservar direitos, manter registros de segurança ou viabilizar a prestação dos serviços.",
           "A exclusão de dados poderá ser solicitada pelo usuário, observadas hipóteses em que a retenção seja permitida ou exigida por lei, por obrigação profissional, segurança ou exercício regular de direitos.",
         ],
       },
       {
-        heading: "10. Crianças e adolescentes",
+        heading: "11. Crianças e adolescentes",
         paragraphs: [
           "Quando a plataforma envolver dados de crianças ou adolescentes, deverão ser observados cuidados adicionais de privacidade, segurança, consentimento de responsáveis legais quando aplicável e melhor interesse do menor.",
         ],
       },
       {
-        heading: "11. Alterações desta Política",
+        heading: "12. Alterações desta Política",
         paragraphs: [
           "Esta Política poderá ser atualizada periodicamente para refletir mudanças legais, técnicas, operacionais ou comerciais.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "exclusao-dados",
+    title: "Exclusão de Dados",
+    summary:
+      "Como o usuário pode solicitar exclusão de conta, dados pessoais e desconexão do Google Calendar.",
+    content: [
+      {
+        heading: "1. Solicitação de exclusão",
+        paragraphs: [
+          "O usuário poderá solicitar a exclusão de sua conta e de seus dados pessoais pelos canais oficiais de suporte do PsicoConnect.",
+          "A solicitação será analisada considerando a identidade do solicitante, o tipo de conta, os vínculos existentes e eventuais obrigações legais, profissionais, técnicas ou de segurança que possam justificar a retenção de determinadas informações por período necessário.",
+        ],
+      },
+      {
+        heading: "2. Dados que podem ser excluídos",
+        items: [
+          "Dados cadastrais, como nome, telefone, cidade, estado, bio e foto de perfil.",
+          "Dados de uso vinculados à conta, quando não houver obrigação de retenção.",
+          "Vínculos, registros e conteúdos inseridos na plataforma, observadas as responsabilidades profissionais e legais aplicáveis.",
+          "Tokens ou registros técnicos de integrações externas, como Google Calendar, quando aplicável.",
+        ],
+      },
+      {
+        heading: "3. Desconexão do Google Calendar",
+        paragraphs: [
+          "O psicólogo pode desconectar a integração com Google Calendar pela área de agenda da plataforma.",
+          "Após a desconexão, o PsicoConnect deixa de utilizar novos acessos ao calendário do usuário, sem prejuízo de registros já necessários para histórico, segurança ou cumprimento de obrigações aplicáveis.",
+          "O usuário também pode revogar o acesso do PsicoConnect diretamente nas configurações de segurança e privacidade da própria conta Google.",
+        ],
+      },
+      {
+        heading: "4. Retenção necessária",
+        paragraphs: [
+          "Alguns dados poderão ser mantidos quando a retenção for necessária para cumprimento de obrigação legal ou regulatória, exercício regular de direitos, segurança, prevenção a fraude, auditoria, registro de consentimentos ou responsabilidades profissionais relacionadas ao acompanhamento psicológico.",
+        ],
+      },
+      {
+        heading: "5. Canal de contato",
+        paragraphs: [
+          "Para solicitar exclusão, correção, revogação de consentimento ou esclarecimentos sobre dados pessoais, o usuário deve entrar em contato pelo canal de suporte informado na plataforma ou pelo e-mail oficial cadastrado na Google Auth Platform.",
         ],
       },
     ],
