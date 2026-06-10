@@ -6,8 +6,12 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
 
 const MAX_PROMPT_LENGTH = 2000;
-const MAX_HISTORY_ITEMS = 12;
-const MAX_HISTORY_TEXT_LENGTH = 1500;
+const MAX_HISTORY_ITEMS = 10;
+const MAX_HISTORY_TEXT_LENGTH = 1200;
+const MAX_SOURCES = 5;
+const MAX_SOURCE_TITLE_LENGTH = 160;
+const MAX_SOURCE_URI_LENGTH = 700;
+const ALLOWED_ROLES = ["ADMIN", "PSYCHOLOGIST", "PATIENT"] as const;
 
 type ChatHistoryItem = {
   role: string;
@@ -47,7 +51,29 @@ function normalizePrompt(value: unknown) {
     return "";
   }
 
-  return value.trim();
+  return value.replace(/\0/g, "").trim();
+}
+
+function isAllowedRole(value: unknown) {
+  return ALLOWED_ROLES.includes(String(value) as (typeof ALLOWED_ROLES)[number]);
+}
+
+function normalizeSourceUri(value: string) {
+  if (!value || value.length > MAX_SOURCE_URI_LENGTH) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "";
+    }
+
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 function normalizeHistory(value: unknown): ChatHistoryItem[] {
@@ -89,12 +115,26 @@ function getSources(result: GeminiResponse): GeminiSource[] {
   const groundingAttributions =
     result.candidates?.[0]?.groundingMetadata?.groundingAttributions || [];
 
+  const seenUris = new Set<string>();
+
   return groundingAttributions
-    .map((attribution) => ({
-      uri: attribution.web?.uri || "",
-      title: attribution.web?.title || "",
-    }))
-    .filter((source) => Boolean(source.uri && source.title));
+    .map((attribution) => {
+      const uri = normalizeSourceUri(attribution.web?.uri || "");
+      const title = (attribution.web?.title || "")
+        .trim()
+        .slice(0, MAX_SOURCE_TITLE_LENGTH);
+
+      return { uri, title };
+    })
+    .filter((source) => {
+      if (!source.uri || !source.title || seenUris.has(source.uri)) {
+        return false;
+      }
+
+      seenUris.add(source.uri);
+      return true;
+    })
+    .slice(0, MAX_SOURCES);
 }
 
 export async function POST(req: NextRequest) {
@@ -103,7 +143,7 @@ export async function POST(req: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  if (!token?.id) {
+  if (!token?.id || !isAllowedRole(token.role)) {
     return NextResponse.json(
       { error: "Acesso não autorizado." },
       { status: 403 },
@@ -112,7 +152,7 @@ export async function POST(req: NextRequest) {
 
   if (!GEMINI_API_KEY) {
     return NextResponse.json(
-      { error: "Chave GEMINI_API_KEY não configurada no servidor." },
+      { error: "Serviço de IA não configurado no servidor." },
       { status: 500 },
     );
   }
@@ -139,8 +179,14 @@ export async function POST(req: NextRequest) {
     const contents = formatHistory(history);
     contents.push({ role: "user", parts: [{ text: prompt }] });
 
-    const systemInstruction =
-      "Você é o PsicoConnect AI, um assistente empático especializado em fornecer informações gerais sobre saúde mental, terapias e bem-estar, baseado em fontes confiáveis. Mantenha um tom acolhedor e profissional. Se a pergunta for médica ou de diagnóstico, direcione o usuário a procurar um profissional de saúde qualificado. Use a ferramenta de busca para respostas atuais e fundamentadas.";
+    const systemInstruction = [
+      "Você é o PsicoConnect AI, um assistente de apoio informativo e psicoeducacional.",
+      "Responda em português do Brasil, com tom acolhedor, objetivo e profissional.",
+      "Não realize diagnóstico, não indique tratamento individualizado, não substitua psicólogo, médico ou serviço de emergência.",
+      "Quando a pergunta envolver diagnóstico, medicação, risco, crise, urgência ou decisão clínica, oriente o usuário a procurar um profissional qualificado ou serviço de emergência local.",
+      "Não solicite dados pessoais sensíveis desnecessários e não afirme ter acesso a informações clínicas fora do que o usuário escreveu na conversa.",
+      "Use a busca apenas para apoio informativo e cite fontes quando elas forem retornadas.",
+    ].join(" ");
 
     const payload = {
       contents,
@@ -166,7 +212,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         { error: "Falha ao obter resposta da IA." },
-        { status: apiResponse.status },
+        { status: 502 },
       );
     }
 

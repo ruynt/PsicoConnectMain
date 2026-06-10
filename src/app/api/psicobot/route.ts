@@ -7,6 +7,11 @@ import prisma from "../../../lib/prisma";
 const RAG_API_URL =
   process.env.PSICOBOT_RAG_API_URL || "http://localhost:8000/api/chat";
 
+const MAX_MESSAGE_LENGTH = 1600;
+const MAX_HISTORY_ITEMS = 8;
+const MAX_HISTORY_TEXT_LENGTH = 700;
+const RAG_TIMEOUT_MS = 20000;
+
 type UserRole = "ADMIN" | "PSYCHOLOGIST" | "PATIENT" | "UNKNOWN";
 
 type SessionUser = {
@@ -16,7 +21,7 @@ type SessionUser = {
 };
 
 type ChatHistoryItem = {
-  sender?: string;
+  sender?: "user" | "bot";
   text?: string;
 };
 
@@ -410,18 +415,30 @@ function isPsychologistPatientIntent(intent: BotIntent) {
   ].includes(intent);
 }
 
+function normalizeChatMessage(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.replace(/\0/g, "").trim();
+}
+
 function normalizeHistory(value: unknown): ChatHistoryItem[] {
   if (!Array.isArray(value)) return [];
 
   return value
+    .slice(-MAX_HISTORY_ITEMS)
     .map((item) => {
       if (!item || typeof item !== "object") return null;
 
       const record = item as Record<string, unknown>;
-      const sender = typeof record.sender === "string" ? record.sender : "";
-      const text = typeof record.text === "string" ? record.text.trim() : "";
+      const sender = record.sender === "user" ? "user" : "bot";
+      const text = normalizeChatMessage(record.text).slice(
+        0,
+        MAX_HISTORY_TEXT_LENGTH,
+      );
 
-      if (!sender || !text) return null;
+      if (!text) return null;
 
       return { sender, text };
     })
@@ -1585,6 +1602,9 @@ async function handlePatientIntent(intent: BotIntent, patientId: string) {
 }
 
 async function forwardToRag(message: string, role: UserRole) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RAG_TIMEOUT_MS);
+
   try {
     const response = await fetch(RAG_API_URL, {
       method: "POST",
@@ -1594,13 +1614,17 @@ async function forwardToRag(message: string, role: UserRole) {
       body: JSON.stringify({
         message,
         role,
+        safetyContext:
+          "Responder apenas como apoio informativo e psicoeducacional. Não diagnosticar, não indicar tratamento individualizado e orientar busca de profissional qualificado em dúvidas clínicas ou situações de risco.",
       }),
+      signal: controller.signal,
     });
 
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data?.error || data?.detail || "Falha no backend de IA.");
+      console.error("Falha no backend RAG:", response.status, data);
+      throw new Error("Falha no backend de IA.");
     }
 
     return (
@@ -1614,20 +1638,29 @@ async function forwardToRag(message: string, role: UserRole) {
     return [
       "Não consegui conectar ao backend de IA agora.",
       "",
-      "Para perguntas sobre dados do sistema, continuo usando as informações internas do PsicoConnect. Para perguntas informativas ou clínicas, verifique se o backend do PsicoBot/RAG está rodando na porta 8000 e tente novamente.",
+      "Para perguntas sobre dados do sistema, continuo usando as informações internas do PsicoConnect. Para perguntas informativas ou clínicas, tente novamente mais tarde e lembre-se de que o PsicoBot não substitui avaliação profissional.",
     ].join("\n");
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const message = typeof body.message === "string" ? body.message.trim() : "";
+    const message = normalizeChatMessage(body.message);
     const history = normalizeHistory(body.history);
 
     if (!message) {
       return NextResponse.json(
         { error: "Mensagem inválida ou ausente." },
+        { status: 400 },
+      );
+    }
+
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `A mensagem deve ter no máximo ${MAX_MESSAGE_LENGTH} caracteres.` },
         { status: 400 },
       );
     }
@@ -1642,6 +1675,14 @@ export async function POST(req: Request) {
     }
 
     const role = getRole(user.role);
+
+    if (role === "UNKNOWN") {
+      return NextResponse.json(
+        { error: "Perfil de usuário inválido para uso do PsicoBot." },
+        { status: 403 },
+      );
+    }
+
     let effectiveMessage = message;
     let intent = detectIntent(message, role);
 

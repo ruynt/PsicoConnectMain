@@ -10,11 +10,25 @@ type Params = {
   }>;
 };
 
+const MAX_NOTE_CONTENT_LENGTH = 2500;
+const MAX_NOTES_TEXT_LENGTH = 45000;
+const MAX_SUMMARY_OUTPUT_TOKENS = 1600;
+
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+function limitText(value: string | null | undefined, maxLength: number) {
+  const text = value?.trim() || "";
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength).trim()}... [texto reduzido por limite de segurança]`;
 }
 
 async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
@@ -134,8 +148,7 @@ export async function POST(req: NextRequest, context: Params) {
     if (!apiKey) {
       return NextResponse.json(
         {
-          error:
-            "OPENAI_API_KEY não configurada no .env. Configure a chave para gerar o resumo com IA.",
+          error: "Serviço de IA não configurado no servidor.",
         },
         { status: 500 },
       );
@@ -155,10 +168,11 @@ Data de criação: ${formatDate(note.createdAt)}
 Título: ${note.title || "Sem título"}
 ${appointmentInfo}
 Conteúdo:
-${note.content}
+${limitText(note.content, MAX_NOTE_CONTENT_LENGTH)}
         `.trim();
       })
-      .join("\n\n---\n\n");
+      .join("\n\n---\n\n")
+      .slice(0, MAX_NOTES_TEXT_LENGTH);
 
     const prompt = `
 Você é um assistente de apoio à organização de anotações clínicas em Psicologia.
@@ -169,6 +183,7 @@ Organize as anotações internas abaixo em um RESUMO PARA PRONTUÁRIO, com lingu
 Regras obrigatórias:
 - Não invente informações que não estejam nas anotações.
 - Não atribua diagnóstico, hipótese diagnóstica ou interpretação clínica que não esteja explicitamente registrada.
+- Não indique tratamento individualizado que não esteja explicitamente registrado nas anotações.
 - Não use linguagem alarmista, moralizante ou julgadora.
 - Use frases como "foi registrado", "observa-se nas anotações", "consta nas anotações" quando houver incerteza.
 - Não escreva como se o texto já fosse definitivo.
@@ -203,11 +218,12 @@ ${notesText}
         body: JSON.stringify({
           model: process.env.OPENAI_MODEL || "gpt-4o-mini",
           temperature: 0.2,
+          max_tokens: MAX_SUMMARY_OUTPUT_TOKENS,
           messages: [
             {
               role: "system",
               content:
-                "Você organiza informações clínicas em formato técnico e cuidadoso. Você não substitui o julgamento profissional do psicólogo.",
+                "Você organiza informações clínicas em formato técnico, objetivo e cuidadoso. Você não substitui o julgamento profissional do psicólogo, não cria diagnósticos e não inventa dados ausentes.",
             },
             {
               role: "user",
