@@ -5,6 +5,22 @@ import prisma from "../../../../lib/prisma";
 import { sendAppointmentCancelledEmail } from "../../../../lib/emails";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 
+function cleanText(value: unknown, maxLength = 1000) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().slice(0, maxLength);
+}
+
+function parseAppointmentId(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
 async function refreshGoogleAccessToken(refreshToken: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -117,11 +133,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { appointmentId, cancellationReason } = body;
-
-    const normalizedCancellationReason =
-      typeof cancellationReason === "string" ? cancellationReason.trim() : "";
+    const body = await req.json().catch(() => ({}));
+    const appointmentId = parseAppointmentId(body.appointmentId);
+    const cancellationReason = cleanText(body.cancellationReason, 1000);
 
     if (!appointmentId) {
       return NextResponse.json(
@@ -134,6 +148,12 @@ export async function POST(req: NextRequest) {
       where: {
         userId: String(token.id),
       },
+      select: {
+        id: true,
+        googleAccessToken: true,
+        googleRefreshToken: true,
+        googleAccessTokenExpires: true,
+      },
     });
 
     if (!psychologist) {
@@ -143,13 +163,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await prisma.appointment.findFirst({
       where: {
         id: appointmentId,
+        psychologistId: psychologist.id,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        dateTime: true,
+        endDateTime: true,
+        googleEventId: true,
+        status: true,
         patient: {
-          include: {
+          select: {
             user: {
               select: {
                 name: true,
@@ -159,7 +188,7 @@ export async function POST(req: NextRequest) {
           },
         },
         psychologist: {
-          include: {
+          select: {
             user: {
               select: {
                 name: true,
@@ -173,15 +202,8 @@ export async function POST(req: NextRequest) {
 
     if (!appointment) {
       return NextResponse.json(
-        { error: "Consulta não encontrada." },
+        { error: "Consulta não encontrada ou sem permissão de acesso." },
         { status: 404 },
-      );
-    }
-
-    if (appointment.psychologistId !== psychologist.id) {
-      return NextResponse.json(
-        { error: "Você não tem permissão para cancelar esta consulta." },
-        { status: 403 },
       );
     }
 
@@ -225,8 +247,10 @@ export async function POST(req: NextRequest) {
         if (!response.ok && response.status !== 404) {
           return NextResponse.json(
             {
-              error:
-                getExternalApiErrorMessage(data, "Erro ao cancelar evento no Google Calendar."),
+              error: getExternalApiErrorMessage(
+                data,
+                "Erro ao cancelar evento no Google Calendar.",
+              ),
               details: data,
             },
             { status: response.status },
@@ -242,7 +266,7 @@ export async function POST(req: NextRequest) {
       data: {
         status: "CANCELLED",
         cancelledAt: new Date(),
-        cancellationReason: normalizedCancellationReason || null,
+        cancellationReason: cancellationReason || null,
       },
     });
 
@@ -257,7 +281,7 @@ export async function POST(req: NextRequest) {
         startDateTime: appointment.dateTime,
         endDateTime: appointment.endDateTime,
         location: appointment.location,
-        cancellationReason: normalizedCancellationReason || null,
+        cancellationReason: cancellationReason || null,
       });
     } catch (emailError) {
       console.error(

@@ -3,15 +3,57 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 
+const REQUIRED_CALENDAR_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events";
+
+function getGoogleOAuthCredentials() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      "Google OAuth não configurado. Confira GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.",
+    );
+  }
+
+  return {
+    clientId,
+    clientSecret,
+  };
+}
+
+function redirectToAgenda(req: NextRequest, params: Record<string, string>) {
+  const agendaUrl = new URL("/agenda", req.url);
+
+  Object.entries(params).forEach(([key, value]) => {
+    agendaUrl.searchParams.set(key, value);
+  });
+
+  const response = NextResponse.redirect(agendaUrl);
+  response.cookies.delete("psicoconnect_google_oauth_state");
+
+  return response;
+}
+
+function hasRequiredCalendarScope(scope: string | undefined) {
+  if (!scope) {
+    return true;
+  }
+
+  return scope.split(/\s+/).includes(REQUIRED_CALENDAR_SCOPE);
+}
+
 async function exchangeCodeForTokens(code: string, redirectUri: string) {
+  const { clientId, clientSecret } = getGoogleOAuthCredentials();
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: clientId,
+      client_secret: clientSecret,
       code,
       grant_type: "authorization_code",
       redirect_uri: redirectUri,
@@ -63,11 +105,6 @@ async function fetchGoogleUserInfo(accessToken: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const agendaUrl = new URL("/agenda", req.url);
-  const response = NextResponse.redirect(agendaUrl);
-
-  response.cookies.delete("psicoconnect_google_oauth_state");
-
   try {
     const token = await getToken({
       req,
@@ -75,8 +112,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!token || token.role !== "PSYCHOLOGIST") {
-      agendaUrl.searchParams.set("googleError", "unauthorized");
-      return NextResponse.redirect(agendaUrl);
+      return redirectToAgenda(req, { googleError: "unauthorized" });
     }
 
     const url = new URL(req.url);
@@ -85,13 +121,11 @@ export async function GET(req: NextRequest) {
     const savedState = req.cookies.get("psicoconnect_google_oauth_state")?.value;
 
     if (!code) {
-      agendaUrl.searchParams.set("googleError", "missing_code");
-      return response;
+      return redirectToAgenda(req, { googleError: "missing_code" });
     }
 
     if (!state || !savedState || state !== savedState) {
-      agendaUrl.searchParams.set("googleError", "invalid_state");
-      return response;
+      return redirectToAgenda(req, { googleError: "invalid_state" });
     }
 
     const psychologist = await prisma.psychologist.findUnique({
@@ -105,23 +139,29 @@ export async function GET(req: NextRequest) {
     });
 
     if (!psychologist) {
-      agendaUrl.searchParams.set("googleError", "psychologist_not_found");
-      return response;
+      return redirectToAgenda(req, {
+        googleError: "psychologist_not_found",
+      });
     }
 
     const redirectUri = new URL("/api/google-calendar/callback", req.url);
     const tokenData = await exchangeCodeForTokens(code, redirectUri.toString());
+
+    if (!hasRequiredCalendarScope(tokenData.scope)) {
+      return redirectToAgenda(req, { googleError: "missing_calendar_scope" });
+    }
+
     const googleUser = await fetchGoogleUserInfo(tokenData.access_token);
 
     const refreshTokenToSave =
       tokenData.refresh_token || psychologist.googleRefreshToken;
 
     if (!refreshTokenToSave) {
-      agendaUrl.searchParams.set("googleError", "missing_refresh_token");
-      return response;
+      return redirectToAgenda(req, { googleError: "missing_refresh_token" });
     }
 
-    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+    const expiresInSeconds = Number(tokenData.expires_in || 3600);
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
     await prisma.psychologist.update({
       where: {
@@ -135,11 +175,10 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    agendaUrl.searchParams.set("googleConnected", "1");
-    return response;
+    return redirectToAgenda(req, { googleConnected: "1" });
   } catch (error) {
     console.error("Erro no callback do Google Calendar:", error);
-    agendaUrl.searchParams.set("googleError", "callback_error");
-    return response;
+
+    return redirectToAgenda(req, { googleError: "callback_error" });
   }
 }

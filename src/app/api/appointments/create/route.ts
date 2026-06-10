@@ -5,6 +5,8 @@ import prisma from "../../../../lib/prisma";
 import { sendAppointmentCreatedEmail } from "../../../../lib/emails";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 
+const TIME_ZONE = "America/Fortaleza";
+
 type GoogleCalendarEventPayload = {
   summary: string;
   description: string;
@@ -18,6 +20,56 @@ type GoogleCalendarEventPayload = {
     timeZone: string;
   };
 };
+
+type GoogleCalendarEventResponse = {
+  id?: string;
+  htmlLink?: string;
+  error?: unknown;
+};
+
+function cleanText(value: unknown, maxLength = 500) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().slice(0, maxLength);
+}
+
+function parsePatientId(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function parseDateTime(date: unknown, time: unknown) {
+  if (typeof date !== "string" || typeof time !== "string") {
+    return null;
+  }
+
+  const normalizedDate = date.trim();
+  const normalizedTime = time.trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    return null;
+  }
+
+  if (!/^\d{2}:\d{2}$/.test(normalizedTime)) {
+    return null;
+  }
+
+  const parsed = new Date(`${normalizedDate}T${normalizedTime}:00-03:00`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return {
+    dbDate: parsed,
+    googleDateTime: `${normalizedDate}T${normalizedTime}:00`,
+  };
+}
 
 async function refreshGoogleAccessToken(refreshToken: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -65,7 +117,7 @@ async function createGoogleEvent(
     },
   );
 
-  const data = await response.json();
+  const data = (await response.json()) as GoogleCalendarEventResponse;
 
   return { response, data };
 }
@@ -119,19 +171,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
 
-    const {
-      title,
-      date,
-      startTime,
-      endTime,
-      location,
-      description,
-      patientId,
-    } = body;
+    const title = cleanText(body.title, 120);
+    const location = cleanText(body.location, 250);
+    const description = cleanText(body.description, 1000);
+    const patientId = parsePatientId(body.patientId);
+    const startDateTime = parseDateTime(body.date, body.startTime);
+    const endDateTime = parseDateTime(body.date, body.endTime);
 
-    if (!title || !date || !startTime || !endTime || !patientId) {
+    if (!title || !patientId || !startDateTime || !endDateTime) {
       return NextResponse.json(
         {
           error:
@@ -141,10 +190,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const startDateTime = new Date(`${date}T${startTime}:00-03:00`);
-    const endDateTime = new Date(`${date}T${endTime}:00-03:00`);
-
-    if (endDateTime <= startDateTime) {
+    if (endDateTime.dbDate <= startDateTime.dbDate) {
       return NextResponse.json(
         { error: "A hora final deve ser maior que a hora inicial." },
         { status: 400 },
@@ -155,7 +201,11 @@ export async function POST(req: NextRequest) {
       where: {
         userId: String(token.id),
       },
-      include: {
+      select: {
+        id: true,
+        googleAccessToken: true,
+        googleRefreshToken: true,
+        googleAccessTokenExpires: true,
         user: {
           select: {
             name: true,
@@ -184,21 +234,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const patient = await prisma.patient.findUnique({
+    const patient = await prisma.patient.findFirst({
       where: {
         id: patientId,
+        psychologistLinks: {
+          some: {
+            psychologistId: psychologist.id,
+            active: true,
+          },
+        },
       },
-      include: {
+      select: {
+        id: true,
         user: {
           select: {
             name: true,
             email: true,
-          },
-        },
-        psychologistLinks: {
-          where: {
-            psychologistId: psychologist.id,
-            active: true,
           },
         },
       },
@@ -206,15 +257,8 @@ export async function POST(req: NextRequest) {
 
     if (!patient) {
       return NextResponse.json(
-        { error: "Paciente não encontrado." },
+        { error: "Paciente não encontrado ou não vinculado a você." },
         { status: 404 },
-      );
-    }
-
-    if (patient.psychologistLinks.length === 0) {
-      return NextResponse.json(
-        { error: "Este paciente não está vinculado a você." },
-        { status: 403 },
       );
     }
 
@@ -223,14 +267,14 @@ export async function POST(req: NextRequest) {
       description:
         description ||
         `Consulta vinculada ao paciente ${patient.user.name} no PsicoConnect.`,
-      location: location || "",
+      location,
       start: {
-        dateTime: `${date}T${startTime}:00`,
-        timeZone: "America/Fortaleza",
+        dateTime: startDateTime.googleDateTime,
+        timeZone: TIME_ZONE,
       },
       end: {
-        dateTime: `${date}T${endTime}:00`,
-        timeZone: "America/Fortaleza",
+        dateTime: endDateTime.googleDateTime,
+        timeZone: TIME_ZONE,
       },
     };
 
@@ -263,38 +307,23 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(
         {
-          error:
-            getExternalApiErrorMessage(data, "Erro ao criar evento no Google Calendar."),
+          error: getExternalApiErrorMessage(
+            data,
+            "Erro ao criar evento no Google Calendar.",
+          ),
           details: data,
         },
         { status: response.status },
       );
     }
 
-    await prisma.psychologistPatient.upsert({
-      where: {
-        psychologistId_patientId: {
-          psychologistId: psychologist.id,
-          patientId: patient.id,
-        },
-      },
-      update: {
-        active: true,
-      },
-      create: {
-        psychologistId: psychologist.id,
-        patientId: patient.id,
-        active: true,
-      },
-    });
-
     const appointment = await prisma.appointment.create({
       data: {
         title,
-        description: description || "",
-        location: location || "",
-        dateTime: startDateTime,
-        endDateTime,
+        description,
+        location,
+        dateTime: startDateTime.dbDate,
+        endDateTime: endDateTime.dbDate,
         googleEventId: data.id,
         googleEventLink: data.htmlLink || "",
         patientId: patient.id,

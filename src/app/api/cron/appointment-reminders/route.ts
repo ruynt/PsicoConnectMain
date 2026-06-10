@@ -11,16 +11,37 @@ function formatDateTime(date: Date) {
   }).format(date);
 }
 
+function validateCronRequest(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  const authHeader = req.headers.get("authorization");
+
+  if (!cronSecret) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "CRON_SECRET não configurado." },
+        { status: 500 },
+      );
+    }
+
+    return null;
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json(
+      { error: "Acesso não autorizado." },
+      { status: 401 },
+    );
+  }
+
+  return null;
+}
+
 async function runAppointmentReminders(req: NextRequest) {
   try {
-    const cronSecret = process.env.CRON_SECRET;
-    const authHeader = req.headers.get("authorization");
+    const authorizationError = validateCronRequest(req);
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: "Acesso não autorizado." },
-        { status: 401 },
-      );
+    if (authorizationError) {
+      return authorizationError;
     }
 
     const now = new Date();
@@ -40,9 +61,16 @@ async function runAppointmentReminders(req: NextRequest) {
         },
         reminderEmailSentAt: null,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        dateTime: true,
+        endDateTime: true,
+        googleEventLink: true,
         patient: {
-          include: {
+          select: {
             user: {
               select: {
                 name: true,
@@ -52,7 +80,7 @@ async function runAppointmentReminders(req: NextRequest) {
           },
         },
         psychologist: {
-          include: {
+          select: {
             user: {
               select: {
                 name: true,
@@ -136,8 +164,10 @@ async function runAppointmentReminders(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error:
-          getErrorMessage(error, "Erro interno ao executar rotina de lembretes automáticos."),
+        error: getErrorMessage(
+          error,
+          "Erro interno ao executar rotina de lembretes automáticos.",
+        ),
       },
       { status: 500 },
     );
