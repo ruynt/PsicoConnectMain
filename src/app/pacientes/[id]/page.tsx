@@ -1731,6 +1731,7 @@ export default function PatientDetailsPage() {
 
                 <div className="patient-info-extra-grid">
                   <div
+                    className="patient-info-emergency-card"
                     style={{
                       backgroundColor: "#fff7ed",
                       border: "1px solid #fed7aa",
@@ -1765,6 +1766,7 @@ export default function PatientDetailsPage() {
                   </div>
 
                   <div
+                    className="patient-info-notes-card"
                     style={{
                       backgroundColor: "#f8fafc",
                       border: "1px solid #e2e8f0",
@@ -4910,6 +4912,14 @@ export default function PatientDetailsPage() {
             display: grid !important;
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             gap: 12px !important;
+            align-items: start !important;
+          }
+
+          .patient-info-emergency-card,
+          .patient-info-notes-card {
+            align-self: start !important;
+            height: auto !important;
+            min-height: 0 !important;
           }
 
           .patient-summary-grid {
