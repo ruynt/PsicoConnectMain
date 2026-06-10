@@ -8,9 +8,11 @@ import { getErrorMessage } from "@/lib/errorUtils";
 
 export const runtime = "nodejs";
 
-const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 const maxFileSizeInMb = 5;
 const maxFileSizeInBytes = maxFileSizeInMb * 1024 * 1024;
+
+type AllowedMimeType = (typeof allowedMimeTypes)[number];
 
 function configureCloudinary() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -30,6 +32,48 @@ function configureCloudinary() {
   });
 }
 
+function isAllowedMimeType(value: string): value is AllowedMimeType {
+  return allowedMimeTypes.includes(value as AllowedMimeType);
+}
+
+function detectImageMimeType(buffer: Buffer): AllowedMimeType | null {
+  if (buffer.length < 12) {
+    return null;
+  }
+
+  const isJpeg =
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff;
+
+  if (isJpeg) {
+    return "image/jpeg";
+  }
+
+  const isPng =
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a;
+
+  if (isPng) {
+    return "image/png";
+  }
+
+  const riffHeader = buffer.subarray(0, 4).toString("ascii");
+  const webpHeader = buffer.subarray(8, 12).toString("ascii");
+
+  if (riffHeader === "RIFF" && webpHeader === "WEBP") {
+    return "image/webp";
+  }
+
+  return null;
+}
+
 function uploadToCloudinary(buffer: Buffer, userId: string) {
   return new Promise<UploadApiResponse>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -39,6 +83,7 @@ function uploadToCloudinary(buffer: Buffer, userId: string) {
         overwrite: true,
         invalidate: true,
         resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
       },
       (error, result) => {
         if (error || !result) {
@@ -68,7 +113,23 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    configureCloudinary();
+    const userId = String(token.id);
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Usuário não encontrado." },
+        { status: 404 },
+      );
+    }
 
     const formData = await req.formData();
     const file = formData.get("file");
@@ -80,9 +141,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!allowedMimeTypes.includes(file.type)) {
+    if (file.size <= 0) {
       return NextResponse.json(
-        { error: "Envie uma imagem nos formatos JPG, PNG ou WEBP." },
+        { error: "A imagem enviada está vazia." },
         { status: 400 },
       );
     }
@@ -94,16 +155,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!isAllowedMimeType(file.type)) {
+      return NextResponse.json(
+        { error: "Envie uma imagem nos formatos JPG, PNG ou WEBP." },
+        { status: 400 },
+      );
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const userId = String(token.id);
 
-    const result = await uploadToCloudinary(buffer, userId);
+    const detectedMimeType = detectImageMimeType(buffer);
+
+    if (!detectedMimeType || detectedMimeType !== file.type) {
+      return NextResponse.json(
+        {
+          error:
+            "O arquivo enviado não parece ser uma imagem válida nos formatos JPG, PNG ou WEBP.",
+        },
+        { status: 400 },
+      );
+    }
+
+    configureCloudinary();
+
+    const result = await uploadToCloudinary(buffer, user.id);
     const profileImageUrl = result.secure_url;
+
+    if (!profileImageUrl) {
+      return NextResponse.json(
+        { error: "Não foi possível obter a URL da imagem enviada." },
+        { status: 500 },
+      );
+    }
 
     await prisma.user.update({
       where: {
-        id: userId,
+        id: user.id,
       },
       data: {
         profileImageUrl,

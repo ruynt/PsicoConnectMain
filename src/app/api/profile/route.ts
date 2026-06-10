@@ -7,35 +7,57 @@ import prisma from "../../../lib/prisma";
 const INVALID_VALUE = "__INVALID_VALUE__";
 
 function cleanText(value: unknown, maxLength = 500) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
-  if (!trimmed) return null;
+  if (!trimmed) {
+    return null;
+  }
 
   return trimmed.slice(0, maxLength);
 }
 
 function cleanUrl(value: unknown) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
-  if (!trimmed) return null;
+  if (!trimmed) {
+    return null;
+  }
 
-  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+  if (trimmed.length > 1000) {
     return INVALID_VALUE;
   }
 
-  return trimmed.slice(0, 1000);
+  try {
+    const url = new URL(trimmed);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return INVALID_VALUE;
+    }
+
+    return url.toString();
+  } catch {
+    return INVALID_VALUE;
+  }
 }
 
 function cleanPhone(value: unknown) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
-  if (!trimmed) return null;
+  if (!trimmed) {
+    return null;
+  }
 
   if (/[a-zA-ZÀ-ÿ]/.test(trimmed)) {
     return INVALID_VALUE;
@@ -57,11 +79,15 @@ function cleanPhone(value: unknown) {
 }
 
 function cleanState(value: unknown) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
-  if (!trimmed) return null;
+  if (!trimmed) {
+    return null;
+  }
 
   const state = trimmed.replace(/[^a-zA-Z]/g, "").toUpperCase();
 
@@ -73,11 +99,15 @@ function cleanState(value: unknown) {
 }
 
 function cleanInstagramUsername(value: unknown) {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
 
   const trimmed = value.trim();
 
-  if (!trimmed) return null;
+  if (!trimmed) {
+    return null;
+  }
 
   const username = trimmed
     .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
@@ -88,23 +118,49 @@ function cleanInstagramUsername(value: unknown) {
     .replace(/[^a-zA-Z0-9._]/g, "")
     .slice(0, 30);
 
-  if (!username) return INVALID_VALUE;
+  if (!username) {
+    return INVALID_VALUE;
+  }
 
   return username;
 }
 
 function parseBirthDate(value: unknown) {
-  if (typeof value !== "string" || !value.trim()) return null;
+  if (typeof value !== "string" || !value.trim()) {
+    return {
+      date: null,
+      invalid: false,
+    };
+  }
 
   const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (Number.isNaN(date.getTime())) return null;
+  if (Number.isNaN(date.getTime())) {
+    return {
+      date: null,
+      invalid: true,
+    };
+  }
 
-  return date;
+  const now = new Date();
+
+  if (date > now) {
+    return {
+      date: null,
+      invalid: true,
+    };
+  }
+
+  return {
+    date,
+    invalid: false,
+  };
 }
 
 function formatBirthDate(date: Date | null | undefined) {
-  if (!date) return null;
+  if (!date) {
+    return null;
+  }
 
   return date.toISOString().slice(0, 10);
 }
@@ -113,15 +169,64 @@ async function getCurrentUser() {
   const session = await getServerSession(authConfig);
   const email = session?.user?.email;
 
-  if (!email) return null;
+  if (!email) {
+    return null;
+  }
 
   return prisma.user.findUnique({
-    where: { email },
+    where: {
+      email,
+    },
     include: {
       patient: true,
       psychologist: true,
     },
   });
+}
+
+function mapProfile(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    profileImageUrl: user.profileImageUrl || "",
+    phone: user.phone || "",
+    city: user.city || "",
+    state: user.state || "",
+    bio: user.bio || "",
+    patient: user.patient
+      ? {
+          id: user.patient.id,
+          socialName: user.patient.socialName || "",
+          birthDate: formatBirthDate(user.patient.birthDate),
+          contactPreference: user.patient.contactPreference || "",
+          emergencyContactName: user.patient.emergencyContactName || "",
+          emergencyContactPhone: user.patient.emergencyContactPhone || "",
+          patientNotes: user.patient.patientNotes || "",
+        }
+      : null,
+    psychologist: user.psychologist
+      ? {
+          id: user.psychologist.id,
+          crp: user.psychologist.crp,
+          crpState: user.psychologist.crpState || "",
+          crpRegion: user.psychologist.crpRegion || "",
+          crpNumber: user.psychologist.crpNumber || "",
+          crpVerificationStatus: user.psychologist.crpVerificationStatus,
+          professionalTitle: user.psychologist.professionalTitle || "",
+          approach: user.psychologist.approach || "",
+          specialties: user.psychologist.specialties || "",
+          education: user.psychologist.education || "",
+          targetAudience: user.psychologist.targetAudience || "",
+          instagramUrl: user.psychologist.instagramUrl || "",
+        }
+      : null,
+  };
 }
 
 export async function GET() {
@@ -136,44 +241,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      profile: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        profileImageUrl: user.profileImageUrl || "",
-        phone: user.phone || "",
-        city: user.city || "",
-        state: user.state || "",
-        bio: user.bio || "",
-        patient: user.patient
-          ? {
-              id: user.patient.id,
-              socialName: user.patient.socialName || "",
-              birthDate: formatBirthDate(user.patient.birthDate),
-              contactPreference: user.patient.contactPreference || "",
-              emergencyContactName: user.patient.emergencyContactName || "",
-              emergencyContactPhone: user.patient.emergencyContactPhone || "",
-              patientNotes: user.patient.patientNotes || "",
-            }
-          : null,
-        psychologist: user.psychologist
-          ? {
-              id: user.psychologist.id,
-              crp: user.psychologist.crp,
-              crpState: user.psychologist.crpState || "",
-              crpRegion: user.psychologist.crpRegion || "",
-              crpNumber: user.psychologist.crpNumber || "",
-              crpVerificationStatus: user.psychologist.crpVerificationStatus,
-              professionalTitle: user.psychologist.professionalTitle || "",
-              approach: user.psychologist.approach || "",
-              specialties: user.psychologist.specialties || "",
-              education: user.psychologist.education || "",
-              targetAudience: user.psychologist.targetAudience || "",
-              instagramUrl: user.psychologist.instagramUrl || "",
-            }
-          : null,
-      },
+      profile: mapProfile(user),
     });
   } catch (error) {
     console.error("Erro ao carregar perfil:", error);
@@ -212,10 +280,14 @@ export async function PATCH(req: Request) {
     const state = cleanState(body.state);
     const instagramUrl = cleanInstagramUsername(body.instagramUrl);
     const emergencyContactPhone = cleanPhone(body.emergencyContactPhone);
+    const birthDate = parseBirthDate(body.birthDate);
 
     if (profileImageUrl === INVALID_VALUE) {
       return NextResponse.json(
-        { error: "A foto de perfil precisa ser uma URL iniciada por http:// ou https://." },
+        {
+          error:
+            "A foto de perfil precisa ser uma URL válida iniciada por http:// ou https://.",
+        },
         { status: 400 },
       );
     }
@@ -243,54 +315,72 @@ export async function PATCH(req: Request) {
 
     if (emergencyContactPhone === INVALID_VALUE) {
       return NextResponse.json(
-        { error: "Informe um telefone de emergência válido com DDD, sem letras." },
+        {
+          error:
+            "Informe um telefone de emergência válido com DDD, sem letras.",
+        },
         { status: 400 },
       );
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        name,
-        profileImageUrl,
-        phone,
-        city: cleanText(body.city, 80),
-        state,
-        bio: cleanText(body.bio, 1200),
-      },
-      include: {
-        patient: true,
-        psychologist: true,
-      },
+    if (birthDate.invalid) {
+      return NextResponse.json(
+        { error: "Informe uma data de nascimento válida." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          name,
+          profileImageUrl,
+          phone,
+          city: cleanText(body.city, 80),
+          state,
+          bio: cleanText(body.bio, 1200),
+        },
+        include: {
+          patient: true,
+          psychologist: true,
+        },
+      });
+
+      if (updatedUser.role === "PSYCHOLOGIST" && updatedUser.psychologist) {
+        await tx.psychologist.update({
+          where: {
+            id: updatedUser.psychologist.id,
+          },
+          data: {
+            professionalTitle: cleanText(body.professionalTitle, 120),
+            approach: cleanText(body.approach, 250),
+            specialties: cleanText(body.specialties, 500),
+            education: cleanText(body.education, 700),
+            targetAudience: cleanText(body.targetAudience, 250),
+            instagramUrl,
+          },
+        });
+      }
+
+      if (updatedUser.role === "PATIENT" && updatedUser.patient) {
+        await tx.patient.update({
+          where: {
+            id: updatedUser.patient.id,
+          },
+          data: {
+            socialName: cleanText(body.socialName, 120),
+            birthDate: birthDate.date,
+            contactPreference: cleanText(body.contactPreference, 250),
+            emergencyContactName: cleanText(body.emergencyContactName, 120),
+            emergencyContactPhone,
+            patientNotes: cleanText(body.patientNotes, 1200),
+          },
+        });
+      }
     });
-
-    if (updatedUser.role === "PSYCHOLOGIST" && updatedUser.psychologist) {
-      await prisma.psychologist.update({
-        where: { id: updatedUser.psychologist.id },
-        data: {
-          professionalTitle: cleanText(body.professionalTitle, 120),
-          approach: cleanText(body.approach, 250),
-          specialties: cleanText(body.specialties, 500),
-          education: cleanText(body.education, 700),
-          targetAudience: cleanText(body.targetAudience, 250),
-          instagramUrl,
-        },
-      });
-    }
-
-    if (updatedUser.role === "PATIENT" && updatedUser.patient) {
-      await prisma.patient.update({
-        where: { id: updatedUser.patient.id },
-        data: {
-          socialName: cleanText(body.socialName, 120),
-          birthDate: parseBirthDate(body.birthDate),
-          contactPreference: cleanText(body.contactPreference, 250),
-          emergencyContactName: cleanText(body.emergencyContactName, 120),
-          emergencyContactPhone,
-          patientNotes: cleanText(body.patientNotes, 1200),
-        },
-      });
-    }
 
     return NextResponse.json({
       message: "Perfil atualizado com sucesso.",
