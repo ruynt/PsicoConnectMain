@@ -1672,11 +1672,11 @@ export default function PerfilPage() {
           }
 
           .profile-edit-aside {
-            order: 2;
+            order: 1;
           }
 
           .profile-edit-sections {
-            order: 1;
+            order: 2;
           }
         }
 
