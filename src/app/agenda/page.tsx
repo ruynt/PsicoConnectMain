@@ -119,6 +119,34 @@ const dangerButtonStyle = {
   fontSize: "14px",
 } as const;
 
+
+const googleCalendarButtonStyle = {
+  backgroundColor: "#ffffff",
+  color: "#3c4043",
+  border: "1px solid #dadce0",
+  borderRadius: "12px",
+  padding: "11px 14px",
+  minHeight: "44px",
+  fontFamily: "Arial, sans-serif",
+  fontWeight: 800,
+  cursor: "pointer",
+  fontSize: "14px",
+  width: "100%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "10px",
+  boxShadow: "0 1px 2px rgba(60, 64, 67, 0.08)",
+  transition: "background-color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+} as const;
+
+const googleCalendarDisconnectButtonStyle = {
+  ...googleCalendarButtonStyle,
+  color: "#5f6368",
+  fontSize: "13px",
+  padding: "10px 14px",
+} as const;
+
 export default function AgendaPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -1138,7 +1166,7 @@ export default function AgendaPage() {
               description: googleConnected
                 ? "Novos horários podem ser sincronizados com o Google."
                 : "A conexão é necessária apenas para criar eventos no Google.",
-              icon: "fa-brands fa-google",
+              icon: "google",
               color: "#f5f3ff",
             },
           ].map((item) => (
@@ -1177,7 +1205,11 @@ export default function AgendaPage() {
                   marginBottom: "14px",
                 }}
               >
-                <i className={item.icon}></i>
+                {item.icon === "google" ? (
+                  <GoogleLogoIcon size={20} />
+                ) : (
+                  <i className={item.icon}></i>
+                )}
               </div>
               <div
                 style={{
@@ -1801,7 +1833,7 @@ export default function AgendaPage() {
                             rel="noreferrer"
                             style={{ ...buttonSecondaryStyle, textDecoration: "none" }}
                           >
-                            <i className="fa-brands fa-google"></i>
+                            <GoogleLogoIcon size={17} />
                             Abrir no Google Calendar
                           </a>
                         )}
@@ -1868,7 +1900,7 @@ export default function AgendaPage() {
                       gap: "8px",
                     }}
                   >
-                    <i className="fa-solid fa-circle-check"></i>
+                    <GoogleLogoIcon size={18} />
                     Google Calendar conectado
                   </div>
 
@@ -1890,36 +1922,29 @@ export default function AgendaPage() {
 
                   <button
                     type="button"
+                    className="google-calendar-auth-button google-calendar-disconnect-button"
                     onClick={handleDisconnectGoogle}
                     disabled={disconnectingGoogle}
                     style={{
-                      backgroundColor: "#ffffff",
-                      color: "#475569",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
-                      fontWeight: 800,
+                      ...googleCalendarDisconnectButtonStyle,
                       cursor: disconnectingGoogle ? "not-allowed" : "pointer",
-                      fontSize: "13px",
-                      width: "100%",
                       opacity: disconnectingGoogle ? 0.7 : 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
                     }}
                   >
-                    <i className="fa-solid fa-link-slash"></i>
-                    {disconnectingGoogle ? "Desconectando..." : "Desconectar"}
+                    <GoogleLogoIcon size={17} />
+                    {disconnectingGoogle
+                      ? "Desconectando..."
+                      : "Desconectar Google Calendar"}
                   </button>
                 </div>
               ) : (
                 <button
                   type="button"
-                  style={{ ...buttonSecondaryStyle, width: "100%" }}
+                  className="google-calendar-auth-button"
+                  style={googleCalendarButtonStyle}
                   onClick={handleConnectGoogle}
                 >
-                  <i className="fa-brands fa-google"></i>
+                  <GoogleLogoIcon size={18} />
                   Conectar com Google Calendar
                 </button>
               )}
@@ -1944,7 +1969,7 @@ export default function AgendaPage() {
                   value={`${systemOnlyEvents} consulta(s)`}
                 />
                 <InfoLine
-                  icon="fa-brands fa-google"
+                  icon="google"
                   label="Sincronizadas"
                   value={`${googleSyncedEvents} consulta(s)`}
                 />
@@ -1962,6 +1987,22 @@ export default function AgendaPage() {
           .agenda-page {
             width: 100%;
           }
+
+          .google-calendar-auth-button:hover:not(:disabled) {
+            background-color: #f8fafd !important;
+            border-color: #c6c9ce !important;
+            box-shadow: 0 2px 6px rgba(60, 64, 67, 0.16) !important;
+          }
+
+          .google-calendar-auth-button:active:not(:disabled) {
+            background-color: #f1f3f4 !important;
+            box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12) !important;
+          }
+
+          .google-calendar-disconnect-button:hover:not(:disabled) {
+            color: #3c4043 !important;
+          }
+
 
           .agenda-hero,
           .agenda-summary-card,
@@ -2896,6 +2937,40 @@ export default function AgendaPage() {
   );
 }
 
+
+function GoogleLogoIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 18 18"
+      focusable="false"
+      style={{
+        display: "inline-block",
+        flexShrink: 0,
+      }}
+    >
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.96 10.71A5.41 5.41 0 0 1 3.68 9c0-.59.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"
+      />
+    </svg>
+  );
+}
+
 function Label({ children }: { children: React.ReactNode }) {
   return (
     <label
@@ -2941,7 +3016,7 @@ function InfoLine({
           gap: "7px",
         }}
       >
-        <i className={icon}></i>
+        {icon === "google" ? <GoogleLogoIcon size={14} /> : <i className={icon}></i>}
         {label}
       </p>
       <p
