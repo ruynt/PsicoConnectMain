@@ -90,6 +90,24 @@ async function getAuthenticatedPatient(req: NextRequest) {
   };
 }
 
+function getAppointmentEndReference(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+}) {
+  return appointment.endDateTime || appointment.dateTime;
+}
+
+function isAppointmentCompleted(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+}) {
+  return (
+    appointment.status !== "CANCELLED" &&
+    getAppointmentEndReference(appointment).getTime() < Date.now()
+  );
+}
+
 function mapAppointment(appointment: PatientAppointment) {
   return {
     id: appointment.id,
@@ -99,6 +117,7 @@ function mapAppointment(appointment: PatientAppointment) {
     dateTime: appointment.dateTime.toISOString(),
     endDateTime: appointment.endDateTime?.toISOString() || null,
     status: appointment.status,
+    isCompleted: isAppointmentCompleted(appointment),
     googleEventLink: appointment.googleEventLink || "",
 
     cancellationReason: appointment.cancellationReason || null,

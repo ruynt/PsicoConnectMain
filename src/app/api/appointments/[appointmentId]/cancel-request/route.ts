@@ -10,6 +10,24 @@ type Params = {
   }>;
 };
 
+function getAppointmentEndReference(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+}) {
+  return appointment.endDateTime || appointment.dateTime;
+}
+
+function isAppointmentCompleted(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+}) {
+  return (
+    appointment.status !== "CANCELLED" &&
+    getAppointmentEndReference(appointment).getTime() < Date.now()
+  );
+}
+
 function normalizeAction(value: unknown) {
   if (typeof value !== "string") {
     return "";
@@ -139,6 +157,8 @@ export async function PATCH(req: NextRequest, context: Params) {
       select: {
         id: true,
         patientId: true,
+        dateTime: true,
+        endDateTime: true,
         status: true,
         confirmationStatus: true,
         cancellationRequestStatus: true,
@@ -167,6 +187,13 @@ export async function PATCH(req: NextRequest, context: Params) {
     if (appointment.status === "CANCELLED") {
       return NextResponse.json(
         { error: "Esta consulta já está cancelada." },
+        { status: 400 },
+      );
+    }
+
+    if (isAppointmentCompleted(appointment)) {
+      return NextResponse.json(
+        { error: "Não é possível analisar cancelamento de uma consulta finalizada." },
         { status: 400 },
       );
     }

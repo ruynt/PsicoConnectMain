@@ -3173,3 +3173,58 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
     font-size: 13px;
   }
 }
+
+/* =========================================================
+   Agenda: cards superiores horizontais no celular
+   ========================================================= */
+
+@media (max-width: 640px) {
+  body .chat-main-wrapper .agenda-page .agenda-summary-grid,
+  .chat-container .chat-main-wrapper .agenda-page .agenda-summary-grid,
+  .chat-main-wrapper .agenda-page .agenda-summary-grid,
+  .agenda-page .agenda-summary-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0 2px 8px !important;
+    margin-bottom: 16px !important;
+    scrollbar-width: none !important;
+  }
+
+  body .chat-main-wrapper .agenda-page .agenda-summary-grid::-webkit-scrollbar,
+  .chat-container .chat-main-wrapper .agenda-page .agenda-summary-grid::-webkit-scrollbar,
+  .chat-main-wrapper .agenda-page .agenda-summary-grid::-webkit-scrollbar,
+  .agenda-page .agenda-summary-grid::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  body .chat-main-wrapper .agenda-page .agenda-summary-card,
+  .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card,
+  .chat-main-wrapper .agenda-page .agenda-summary-card,
+  .agenda-page .agenda-summary-card {
+    flex: 0 0 78% !important;
+    width: 78% !important;
+    max-width: 310px !important;
+    min-width: 230px !important;
+    min-height: 108px !important;
+    scroll-snap-align: start !important;
+  }
+}
+
+@media (max-width: 430px) {
+  body .chat-main-wrapper .agenda-page .agenda-summary-card,
+  .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card,
+  .chat-main-wrapper .agenda-page .agenda-summary-card,
+  .agenda-page .agenda-summary-card {
+    flex-basis: 84% !important;
+    width: 84% !important;
+    min-width: 220px !important;
+    max-width: 290px !important;
+  }
+}

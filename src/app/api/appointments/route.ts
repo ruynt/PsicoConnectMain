@@ -4,6 +4,24 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 
+function getAppointmentEndReference(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+}) {
+  return appointment.endDateTime || appointment.dateTime;
+}
+
+function isAppointmentCompleted(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+}) {
+  return (
+    appointment.status !== "CANCELLED" &&
+    getAppointmentEndReference(appointment).getTime() < Date.now()
+  );
+}
+
 async function getAuthorizedPsychologist(req: NextRequest) {
   const token = await getToken({
     req,
@@ -85,6 +103,7 @@ function mapAppointmentToEvent(appointment: {
     location: appointment.location || "",
     htmlLink: appointment.googleEventLink || "",
     status: appointment.status,
+    isCompleted: isAppointmentCompleted(appointment),
 
     patientId: appointment.patientId,
     patientName: appointment.patient.user.name,
@@ -129,13 +148,28 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "SCHEDULED";
+    const now = new Date();
 
     const statusFilter =
       status === "ALL"
         ? {}
         : status === "CANCELLED"
           ? { status: "CANCELLED" as const }
-          : { status: "SCHEDULED" as const };
+          : status === "COMPLETED"
+            ? {
+                status: "SCHEDULED" as const,
+                OR: [
+                  { endDateTime: { lt: now } },
+                  { endDateTime: null, dateTime: { lt: now } },
+                ],
+              }
+            : {
+                status: "SCHEDULED" as const,
+                OR: [
+                  { endDateTime: { gte: now } },
+                  { endDateTime: null, dateTime: { gte: now } },
+                ],
+              };
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -180,7 +214,8 @@ export async function GET(req: NextRequest) {
         updatedAt: true,
       },
       orderBy: {
-        dateTime: status === "CANCELLED" ? "desc" : "asc",
+        dateTime:
+          status === "CANCELLED" || status === "COMPLETED" ? "desc" : "asc",
       },
     });
 

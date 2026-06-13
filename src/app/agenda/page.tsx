@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getErrorMessage } from "@/lib/errorUtils";
 
@@ -32,6 +32,7 @@ type CalendarEvent = {
   paymentAmount?: number | null;
   paymentNote?: string | null;
   paidAt?: string | null;
+  isCompleted?: boolean;
 };
 
 type PatientOption = {
@@ -40,7 +41,7 @@ type PatientOption = {
   email: string;
 };
 
-type AppointmentStatusFilter = "SCHEDULED" | "CANCELLED" | "ALL";
+type AppointmentStatusFilter = "SCHEDULED" | "COMPLETED" | "CANCELLED" | "ALL";
 type PaymentStatus = "PENDING" | "PAID" | "EXEMPT";
 
 type Feedback = {
@@ -152,6 +153,7 @@ export default function AgendaPage() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const patientIdFromUrl = searchParams.get("patientId");
+  const summaryGridRef = useRef<HTMLDivElement | null>(null);
 
   const userRole = session?.user?.role;
   const isPsychologist = userRole === "PSYCHOLOGIST";
@@ -213,6 +215,14 @@ export default function AgendaPage() {
       emptyDescription:
         "Quando houver consultas futuras cadastradas no sistema, elas aparecerão aqui. Para criar novas consultas sincronizadas, conecte o Google Calendar.",
     },
+    COMPLETED: {
+      label: "Finalizadas",
+      cardTitle: "Consultas finalizadas",
+      sectionTitle: "Consultas finalizadas",
+      emptyTitle: "Nenhuma consulta finalizada",
+      emptyDescription:
+        "Consultas já realizadas aparecerão aqui automaticamente quando a data e o horário final passarem.",
+    },
     CANCELLED: {
       label: "Canceladas",
       cardTitle: "Consultas canceladas",
@@ -227,7 +237,7 @@ export default function AgendaPage() {
       sectionTitle: "Histórico de consultas",
       emptyTitle: "Nenhuma consulta encontrada",
       emptyDescription:
-        "Quando houver consultas cadastradas no sistema, elas aparecerão aqui, mesmo que não tenham sido criadas pelo Google Calendar.",
+        "Quando houver consultas cadastradas, elas aparecerão aqui, incluindo futuras, finalizadas e canceladas.",
     },
   };
 
@@ -398,8 +408,15 @@ export default function AgendaPage() {
   }, [patientIdFromUrl, handledPatientFromUrl, patients, googleConnected]);
 
   const nextEvent = useMemo(() => {
+    const now = new Date();
     const scheduledEvents = events
-      .filter((event) => event.status !== "CANCELLED" && event.start)
+      .filter((event) => {
+        if (event.status === "CANCELLED" || !event.start) return false;
+
+        const endReference = new Date(event.end || event.start);
+
+        return endReference >= now;
+      })
       .sort(
         (a, b) =>
           new Date(a.start || "").getTime() -
@@ -408,13 +425,6 @@ export default function AgendaPage() {
 
     return scheduledEvents.length > 0 ? scheduledEvents[0] : null;
   }, [events]);
-
-  const googleSyncedEvents = useMemo(
-    () => events.filter((event) => event.googleEventId || event.htmlLink).length,
-    [events],
-  );
-
-  const systemOnlyEvents = events.length - googleSyncedEvents;
 
   function formatDate(dateString: string | null | undefined) {
     if (!dateString) return "--";
@@ -490,10 +500,30 @@ export default function AgendaPage() {
     return event.paymentNote || "";
   }
 
+  function getEventEndReference(event: CalendarEvent) {
+    const dateString = event.end || event.start;
+
+    return dateString ? new Date(dateString) : null;
+  }
+
+  function isAppointmentCompleted(event: CalendarEvent) {
+    if (event.isCompleted !== undefined) {
+      return event.isCompleted;
+    }
+
+    const endReference = getEventEndReference(event);
+
+    return (
+      event.status !== "CANCELLED" &&
+      Boolean(endReference) &&
+      Number(endReference?.getTime()) < Date.now()
+    );
+  }
 
   function isCancellationRequestPending(event: CalendarEvent) {
     return (
       event.status !== "CANCELLED" &&
+      !isAppointmentCompleted(event) &&
       event.confirmationStatus === "CANCELLATION_REQUESTED" &&
       event.cancellationRequestStatus === "PENDING"
     );
@@ -505,6 +535,25 @@ export default function AgendaPage() {
     setTimeout(() => {
       setFeedback(null);
     }, 5000);
+  }
+
+  function handleScrollSummaryCards() {
+    const grid = summaryGridRef.current;
+
+    if (!grid) return;
+
+    const firstCard = grid.querySelector<HTMLElement>(".agenda-summary-card");
+    const scrollAmount = firstCard
+      ? firstCard.offsetWidth + 10
+      : Math.round(grid.clientWidth * 0.82);
+
+    const reachedEnd =
+      grid.scrollLeft + grid.clientWidth >= grid.scrollWidth - 12;
+
+    grid.scrollTo({
+      left: reachedEnd ? 0 : grid.scrollLeft + scrollAmount,
+      behavior: "smooth",
+    });
   }
 
   function toggleAppointmentDetails(appointmentId: string) {
@@ -772,6 +821,7 @@ export default function AgendaPage() {
   function canSendReminder(event: CalendarEvent) {
     if (!getAppointmentId(event)) return false;
     if (event.status === "CANCELLED") return false;
+    if (isAppointmentCompleted(event)) return false;
     if (!event.start) return false;
 
     return new Date(event.start) > new Date();
@@ -939,7 +989,7 @@ export default function AgendaPage() {
 
   if (!isPsychologist) {
     return (
-      <div style={pageStyle}>
+      <div className="agenda-page" style={pageStyle}>
         <section
           style={{
             ...cardStyle,
@@ -989,7 +1039,7 @@ export default function AgendaPage() {
 
   return (
     <>
-      <div style={pageStyle}>
+      <div className="agenda-page" style={pageStyle}>
         <section
           className="agenda-hero"
           style={{
@@ -1130,46 +1180,50 @@ export default function AgendaPage() {
           </div>
         )}
 
-        <div
-          className="agenda-summary-grid"
-          style={{
-            display: "grid",
-            gap: "20px",
-            marginBottom: "28px",
-          }}
-        >
-          {[
-            {
-              title: currentStatusInfo.cardTitle,
-              value: events.length,
-              description:
-                appointmentStatusFilter === "SCHEDULED"
-                  ? "Total de consultas futuras agendadas."
-                  : appointmentStatusFilter === "CANCELLED"
-                    ? "Total de consultas canceladas no histórico."
-                    : "Total de consultas exibidas no filtro atual.",
-              icon: "fa-solid fa-calendar-check",
-              color: "#eff6ff",
-            },
-            {
-              title: "Próxima consulta",
-              value: nextEvent ? formatDate(nextEvent.start) : "--",
-              description: nextEvent
-                ? nextEvent.title
-                : "A próxima consulta aparecerá aqui quando houver agendamentos.",
-              icon: "fa-solid fa-clock",
-              color: "#ecfdf5",
-            },
-            {
-              title: "Google Calendar",
-              value: googleConnected ? "Conectado" : "Não conectado",
-              description: googleConnected
-                ? "Novos horários podem ser sincronizados com o Google."
-                : "A conexão é necessária apenas para criar eventos no Google.",
-              icon: "google",
-              color: "#f5f3ff",
-            },
-          ].map((item) => (
+        <div className="agenda-summary-carousel-wrap">
+          <div
+            ref={summaryGridRef}
+            className="agenda-summary-grid"
+            style={{
+              display: "grid",
+              gap: "20px",
+              marginBottom: "28px",
+            }}
+          >
+            {[
+              {
+                title: "Próxima consulta",
+                value: nextEvent ? formatDate(nextEvent.start) : "--",
+                description: nextEvent
+                  ? nextEvent.title
+                  : "A próxima consulta aparecerá aqui quando houver agendamentos.",
+                icon: "fa-solid fa-clock",
+                color: "#ecfdf5",
+              },
+              {
+                title: currentStatusInfo.cardTitle,
+                value: events.length,
+                description:
+                  appointmentStatusFilter === "SCHEDULED"
+                    ? "Total de consultas futuras agendadas."
+                    : appointmentStatusFilter === "CANCELLED"
+                      ? "Total de consultas canceladas no histórico."
+                      : appointmentStatusFilter === "COMPLETED"
+                        ? "Total de consultas já finalizadas."
+                        : "Total de consultas exibidas no filtro atual.",
+                icon: "fa-solid fa-calendar-check",
+                color: "#eff6ff",
+              },
+              {
+                title: "Google Calendar",
+                value: googleConnected ? "Conectado" : "Não conectado",
+                description: googleConnected
+                  ? "Novos horários podem ser sincronizados com o Google."
+                  : "A conexão é necessária apenas para criar eventos no Google.",
+                icon: "google",
+                color: "#f5f3ff",
+              },
+            ].map((item) => (
             <div
               key={item.title}
               className="agenda-summary-card"
@@ -1238,7 +1292,17 @@ export default function AgendaPage() {
                 {item.description}
               </div>
             </div>
-          ))}
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="agenda-summary-next-button"
+            onClick={handleScrollSummaryCards}
+            aria-label="Ver próximo resumo da agenda"
+          >
+            <i className="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
 
         <div
@@ -1301,6 +1365,7 @@ export default function AgendaPage() {
             >
               {[
                 { label: "Agendadas", value: "SCHEDULED" },
+                { label: "Finalizadas", value: "COMPLETED" },
                 { label: "Canceladas", value: "CANCELLED" },
                 { label: "Todas", value: "ALL" },
               ].map((filter) => (
@@ -1364,6 +1429,7 @@ export default function AgendaPage() {
                 {events.map((event) => {
                   const appointmentId = getAppointmentId(event);
                   const isCancelled = event.status === "CANCELLED";
+                  const isCompleted = isAppointmentCompleted(event);
                   const isExpandedPayment = expandedPaymentId === appointmentId;
                   const isAppointmentExpanded =
                     expandedAppointmentIds.includes(appointmentId);
@@ -1375,10 +1441,18 @@ export default function AgendaPage() {
                         isAppointmentExpanded ? "expanded" : "collapsed"
                       }`}
                       style={{
-                        border: isCancelled ? "1px solid #fecaca" : "1px solid #e5e7eb",
+                        border: isCancelled
+                          ? "1px solid #fecaca"
+                          : isCompleted
+                            ? "1px solid #cbd5e1"
+                            : "1px solid #e5e7eb",
                         borderRadius: "18px",
                         padding: "18px",
-                        backgroundColor: isCancelled ? "#fff7f7" : "#f8fafc",
+                        backgroundColor: isCancelled
+                          ? "#fff7f7"
+                          : isCompleted
+                            ? "#f8fafc"
+                            : "#f8fafc",
                       }}
                     >
                       <div className="agenda-appointment-summary">
@@ -1395,6 +1469,13 @@ export default function AgendaPage() {
                               <i className="fa-solid fa-calendar-day"></i>
                               {formatDate(event.start)}
                             </span>
+
+                            {isCompleted && (
+                              <span>
+                                <i className="fa-solid fa-circle-check"></i>
+                                Finalizada
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -1468,6 +1549,22 @@ export default function AgendaPage() {
                           }}
                         >
                           <strong>Descrição:</strong> {event.description}
+                        </div>
+                      )}
+
+                      {isCompleted && !isCancelled && (
+                        <div
+                          style={{
+                            backgroundColor: "#f1f5f9",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "14px",
+                            padding: "12px 14px",
+                            color: "#334155",
+                            lineHeight: 1.55,
+                            marginBottom: "12px",
+                          }}
+                        >
+                          <strong>Consulta finalizada:</strong> este horário já passou e permanece disponível apenas para histórico e controle financeiro.
                         </div>
                       )}
 
@@ -1838,7 +1935,7 @@ export default function AgendaPage() {
                           </a>
                         )}
 
-                        {!isCancelled && !isCancellationRequestPending(event) && (
+                        {!isCancelled && !isCompleted && !isCancellationRequestPending(event) && (
                           <button
                             type="button"
                             onClick={() => handleCancelAppointment(appointmentId, event.title)}
@@ -1878,7 +1975,7 @@ export default function AgendaPage() {
               <p style={{ color: "#4b5563", marginBottom: "18px", lineHeight: 1.55 }}>
                 {googleConnected
                   ? "Sua conta Google está conectada. Ao criar um novo horário por esta tela, a consulta será salva no sistema e também enviada ao Google Calendar."
-                  : "A lista de consultas usa os dados salvos no sistema. Conecte sua conta Google apenas quando quiser criar horários sincronizados com o Calendar."}
+                  : "Conecte sua conta Google para criar novos horários sincronizados com o Google Calendar. As consultas já cadastradas continuam disponíveis para visualização."}
               </p>
 
               {googleConnected ? (
@@ -1950,32 +2047,7 @@ export default function AgendaPage() {
               )}
             </section>
 
-            <section style={cardStyle}>
-              <h2
-                style={{
-                  fontSize: "22px",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  marginBottom: "12px",
-                }}
-              >
-                Origem das consultas
-              </h2>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <InfoLine
-                  icon="fa-solid fa-database"
-                  label="Somente no sistema"
-                  value={`${systemOnlyEvents} consulta(s)`}
-                />
-                <InfoLine
-                  icon="google"
-                  label="Sincronizadas"
-                  value={`${googleSyncedEvents} consulta(s)`}
-                />
-              </div>
-
-            </section>
           </aside>
         </div>
 
@@ -2688,6 +2760,242 @@ export default function AgendaPage() {
 
             .agenda-summary-card > div:nth-child(4) {
               font-size: 15px !important;
+            }
+          }
+
+          /* Mobile: cards superiores em carrossel horizontal */
+          @media (max-width: 640px) {
+            body .chat-main-wrapper .agenda-page .agenda-summary-grid,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-grid,
+            .chat-main-wrapper .agenda-page .agenda-summary-grid,
+            .agenda-page .agenda-summary-grid {
+              display: flex !important;
+              grid-template-columns: none !important;
+              gap: 10px !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+              scroll-snap-type: x mandatory !important;
+              -webkit-overflow-scrolling: touch !important;
+              padding: 0 2px 8px !important;
+              margin-bottom: 16px !important;
+              scrollbar-width: none !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-grid::-webkit-scrollbar,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-grid::-webkit-scrollbar,
+            .chat-main-wrapper .agenda-page .agenda-summary-grid::-webkit-scrollbar,
+            .agenda-page .agenda-summary-grid::-webkit-scrollbar {
+              display: none !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .agenda-page .agenda-summary-card {
+              flex: 0 0 78% !important;
+              width: 78% !important;
+              max-width: 310px !important;
+              min-width: 230px !important;
+              min-height: 108px !important;
+              scroll-snap-align: start !important;
+              padding: 12px !important;
+              border-radius: 17px !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(2),
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(2),
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(2),
+            .agenda-page .agenda-summary-card > div:nth-child(2) {
+              width: 32px !important;
+              height: 32px !important;
+              border-radius: 11px !important;
+              font-size: 14px !important;
+              margin-bottom: 8px !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(3),
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(3),
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(3),
+            .agenda-page .agenda-summary-card > div:nth-child(3) {
+              font-size: 13px !important;
+              line-height: 1.12 !important;
+              margin-bottom: 6px !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(4),
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(4),
+            .chat-main-wrapper .agenda-page .agenda-summary-card > div:nth-child(4),
+            .agenda-page .agenda-summary-card > div:nth-child(4) {
+              font-size: 17px !important;
+              line-height: 1.12 !important;
+              word-break: break-word !important;
+            }
+          }
+
+          @media (max-width: 430px) {
+            body .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .chat-main-wrapper .agenda-page .agenda-summary-card,
+            .agenda-page .agenda-summary-card {
+              flex-basis: 84% !important;
+              width: 84% !important;
+              min-width: 220px !important;
+              max-width: 290px !important;
+            }
+          }
+
+
+          /* Mobile: resumo em carrossel horizontal com indicação de próximo card */
+          .agenda-summary-carousel-wrap {
+            position: relative;
+            width: 100%;
+            margin-bottom: 28px;
+          }
+
+          .agenda-summary-next-button {
+            display: none;
+          }
+
+          @media (max-width: 640px) {
+            .agenda-summary-carousel-wrap {
+              margin-bottom: 16px !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid,
+            .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid,
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid {
+              display: flex !important;
+              grid-template-columns: none !important;
+              gap: 10px !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+              scroll-snap-type: x mandatory !important;
+              -webkit-overflow-scrolling: touch !important;
+              padding: 0 56px 8px 2px !important;
+              margin-bottom: 0 !important;
+              scrollbar-width: none !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid::-webkit-scrollbar,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid::-webkit-scrollbar,
+            .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid::-webkit-scrollbar,
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-grid::-webkit-scrollbar {
+              display: none !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card,
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card,
+            .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card,
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card {
+              flex: 0 0 82% !important;
+              width: 82% !important;
+              max-width: 310px !important;
+              min-width: 235px !important;
+              min-height: 86px !important;
+              scroll-snap-align: start !important;
+              padding: 12px 14px !important;
+              border-radius: 17px !important;
+              display: grid !important;
+              grid-template-columns: 38px minmax(0, 1fr) !important;
+              grid-template-rows: auto auto !important;
+              column-gap: 10px !important;
+              row-gap: 3px !important;
+              align-items: center !important;
+            }
+
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card::after {
+              content: "";
+              position: absolute;
+              right: -10px;
+              top: 50%;
+              width: 14px;
+              height: 44px;
+              border-radius: 999px;
+              background: rgba(37, 99, 235, 0.10);
+              transform: translateY(-50%);
+              pointer-events: none;
+            }
+
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:first-child {
+              right: -34px !important;
+              top: -34px !important;
+              width: 82px !important;
+              height: 82px !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(2),
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(2),
+            .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(2),
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(2) {
+              grid-row: 1 / 3 !important;
+              grid-column: 1 !important;
+              width: 34px !important;
+              height: 34px !important;
+              border-radius: 12px !important;
+              font-size: 14px !important;
+              margin: 0 !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(3),
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(3),
+            .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(3),
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(3) {
+              grid-column: 2 !important;
+              font-size: 12px !important;
+              line-height: 1.1 !important;
+              margin: 0 !important;
+            }
+
+            body .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(4),
+            .chat-container .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(4),
+            .chat-main-wrapper .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(4),
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(4) {
+              grid-column: 2 !important;
+              font-size: 16px !important;
+              line-height: 1.12 !important;
+              margin: 0 !important;
+              word-break: break-word !important;
+            }
+
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card > div:nth-child(5) {
+              display: none !important;
+            }
+
+            .agenda-summary-next-button {
+              position: absolute;
+              display: inline-flex !important;
+              align-items: center;
+              justify-content: center;
+              right: 8px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 38px;
+              height: 38px;
+              border-radius: 999px;
+              border: 1px solid #bfdbfe;
+              background: rgba(255, 255, 255, 0.96);
+              color: #1d4ed8;
+              box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+              z-index: 5;
+              cursor: pointer;
+            }
+
+            .agenda-summary-next-button i {
+              font-size: 13px;
+              line-height: 1;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .agenda-page .agenda-summary-carousel-wrap .agenda-summary-card {
+              flex-basis: 84% !important;
+              width: 84% !important;
+              min-width: 228px !important;
             }
           }
 

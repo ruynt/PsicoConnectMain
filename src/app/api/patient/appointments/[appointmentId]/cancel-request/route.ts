@@ -10,6 +10,24 @@ type Params = {
   }>;
 };
 
+function getAppointmentEndReference(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+}) {
+  return appointment.endDateTime || appointment.dateTime;
+}
+
+function isAppointmentCompleted(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+}) {
+  return (
+    appointment.status !== "CANCELLED" &&
+    getAppointmentEndReference(appointment).getTime() < Date.now()
+  );
+}
+
 async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
     req,
@@ -118,6 +136,8 @@ export async function POST(req: NextRequest, context: Params) {
       select: {
         id: true,
         status: true,
+        dateTime: true,
+        endDateTime: true,
       },
     });
 
@@ -131,6 +151,13 @@ export async function POST(req: NextRequest, context: Params) {
     if (appointment.status === "CANCELLED") {
       return NextResponse.json(
         { error: "Esta consulta já está cancelada." },
+        { status: 400 },
+      );
+    }
+
+    if (isAppointmentCompleted(appointment)) {
+      return NextResponse.json(
+        { error: "Não é possível solicitar cancelamento de uma consulta finalizada." },
         { status: 400 },
       );
     }
@@ -194,6 +221,8 @@ export async function DELETE(req: NextRequest, context: Params) {
         id: true,
         status: true,
         confirmationStatus: true,
+        dateTime: true,
+        endDateTime: true,
       },
     });
 
@@ -207,6 +236,13 @@ export async function DELETE(req: NextRequest, context: Params) {
     if (appointment.status === "CANCELLED") {
       return NextResponse.json(
         { error: "Esta consulta já está cancelada." },
+        { status: 400 },
+      );
+    }
+
+    if (isAppointmentCompleted(appointment)) {
+      return NextResponse.json(
+        { error: "Não é possível alterar solicitação de uma consulta finalizada." },
         { status: 400 },
       );
     }

@@ -45,9 +45,10 @@ type PatientAppointment = {
     email: string;
   };
   preSessionCheckin: PreSessionCheckin | null;
+  isCompleted?: boolean;
 };
 
-type AppointmentTab = "UPCOMING" | "CANCELLED" | "HISTORY";
+type AppointmentTab = "UPCOMING" | "COMPLETED" | "CANCELLED" | "HISTORY";
 
 type Feedback = {
   type: "success" | "error" | "info";
@@ -66,6 +67,28 @@ const NAVY = "#001e5e";
 const NAVY_SOFT = "#102a56";
 const MUTED = "#5272a6";
 const BORDER = "#e6edf7";
+
+
+function getPatientAppointmentEndTime(appointment: {
+  dateTime: string;
+  endDateTime: string | null;
+}) {
+  return new Date(appointment.endDateTime || appointment.dateTime).getTime();
+}
+
+function isPatientAppointmentCompletedAt(
+  appointment: PatientAppointment,
+  now: Date,
+) {
+  if (appointment.isCompleted !== undefined) {
+    return appointment.isCompleted;
+  }
+
+  return (
+    appointment.status !== "CANCELLED" &&
+    getPatientAppointmentEndTime(appointment) < now.getTime()
+  );
+}
 
 const tones = {
   blue: {
@@ -152,11 +175,21 @@ export default function MyAppointmentsPage() {
       .filter(
         (appointment) =>
           appointment.status === "SCHEDULED" &&
-          new Date(appointment.dateTime) >= now,
+          !isPatientAppointmentCompletedAt(appointment, now),
       )
       .sort(
         (a, b) =>
           new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
+      );
+  }, [appointments, now]);
+
+  const completedAppointments = useMemo(() => {
+    return appointments
+      .filter((appointment) => isPatientAppointmentCompletedAt(appointment, now))
+      .sort(
+        (a, b) =>
+          new Date(b.endDateTime || b.dateTime).getTime() -
+          new Date(a.endDateTime || a.dateTime).getTime(),
       );
   }, [appointments, now]);
 
@@ -175,7 +208,7 @@ export default function MyAppointmentsPage() {
       .filter(
         (appointment) =>
           appointment.status === "CANCELLED" ||
-          new Date(appointment.dateTime) < now,
+          isPatientAppointmentCompletedAt(appointment, now),
       )
       .sort(
         (a, b) =>
@@ -196,6 +229,7 @@ export default function MyAppointmentsPage() {
 
   const appointmentsByTab = {
     UPCOMING: upcomingAppointments,
+    COMPLETED: completedAppointments,
     CANCELLED: cancelledAppointments,
     HISTORY: historyAppointments,
   };
@@ -209,6 +243,15 @@ export default function MyAppointmentsPage() {
       emptyDescription:
         "Quando seu psicólogo agendar uma nova consulta, ela aparecerá aqui.",
       icon: "fa-solid fa-calendar-check",
+    },
+    COMPLETED: {
+      label: "Finalizadas",
+      title: "Consultas finalizadas",
+      description: "Atendimentos já realizados e mantidos no histórico.",
+      emptyTitle: "Nenhuma consulta finalizada",
+      emptyDescription:
+        "Consultas serão marcadas automaticamente como finalizadas quando o horário passar.",
+      icon: "fa-solid fa-circle-check",
     },
     CANCELLED: {
       label: "Canceladas",
@@ -262,11 +305,12 @@ export default function MyAppointmentsPage() {
     }
   }
 
+  function isAppointmentCompleted(appointment: PatientAppointment) {
+    return isPatientAppointmentCompletedAt(appointment, now);
+  }
+
   function isFutureAppointment(appointment: PatientAppointment) {
-    return (
-      appointment.status === "SCHEDULED" &&
-      new Date(appointment.dateTime) >= new Date()
-    );
+    return appointment.status === "SCHEDULED" && !isAppointmentCompleted(appointment);
   }
 
   function getConfirmationStatus(appointment: PatientAppointment) {
@@ -284,6 +328,18 @@ export default function MyAppointmentsPage() {
         color: "#b91c1c",
         border: "#fecaca",
         icon: "fa-solid fa-calendar-xmark",
+      };
+    }
+
+    if (isAppointmentCompleted(appointment)) {
+      return {
+        label: "Consulta finalizada",
+        description:
+          "Este atendimento já passou e permanece disponível apenas para histórico.",
+        bg: "#f1f5f9",
+        color: NAVY,
+        border: "#cbd5e1",
+        icon: "fa-solid fa-circle-check",
       };
     }
 
@@ -655,6 +711,18 @@ export default function MyAppointmentsPage() {
 
   function renderAppointmentActions(appointment: PatientAppointment) {
     const future = isFutureAppointment(appointment);
+    if (isAppointmentCompleted(appointment)) {
+      return {
+        label: "Consulta finalizada",
+        description:
+          "Este atendimento já passou e permanece disponível apenas para histórico.",
+        bg: "#f1f5f9",
+        color: NAVY,
+        border: "#cbd5e1",
+        icon: "fa-solid fa-circle-check",
+      };
+    }
+
     const confirmationStatus = getConfirmationStatus(appointment);
 
     if (!future) return null;
@@ -847,6 +915,11 @@ export default function MyAppointmentsPage() {
                 count: upcomingAppointments.length,
               },
               {
+                label: "Finalizadas",
+                value: "COMPLETED",
+                count: completedAppointments.length,
+              },
+              {
                 label: "Canceladas",
                 value: "CANCELLED",
                 count: cancelledAppointments.length,
@@ -882,6 +955,7 @@ export default function MyAppointmentsPage() {
             <div className="appointments-list">
               {currentAppointments.map((appointment) => {
                 const confirmationInfo = getConfirmationInfo(appointment);
+                const appointmentCompleted = isAppointmentCompleted(appointment);
                 const isFuture = isFutureAppointment(appointment);
 
                 return (
@@ -896,16 +970,20 @@ export default function MyAppointmentsPage() {
                         className={`appointment-status-pill ${
                           appointment.status === "CANCELLED"
                             ? "is-cancelled"
-                            : appointment.preSessionCheckin
-                              ? "is-done"
-                              : "is-pending"
+                            : appointmentCompleted
+                              ? "is-completed"
+                              : appointment.preSessionCheckin
+                                ? "is-done"
+                                : "is-pending"
                         }`}
                       >
                         {appointment.status === "CANCELLED"
                           ? "Cancelada"
-                          : appointment.preSessionCheckin
-                            ? "Checklist respondido"
-                            : "Agendada"}
+                          : appointmentCompleted
+                            ? "Finalizada"
+                            : appointment.preSessionCheckin
+                              ? "Checklist respondido"
+                              : "Agendada"}
                       </span>
                     </div>
 
@@ -936,7 +1014,7 @@ export default function MyAppointmentsPage() {
                         )}
                     </div>
 
-                    {isFuture && (
+                    {(appointmentCompleted || isFuture) && (
                       <div className="appointment-confirmation-box">
                         <p>
                           <i className={confirmationInfo.icon}></i>
@@ -1327,6 +1405,12 @@ export default function MyAppointmentsPage() {
           background-color: #ecfdf5;
           color: #065f46;
           border: 1px solid #a7f3d0;
+        }
+
+        .appointment-status-pill.is-completed {
+          background-color: #f1f5f9;
+          color: #334155;
+          border: 1px solid #cbd5e1;
         }
 
         .appointment-status-pill.is-pending {

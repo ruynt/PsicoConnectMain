@@ -13,6 +13,24 @@ function cleanText(value: unknown, maxLength = 1000) {
   return value.trim().slice(0, maxLength);
 }
 
+function getAppointmentEndReference(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+}) {
+  return appointment.endDateTime || appointment.dateTime;
+}
+
+function isAppointmentCompleted(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+}) {
+  return (
+    appointment.status !== "CANCELLED" &&
+    getAppointmentEndReference(appointment).getTime() < Date.now()
+  );
+}
+
 function parseAppointmentId(value: unknown) {
   if (typeof value !== "string") {
     return "";
@@ -210,6 +228,13 @@ export async function POST(req: NextRequest) {
     if (appointment.status === "CANCELLED") {
       return NextResponse.json(
         { error: "Esta consulta já está cancelada." },
+        { status: 400 },
+      );
+    }
+
+    if (isAppointmentCompleted(appointment)) {
+      return NextResponse.json(
+        { error: "Não é possível cancelar uma consulta finalizada." },
         { status: 400 },
       );
     }

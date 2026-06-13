@@ -40,6 +40,24 @@ function normalizeAppointmentId(value: unknown) {
   return value.trim();
 }
 
+function getAppointmentEndReference(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+}) {
+  return appointment.endDateTime || appointment.dateTime;
+}
+
+function isAppointmentCompleted(appointment: {
+  dateTime: Date;
+  endDateTime: Date | null;
+  status: string;
+}) {
+  return (
+    appointment.status !== "CANCELLED" &&
+    getAppointmentEndReference(appointment).getTime() < Date.now()
+  );
+}
+
 function mapCheckin(checkin: {
   id: string;
   appointmentId: string;
@@ -253,6 +271,8 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         status: true,
+        dateTime: true,
+        endDateTime: true,
       },
     });
 
@@ -266,6 +286,13 @@ export async function POST(req: NextRequest) {
     if (appointment.status === "CANCELLED") {
       return NextResponse.json(
         { error: "Não é possível responder checklist de consulta cancelada." },
+        { status: 400 },
+      );
+    }
+
+    if (isAppointmentCompleted(appointment)) {
+      return NextResponse.json(
+        { error: "Não é possível responder checklist de consulta finalizada." },
         { status: 400 },
       );
     }
