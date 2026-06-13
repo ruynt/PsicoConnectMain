@@ -712,15 +712,7 @@ export default function MyAppointmentsPage() {
   function renderAppointmentActions(appointment: PatientAppointment) {
     const future = isFutureAppointment(appointment);
     if (isAppointmentCompleted(appointment)) {
-      return {
-        label: "Consulta finalizada",
-        description:
-          "Este atendimento já passou e permanece disponível apenas para histórico.",
-        bg: "#f1f5f9",
-        color: NAVY,
-        border: "#cbd5e1",
-        icon: "fa-solid fa-circle-check",
-      };
+      return null;
     }
 
     const confirmationStatus = getConfirmationStatus(appointment);
