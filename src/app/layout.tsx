@@ -3,6 +3,7 @@ import type { PropsWithChildren } from "react";
 import { Inter, Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/AppProviders";
+import FontAwesomeLoader from "@/components/FontAwesomeLoader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -96,13 +97,11 @@ export default function RootLayout({ children }: PropsWithChildren) {
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-        />
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
       </head>
 
       <body>
+        <FontAwesomeLoader />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

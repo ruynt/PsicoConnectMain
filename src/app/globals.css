@@ -3590,15 +3590,14 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
   }
 
   .pwa-guide-overlay {
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
+    align-items: flex-end;
+    padding: 12px;
   }
 
   .pwa-guide-modal {
-    width: min(420px, calc(100vw - 32px));
-    max-height: calc(100dvh - 32px);
-    margin: 0 auto;
+    max-height: calc(100dvh - 24px);
+    border-radius: 24px;
+    padding: 24px 18px 18px;
   }
 
   .pwa-guide-modal h2 {

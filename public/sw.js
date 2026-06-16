@@ -1,4 +1,4 @@
-const CACHE_NAME = "psicoconnect-static-v1";
+const CACHE_NAME = "psicoconnect-static-v2";
 const STATIC_ASSET_PATHS = [
   "/manifest.webmanifest",
   "/favicon.ico",
