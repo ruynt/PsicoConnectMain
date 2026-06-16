@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 
 export default function LandingPage() {
   return (
@@ -197,6 +198,11 @@ export default function LandingPage() {
             <Link href="/termos-de-uso">Termos de Uso</Link>
             <Link href="/politica-de-privacidade">Privacidade</Link>
             <Link href="/exclusao-de-dados">Exclusão de Dados</Link>
+            <PwaInstallButton
+              variant="footer"
+              label="Instalar app"
+              title="Instalar PsicoConnect como aplicativo"
+            />
           </div>
         </div>
 

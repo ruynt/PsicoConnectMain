@@ -5,6 +5,10 @@ import { SessionProvider, useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
+import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
+import PwaInstallButton from "@/components/pwa/PwaInstallButton";
+import PwaFirstLoginInstallBanner from "@/components/pwa/PwaFirstLoginInstallBanner";
+import PwaInstallGuideModal from "@/components/pwa/PwaInstallGuideModal";
 
 type SessionUserWithRoleAndCrp = {
   role?: string;
@@ -435,6 +439,12 @@ function AuthGuard({ children }: PropsWithChildren) {
             </div>
 
             <div className="sidebar-footer">
+              <PwaInstallButton
+                variant="sidebar"
+                label="Instalar app"
+                title="Instalar PsicoConnect como aplicativo"
+              />
+
               <button
                 title="Sair da conta"
                 onClick={() => signOut({ callbackUrl: "/login" })}
@@ -466,7 +476,11 @@ function AuthGuard({ children }: PropsWithChildren) {
 export default function AppProviders({ children }: PropsWithChildren) {
   return (
     <SessionProvider>
-      <AuthGuard>{children}</AuthGuard>
+      <PwaInstallProvider>
+        <AuthGuard>{children}</AuthGuard>
+        <PwaFirstLoginInstallBanner />
+        <PwaInstallGuideModal />
+      </PwaInstallProvider>
     </SessionProvider>
   );
 }

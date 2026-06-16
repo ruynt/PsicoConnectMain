@@ -75,6 +75,11 @@ export const metadata: Metadata = {
       "Plataforma web para apoio à prática psicológica, com agenda, acompanhamento de pacientes, materiais, mensagens e assistente inteligente.",
     images: ["/og-psicoconnect.png"],
   },
+  appleWebApp: {
+    capable: true,
+    title: "PsicoConnect",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
