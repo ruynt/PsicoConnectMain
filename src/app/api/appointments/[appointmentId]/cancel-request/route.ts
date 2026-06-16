@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -105,17 +106,18 @@ function mapAppointment(
 ) {
   return {
     id: appointment.id,
-    title: appointment.title || "Consulta",
+    title: decryptNullableSensitiveText(appointment.title) || "Consulta",
     dateTime: appointment.dateTime.toISOString(),
     endDateTime: appointment.endDateTime?.toISOString() || null,
     status: appointment.status,
     confirmationStatus: appointment.confirmationStatus,
     confirmedAt: appointment.confirmedAt?.toISOString() || null,
-    cancellationReason: appointment.cancellationReason || null,
+    cancellationReason: decryptNullableSensitiveText(appointment.cancellationReason) || null,
     cancelledAt: appointment.cancelledAt?.toISOString() || null,
     cancellationRequestedAt:
       appointment.cancellationRequestedAt?.toISOString() || null,
-    cancellationRequestReason: appointment.cancellationRequestReason || null,
+    cancellationRequestReason:
+      decryptNullableSensitiveText(appointment.cancellationRequestReason) || null,
     cancellationRequestStatus: appointment.cancellationRequestStatus || null,
     patient,
   };
@@ -226,8 +228,10 @@ export async function PATCH(req: NextRequest, context: Params) {
           status: "CANCELLED",
           cancelledAt: new Date(),
           cancellationReason:
-            appointment.cancellationRequestReason ||
-            "Cancelamento solicitado pelo paciente e aprovado pelo psicólogo.",
+            encryptNullableSensitiveText(appointment.cancellationRequestReason) ||
+            encryptNullableSensitiveText(
+              "Cancelamento solicitado pelo paciente e aprovado pelo psicólogo.",
+            ),
           cancellationRequestStatus: "APPROVED",
           confirmationStatus: "CANCELLATION_REQUESTED",
         },
@@ -262,7 +266,7 @@ export async function PATCH(req: NextRequest, context: Params) {
         cancellationRequestStatus: "REJECTED",
         cancellationRequestReason: appointment.cancellationRequestReason,
         cancellationRequestedAt: appointment.cancellationRequestedAt,
-        cancellationReason: rejectionReason || null,
+        cancellationReason: encryptNullableSensitiveText(rejectionReason) || null,
         cancelledAt: null,
       },
       select: {

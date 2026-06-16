@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -101,7 +102,7 @@ function mapAppointment(
 ) {
   return {
     id: appointment.id,
-    title: appointment.title || "Consulta",
+    title: decryptNullableSensitiveText(appointment.title) || "Consulta",
     dateTime: appointment.dateTime.toISOString(),
     endDateTime: appointment.endDateTime?.toISOString() || null,
     status: appointment.status,
@@ -110,7 +111,7 @@ function mapAppointment(
       appointment.paymentAmount !== null && appointment.paymentAmount !== undefined
         ? Number(appointment.paymentAmount)
         : null,
-    paymentNote: appointment.paymentNote,
+    paymentNote: decryptNullableSensitiveText(appointment.paymentNote) || null,
     paidAt: appointment.paidAt?.toISOString() || null,
     patient,
   };
@@ -196,7 +197,7 @@ export async function PATCH(req: NextRequest, context: Params) {
       data: {
         paymentStatus,
         paymentAmount,
-        paymentNote: paymentNote || null,
+        paymentNote: encryptNullableSensitiveText(paymentNote) || null,
         paidAt: paymentStatus === "PAID" ? now : null,
       },
       select: {

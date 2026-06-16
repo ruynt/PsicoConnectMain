@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 export async function GET(req: NextRequest) {
   const token = await getToken({
@@ -84,12 +85,12 @@ export async function GET(req: NextRequest) {
 
       return {
         id: patient.id,
-        name: patient.socialName?.trim() || patient.user.name,
+        name: decryptNullableSensitiveText(patient.socialName).trim() || patient.user.name,
         civilName: patient.user.name,
-        socialName: patient.socialName,
+        socialName: decryptNullableSensitiveText(patient.socialName),
         email: patient.user.email,
         profileImageUrl: patient.user.profileImageUrl,
-        phone: patient.user.phone,
+        phone: decryptNullableSensitiveText(patient.user.phone),
         city: patient.user.city,
         state: patient.user.state,
         totalAppointments: patient.appointments.length,
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
         nextAppointment: nextAppointment
           ? {
               id: nextAppointment.id,
-              title: nextAppointment.title || "Consulta",
+              title: decryptNullableSensitiveText(nextAppointment.title) || "Consulta",
               dateTime: nextAppointment.dateTime.toISOString(),
               endDateTime: nextAppointment.endDateTime?.toISOString() || null,
               status: nextAppointment.status,

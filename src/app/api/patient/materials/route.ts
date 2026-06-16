@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
@@ -85,11 +86,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       materials: materials.map((material) => ({
         id: material.id,
-        title: material.title,
-        description: material.description || "",
-        category: material.category || "",
-        url: material.url || "",
-        content: material.content || "",
+        title: decryptNullableSensitiveText(material.title),
+        description: decryptNullableSensitiveText(material.description),
+        category: decryptNullableSensitiveText(material.category),
+        url: decryptNullableSensitiveText(material.url),
+        content: decryptNullableSensitiveText(material.content),
         viewedAt: material.viewedAt?.toISOString() || null,
         createdAt: material.createdAt.toISOString(),
         updatedAt: material.updatedAt.toISOString(),

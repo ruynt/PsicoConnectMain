@@ -46,11 +46,11 @@ function mapCheckin(checkin: {
     updatedAt: checkin.updatedAt.toISOString(),
     appointment: {
       id: checkin.appointment.id,
-      title: checkin.appointment.title || "Consulta",
+      title: decryptNullableSensitiveText(checkin.appointment.title) || "Consulta",
       dateTime: checkin.appointment.dateTime.toISOString(),
       endDateTime: checkin.appointment.endDateTime?.toISOString() || null,
       status: checkin.appointment.status,
-      location: checkin.appointment.location || "",
+      location: decryptNullableSensitiveText(checkin.appointment.location),
     },
   };
 }

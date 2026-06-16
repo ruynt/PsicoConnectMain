@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
@@ -100,10 +101,10 @@ export async function GET(req: NextRequest) {
         name: psychologist.user.name,
         email: psychologist.user.email,
         profileImageUrl: psychologist.user.profileImageUrl || "",
-        phone: psychologist.user.phone || "",
+        phone: decryptNullableSensitiveText(psychologist.user.phone),
         city: psychologist.user.city || "",
         state: psychologist.user.state || "",
-        bio: psychologist.user.bio || "",
+        bio: decryptNullableSensitiveText(psychologist.user.bio),
 
         crp: psychologist.crp,
         crpState: psychologist.crpState || "",

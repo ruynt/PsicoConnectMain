@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authConfig } from "../../../lib/auth";
 import prisma from "../../../lib/prisma";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 const INVALID_VALUE = "__INVALID_VALUE__";
 
@@ -195,19 +196,19 @@ function mapProfile(user: Awaited<ReturnType<typeof getCurrentUser>>) {
     email: user.email,
     role: user.role,
     profileImageUrl: user.profileImageUrl || "",
-    phone: user.phone || "",
+    phone: decryptNullableSensitiveText(user.phone),
     city: user.city || "",
     state: user.state || "",
-    bio: user.bio || "",
+    bio: decryptNullableSensitiveText(user.bio),
     patient: user.patient
       ? {
           id: user.patient.id,
-          socialName: user.patient.socialName || "",
+          socialName: decryptNullableSensitiveText(user.patient.socialName),
           birthDate: formatBirthDate(user.patient.birthDate),
-          contactPreference: user.patient.contactPreference || "",
-          emergencyContactName: user.patient.emergencyContactName || "",
-          emergencyContactPhone: user.patient.emergencyContactPhone || "",
-          patientNotes: user.patient.patientNotes || "",
+          contactPreference: decryptNullableSensitiveText(user.patient.contactPreference),
+          emergencyContactName: decryptNullableSensitiveText(user.patient.emergencyContactName),
+          emergencyContactPhone: decryptNullableSensitiveText(user.patient.emergencyContactPhone),
+          patientNotes: decryptNullableSensitiveText(user.patient.patientNotes),
         }
       : null,
     psychologist: user.psychologist
@@ -338,10 +339,10 @@ export async function PATCH(req: Request) {
         data: {
           name,
           profileImageUrl,
-          phone,
+          phone: encryptNullableSensitiveText(phone),
           city: cleanText(body.city, 80),
           state,
-          bio: cleanText(body.bio, 1200),
+          bio: encryptNullableSensitiveText(cleanText(body.bio, 1200)),
         },
         include: {
           patient: true,
@@ -371,12 +372,20 @@ export async function PATCH(req: Request) {
             id: updatedUser.patient.id,
           },
           data: {
-            socialName: cleanText(body.socialName, 120),
+            socialName: encryptNullableSensitiveText(
+              cleanText(body.socialName, 120),
+            ),
             birthDate: birthDate.date,
-            contactPreference: cleanText(body.contactPreference, 250),
-            emergencyContactName: cleanText(body.emergencyContactName, 120),
-            emergencyContactPhone,
-            patientNotes: cleanText(body.patientNotes, 1200),
+            contactPreference: encryptNullableSensitiveText(
+              cleanText(body.contactPreference, 250),
+            ),
+            emergencyContactName: encryptNullableSensitiveText(
+              cleanText(body.emergencyContactName, 120),
+            ),
+            emergencyContactPhone: encryptNullableSensitiveText(emergencyContactPhone),
+            patientNotes: encryptNullableSensitiveText(
+              cleanText(body.patientNotes, 1200),
+            ),
           },
         });
       }

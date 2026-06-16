@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { sendAppointmentCancelledEmail } from "../../../../lib/emails";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 function cleanText(value: unknown, maxLength = 1000) {
   if (typeof value !== "string") {
@@ -291,7 +292,7 @@ export async function POST(req: NextRequest) {
       data: {
         status: "CANCELLED",
         cancelledAt: new Date(),
-        cancellationReason: cancellationReason || null,
+        cancellationReason: encryptNullableSensitiveText(cancellationReason) || null,
       },
     });
 
@@ -302,10 +303,10 @@ export async function POST(req: NextRequest) {
         patientEmail: appointment.patient.user.email,
         patientName: appointment.patient.user.name,
         psychologistName: appointment.psychologist.user.name,
-        title: appointment.title || "Consulta",
+        title: decryptNullableSensitiveText(appointment.title) || "Consulta",
         startDateTime: appointment.dateTime,
         endDateTime: appointment.endDateTime,
-        location: appointment.location,
+        location: decryptNullableSensitiveText(appointment.location),
         cancellationReason: cancellationReason || null,
       });
     } catch (emailError) {
@@ -322,7 +323,15 @@ export async function POST(req: NextRequest) {
       message: emailWarning
         ? "Consulta cancelada com sucesso, mas houve falha no envio do e-mail."
         : "Consulta cancelada com sucesso. O paciente foi notificado por e-mail.",
-      appointment: updatedAppointment,
+      appointment: {
+        ...updatedAppointment,
+        title: decryptNullableSensitiveText(updatedAppointment.title),
+        description: decryptNullableSensitiveText(updatedAppointment.description),
+        location: decryptNullableSensitiveText(updatedAppointment.location),
+        cancellationReason: decryptNullableSensitiveText(
+          updatedAppointment.cancellationReason,
+        ),
+      },
       emailWarning,
     });
   } catch (error: unknown) {

@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { sendAppointmentCreatedEmail } from "../../../../lib/emails";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
+import { encryptNullableSensitiveText } from "@/lib/encryption";
 
 const TIME_ZONE = "America/Fortaleza";
 
@@ -319,9 +320,9 @@ export async function POST(req: NextRequest) {
 
     const appointment = await prisma.appointment.create({
       data: {
-        title,
-        description,
-        location,
+        title: encryptNullableSensitiveText(title),
+        description: encryptNullableSensitiveText(description),
+        location: encryptNullableSensitiveText(location),
         dateTime: startDateTime.dbDate,
         endDateTime: endDateTime.dbDate,
         googleEventId: data.id,
@@ -338,11 +339,11 @@ export async function POST(req: NextRequest) {
         patientEmail: patient.user.email,
         patientName: patient.user.name,
         psychologistName: psychologist.user.name,
-        title: appointment.title || "Consulta",
+        title: title || "Consulta",
         startDateTime: appointment.dateTime,
         endDateTime: appointment.endDateTime,
-        location: appointment.location,
-        description: appointment.description,
+        location,
+        description,
         googleEventLink: appointment.googleEventLink,
       });
     } catch (emailError) {
@@ -359,7 +360,12 @@ export async function POST(req: NextRequest) {
       message: emailWarning
         ? "Consulta criada com sucesso, mas houve falha no envio do e-mail."
         : "Consulta criada com sucesso.",
-      appointment,
+      appointment: {
+        ...appointment,
+        title,
+        description,
+        location,
+      },
       googleEvent: data,
       emailWarning,
     });

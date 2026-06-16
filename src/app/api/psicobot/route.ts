@@ -120,7 +120,28 @@ function getDisplayName(patient: {
   socialName?: string | null;
   user?: { name?: string | null } | null;
 }) {
-  return patient.socialName?.trim() || patient.user?.name?.trim() || "Paciente";
+  const socialName = decryptNullableSensitiveText(patient.socialName).trim();
+
+  return socialName || patient.user?.name?.trim() || "Paciente";
+}
+
+function patientMatchesSearchTerm(
+  patient: {
+    socialName?: string | null;
+    user?: { name?: string | null } | null;
+  },
+  searchTerm: string,
+) {
+  const normalizedSearch = normalizeText(searchTerm);
+
+  if (!normalizedSearch) {
+    return false;
+  }
+
+  const civilName = normalizeText(patient.user?.name || "");
+  const socialName = normalizeText(decryptNullableSensitiveText(patient.socialName));
+
+  return civilName.includes(normalizedSearch) || socialName.includes(normalizedSearch);
 }
 
 function getPsychologistDisplayName(psychologist: {
@@ -648,28 +669,10 @@ async function getLinkedPatientForPsychologist(
     };
   }
 
-  const links = await prisma.psychologistPatient.findMany({
+  const allLinks = await prisma.psychologistPatient.findMany({
     where: {
       psychologistId,
       active: true,
-      patient: {
-        OR: [
-          {
-            user: {
-              name: {
-                contains: searchTerm,
-                mode: "insensitive",
-              },
-            },
-          },
-          {
-            socialName: {
-              contains: searchTerm,
-              mode: "insensitive",
-            },
-          },
-        ],
-      },
     },
     include: {
       patient: {
@@ -686,8 +689,14 @@ async function getLinkedPatientForPsychologist(
         },
       },
     },
-    take: 6,
+    orderBy: {
+      createdAt: "desc",
+    },
   });
+
+  const links = allLinks
+    .filter((link) => patientMatchesSearchTerm(link.patient, searchTerm))
+    .slice(0, 6);
 
   if (links.length === 0) {
     return {
@@ -936,7 +945,7 @@ async function listPsychologistPatientAppointments(
   const items = appointments
     .map(
       (appointment) =>
-        `- ${appointment.title || "Consulta"}: ${formatDateTime(
+        `- ${decryptNullableSensitiveText(appointment.title) || "Consulta"}: ${formatDateTime(
           appointment.dateTime,
         )} — agendada`,
     )
@@ -962,7 +971,7 @@ async function listPsychologistPatientTasks(
   const items = tasks
     .map(
       (task) =>
-        `- ${task.title} — ${
+        `- ${decryptNullableSensitiveText(task.title) || "Tarefa"} — ${
           task.status === "PENDING"
             ? "pendente"
             : task.status === "COMPLETED"
@@ -992,7 +1001,9 @@ async function listPsychologistPatientMaterials(
   const items = materials
     .map(
       (material) =>
-        `- ${material.title}${material.category ? ` (${material.category})` : ""} — enviado em ${formatDateOnly(material.createdAt)}${
+        `- ${decryptNullableSensitiveText(material.title) || "Material"}${
+          material.category ? ` (${decryptNullableSensitiveText(material.category)})` : ""
+        } — enviado em ${formatDateOnly(material.createdAt)}${
           material.viewedAt ? `, visualizado em ${formatDateOnly(material.viewedAt)}` : ""
         }`,
     )
@@ -1038,7 +1049,7 @@ async function listPsychologistPatientCheckins(
         .filter(Boolean)
         .join(", ");
 
-      return `- ${formatDateOnly(checkin.createdAt)} (${checkin.appointment.title || "consulta"}): ${
+      return `- ${formatDateOnly(checkin.createdAt)} (${decryptNullableSensitiveText(checkin.appointment.title) || "consulta"}): ${
         levels || "sem escalas preenchidas"
       }${checkin.topicsToDiscuss ? `. Temas: ${compactText(decryptNullableSensitiveText(checkin.topicsToDiscuss), 150)}` : ""}`;
     })
@@ -1110,8 +1121,14 @@ async function listPsychologistAppointments(psychologistId: string) {
       const patientName = getDisplayName(appointment.patient);
 
       return `- ${formatDateTime(appointment.dateTime)} — ${patientName}${
-        appointment.title ? ` (${appointment.title})` : ""
-      }${appointment.location ? ` — ${appointment.location}` : ""}`;
+        appointment.title
+          ? ` (${decryptNullableSensitiveText(appointment.title)})`
+          : ""
+      }${
+        appointment.location
+          ? ` — ${decryptNullableSensitiveText(appointment.location)}`
+          : ""
+      }`;
     })
     .join("\n");
 
@@ -1431,7 +1448,7 @@ async function listPatientAppointments(patientId: string) {
   const items = appointments
     .map(
       (appointment) =>
-        `- ${appointment.title || "Consulta"}: ${formatDateTime(
+        `- ${decryptNullableSensitiveText(appointment.title) || "Consulta"}: ${formatDateTime(
           appointment.dateTime,
         )} com ${getPsychologistDisplayName(appointment.psychologist)} — agendada`,
     )
@@ -1463,7 +1480,7 @@ async function listPatientTasks(patientId: string) {
   const items = tasks
     .map(
       (task) =>
-        `- ${task.title} — ${
+        `- ${decryptNullableSensitiveText(task.title) || "Tarefa"} — ${
           task.status === "PENDING"
             ? "pendente"
             : task.status === "COMPLETED"
@@ -1499,7 +1516,9 @@ async function listPatientMaterials(patientId: string) {
   const items = materials
     .map(
       (material) =>
-        `- ${material.title}${material.category ? ` (${material.category})` : ""} — enviado por ${getPsychologistDisplayName(material.psychologist)} em ${formatDateOnly(material.createdAt)}${
+        `- ${decryptNullableSensitiveText(material.title) || "Material"}${
+          material.category ? ` (${decryptNullableSensitiveText(material.category)})` : ""
+        } — enviado por ${getPsychologistDisplayName(material.psychologist)} em ${formatDateOnly(material.createdAt)}${
           material.viewedAt ? `, visualizado em ${formatDateOnly(material.viewedAt)}` : ""
         }`,
     )

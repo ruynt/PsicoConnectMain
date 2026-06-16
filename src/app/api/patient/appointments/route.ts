@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 type PatientAppointment = Prisma.AppointmentGetPayload<{
   select: {
@@ -111,16 +112,16 @@ function isAppointmentCompleted(appointment: {
 function mapAppointment(appointment: PatientAppointment) {
   return {
     id: appointment.id,
-    title: appointment.title || "Consulta",
-    description: appointment.description || "",
-    location: appointment.location || "",
+    title: decryptNullableSensitiveText(appointment.title) || "Consulta",
+    description: decryptNullableSensitiveText(appointment.description),
+    location: decryptNullableSensitiveText(appointment.location),
     dateTime: appointment.dateTime.toISOString(),
     endDateTime: appointment.endDateTime?.toISOString() || null,
     status: appointment.status,
     isCompleted: isAppointmentCompleted(appointment),
     googleEventLink: appointment.googleEventLink || "",
 
-    cancellationReason: appointment.cancellationReason || null,
+    cancellationReason: decryptNullableSensitiveText(appointment.cancellationReason) || null,
     cancelledAt: appointment.cancelledAt?.toISOString() || null,
 
     confirmationStatus: appointment.confirmationStatus,
@@ -128,7 +129,8 @@ function mapAppointment(appointment: PatientAppointment) {
 
     cancellationRequestedAt:
       appointment.cancellationRequestedAt?.toISOString() || null,
-    cancellationRequestReason: appointment.cancellationRequestReason || null,
+    cancellationRequestReason:
+      decryptNullableSensitiveText(appointment.cancellationRequestReason) || null,
     cancellationRequestStatus: appointment.cancellationRequestStatus || null,
 
     lastReminderSentAt: appointment.lastReminderSentAt?.toISOString() || null,
@@ -139,7 +141,7 @@ function mapAppointment(appointment: PatientAppointment) {
       appointment.paymentAmount !== null && appointment.paymentAmount !== undefined
         ? Number(appointment.paymentAmount)
         : null,
-    paymentNote: appointment.paymentNote || null,
+    paymentNote: decryptNullableSensitiveText(appointment.paymentNote) || null,
     paidAt: appointment.paidAt?.toISOString() || null,
 
     createdAt: appointment.createdAt.toISOString(),

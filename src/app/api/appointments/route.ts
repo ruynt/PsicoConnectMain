@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 function getAppointmentEndReference(appointment: {
   dateTime: Date;
@@ -96,11 +97,11 @@ function mapAppointmentToEvent(appointment: {
   return {
     id: appointment.googleEventId || appointment.id,
     appointmentId: appointment.id,
-    title: appointment.title || "Consulta",
-    description: appointment.description || "",
+    title: decryptNullableSensitiveText(appointment.title) || "Consulta",
+    description: decryptNullableSensitiveText(appointment.description),
     start: appointment.dateTime.toISOString(),
     end: appointment.endDateTime?.toISOString() || null,
-    location: appointment.location || "",
+    location: decryptNullableSensitiveText(appointment.location),
     htmlLink: appointment.googleEventLink || "",
     status: appointment.status,
     isCompleted: isAppointmentCompleted(appointment),
@@ -111,7 +112,7 @@ function mapAppointmentToEvent(appointment: {
 
     googleEventId: appointment.googleEventId || "",
 
-    cancellationReason: appointment.cancellationReason || null,
+    cancellationReason: decryptNullableSensitiveText(appointment.cancellationReason) || null,
     cancelledAt: appointment.cancelledAt?.toISOString() || null,
 
     confirmationStatus: appointment.confirmationStatus,
@@ -119,7 +120,8 @@ function mapAppointmentToEvent(appointment: {
 
     cancellationRequestedAt:
       appointment.cancellationRequestedAt?.toISOString() || null,
-    cancellationRequestReason: appointment.cancellationRequestReason || null,
+    cancellationRequestReason:
+      decryptNullableSensitiveText(appointment.cancellationRequestReason) || null,
     cancellationRequestStatus: appointment.cancellationRequestStatus || null,
 
     lastReminderSentAt: appointment.lastReminderSentAt?.toISOString() || null,
@@ -130,7 +132,7 @@ function mapAppointmentToEvent(appointment: {
       appointment.paymentAmount !== null && appointment.paymentAmount !== undefined
         ? Number(appointment.paymentAmount)
         : null,
-    paymentNote: appointment.paymentNote || null,
+    paymentNote: decryptNullableSensitiveText(appointment.paymentNote) || null,
     paidAt: appointment.paidAt?.toISOString() || null,
 
     createdAt: appointment.createdAt.toISOString(),

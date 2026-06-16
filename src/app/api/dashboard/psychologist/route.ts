@@ -56,10 +56,10 @@ type DashboardAppointment = Prisma.AppointmentGetPayload<{
 function mapDashboardAppointment(appointment: DashboardAppointment) {
   return {
     id: appointment.id,
-    title: appointment.title || "Consulta",
+    title: decryptNullableSensitiveText(appointment.title) || "Consulta",
     dateTime: appointment.dateTime.toISOString(),
     endDateTime: appointment.endDateTime?.toISOString() || null,
-    location: appointment.location || "",
+    location: decryptNullableSensitiveText(appointment.location),
     patientId: appointment.patientId,
     patientName: appointment.patient.user.name,
     patientEmail: appointment.patient.user.email,
@@ -563,10 +563,10 @@ export async function GET(req: NextRequest) {
       nextAppointment: nextAppointment
         ? {
             id: nextAppointment.id,
-            title: nextAppointment.title || "Consulta",
+            title: decryptNullableSensitiveText(nextAppointment.title) || "Consulta",
             dateTime: nextAppointment.dateTime.toISOString(),
             endDateTime: nextAppointment.endDateTime?.toISOString() || null,
-            location: nextAppointment.location || "",
+            location: decryptNullableSensitiveText(nextAppointment.location),
             patientId: nextAppointment.patientId,
             patientName: nextAppointment.patient.user.name,
             patientEmail: nextAppointment.patient.user.email,
@@ -583,18 +583,19 @@ export async function GET(req: NextRequest) {
       pendingCancellationRequests: pendingCancellationRequests.map(
         (appointment) => ({
           id: appointment.id,
-          title: appointment.title || "Consulta",
+          title: decryptNullableSensitiveText(appointment.title) || "Consulta",
           dateTime: appointment.dateTime.toISOString(),
           endDateTime: appointment.endDateTime?.toISOString() || null,
-          location: appointment.location || "",
+          location: decryptNullableSensitiveText(appointment.location),
           patientId: appointment.patientId,
           patientName: appointment.patient.user.name,
           patientEmail: appointment.patient.user.email,
           confirmationStatus: appointment.confirmationStatus,
           cancellationRequestedAt:
             appointment.cancellationRequestedAt?.toISOString() || null,
-          cancellationRequestReason:
-            appointment.cancellationRequestReason || "",
+          cancellationRequestReason: decryptNullableSensitiveText(
+            appointment.cancellationRequestReason,
+          ),
           cancellationRequestStatus:
             appointment.cancellationRequestStatus || null,
         }),
@@ -602,10 +603,12 @@ export async function GET(req: NextRequest) {
       recentCancelledAppointments: recentCancelledAppointments.map(
         (appointment) => ({
           id: appointment.id,
-          title: appointment.title || "Consulta",
+          title: decryptNullableSensitiveText(appointment.title) || "Consulta",
           dateTime: appointment.dateTime.toISOString(),
           cancelledAt: appointment.cancelledAt?.toISOString() || null,
-          cancellationReason: appointment.cancellationReason || "",
+          cancellationReason: decryptNullableSensitiveText(
+            appointment.cancellationReason,
+          ),
           patientId: appointment.patientId,
           patientName: appointment.patient.user.name,
         }),
@@ -615,7 +618,8 @@ export async function GET(req: NextRequest) {
         patientId: checkin.patientId,
         patientName: checkin.patient.user.name,
         appointmentId: checkin.appointmentId,
-        appointmentTitle: checkin.appointment.title || "Consulta",
+        appointmentTitle:
+          decryptNullableSensitiveText(checkin.appointment.title) || "Consulta",
         appointmentDateTime: checkin.appointment.dateTime.toISOString(),
         moodLevel: checkin.moodLevel,
         anxietyLevel: checkin.anxietyLevel,
@@ -636,8 +640,8 @@ export async function GET(req: NextRequest) {
         id: task.id,
         patientId: task.patientId,
         patientName: task.patient.user.name,
-        title: task.title,
-        description: task.description || "",
+        title: decryptNullableSensitiveText(task.title) || "Tarefa",
+        description: decryptNullableSensitiveText(task.description),
         dueDate: task.dueDate?.toISOString() || null,
         status: task.status,
         updatedAt: task.updatedAt.toISOString(),
@@ -646,8 +650,8 @@ export async function GET(req: NextRequest) {
         id: task.id,
         patientId: task.patientId,
         patientName: task.patient.user.name,
-        title: task.title,
-        description: task.description || "",
+        title: decryptNullableSensitiveText(task.title) || "Tarefa",
+        description: decryptNullableSensitiveText(task.description),
         dueDate: task.dueDate?.toISOString() || null,
         status: task.status,
         completedAt: task.completedAt?.toISOString() || null,
@@ -658,10 +662,10 @@ export async function GET(req: NextRequest) {
         id: material.id,
         patientId: material.patientId,
         patientName: material.patient.user.name,
-        title: material.title,
-        description: material.description || "",
-        category: material.category || "",
-        url: material.url || "",
+        title: decryptNullableSensitiveText(material.title) || "Material",
+        description: decryptNullableSensitiveText(material.description),
+        category: decryptNullableSensitiveText(material.category),
+        url: decryptNullableSensitiveText(material.url),
         viewedAt: material.viewedAt?.toISOString() || null,
         createdAt: material.createdAt.toISOString(),
       })),

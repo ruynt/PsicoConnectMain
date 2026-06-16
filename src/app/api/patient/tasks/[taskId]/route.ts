@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import type { TherapeuticTaskStatus } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -70,8 +71,8 @@ function mapTask(task: {
 }) {
   return {
     id: task.id,
-    title: task.title,
-    description: task.description || "",
+    title: decryptNullableSensitiveText(task.title) || "Tarefa",
+    description: decryptNullableSensitiveText(task.description),
     dueDate: task.dueDate?.toISOString() || null,
     status: task.status,
     completedAt: task.completedAt?.toISOString() || null,

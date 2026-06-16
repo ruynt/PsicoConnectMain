@@ -55,7 +55,7 @@ function mapNote(note: {
     appointment: note.appointment
       ? {
           id: note.appointment.id,
-          title: note.appointment.title || "Consulta",
+          title: decryptNullableSensitiveText(note.appointment.title) || "Consulta",
           dateTime: note.appointment.dateTime.toISOString(),
           status: note.appointment.status,
         }

@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { sendAppointmentReminderEmail } from "../../../../../lib/emails";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -120,11 +121,11 @@ export async function POST(req: NextRequest, context: Params) {
       patientEmail: appointment.patient.user.email,
       patientName: appointment.patient.user.name,
       psychologistName: auth.psychologist.user.name,
-      title: appointment.title || "Consulta",
+      title: decryptNullableSensitiveText(appointment.title) || "Consulta",
       startDateTime: appointment.dateTime,
       endDateTime: appointment.endDateTime,
-      location: appointment.location || "",
-      description: appointment.description || "",
+      location: decryptNullableSensitiveText(appointment.location),
+      description: decryptNullableSensitiveText(appointment.description),
       googleEventLink: appointment.googleEventLink || "",
     });
 
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest, context: Params) {
       message: "Lembrete enviado por e-mail com sucesso.",
       appointment: {
         id: updatedAppointment.id,
-        title: updatedAppointment.title || "Consulta",
+        title: decryptNullableSensitiveText(updatedAppointment.title) || "Consulta",
         dateTime: updatedAppointment.dateTime.toISOString(),
         endDateTime: updatedAppointment.endDateTime?.toISOString() || null,
         status: updatedAppointment.status,

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -88,7 +89,7 @@ function mapAppointment(appointment: {
 }) {
   return {
     id: appointment.id,
-    title: appointment.title || "Consulta",
+    title: decryptNullableSensitiveText(appointment.title) || "Consulta",
     dateTime: appointment.dateTime.toISOString(),
     endDateTime: appointment.endDateTime?.toISOString() || null,
     status: appointment.status,
@@ -96,7 +97,8 @@ function mapAppointment(appointment: {
     confirmedAt: appointment.confirmedAt?.toISOString() || null,
     cancellationRequestedAt:
       appointment.cancellationRequestedAt?.toISOString() || null,
-    cancellationRequestReason: appointment.cancellationRequestReason || null,
+    cancellationRequestReason:
+      decryptNullableSensitiveText(appointment.cancellationRequestReason) || null,
     cancellationRequestStatus: appointment.cancellationRequestStatus || null,
   };
 }
@@ -169,7 +171,7 @@ export async function POST(req: NextRequest, context: Params) {
       data: {
         confirmationStatus: "CANCELLATION_REQUESTED",
         cancellationRequestedAt: new Date(),
-        cancellationRequestReason: reason,
+        cancellationRequestReason: encryptSensitiveText(reason),
         cancellationRequestStatus: "PENDING",
         confirmedAt: null,
       },

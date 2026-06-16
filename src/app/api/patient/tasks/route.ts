@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 async function getAuthenticatedPatient(req: NextRequest) {
   const token = await getToken({
@@ -68,8 +69,8 @@ function mapTask(task: {
 }) {
   return {
     id: task.id,
-    title: task.title,
-    description: task.description || "",
+    title: decryptNullableSensitiveText(task.title) || "Tarefa",
+    description: decryptNullableSensitiveText(task.description),
     dueDate: task.dueDate?.toISOString() || null,
     status: task.status,
     completedAt: task.completedAt?.toISOString() || null,
@@ -84,7 +85,7 @@ function mapTask(task: {
     appointment: task.appointment
       ? {
           id: task.appointment.id,
-          title: task.appointment.title || "Consulta",
+          title: decryptNullableSensitiveText(task.appointment.title) || "Consulta",
           dateTime: task.appointment.dateTime.toISOString(),
         }
       : null,

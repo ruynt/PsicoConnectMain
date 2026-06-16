@@ -159,7 +159,7 @@ export async function POST(req: NextRequest, context: Params) {
       .map((note, index) => {
         const appointmentInfo = note.appointment
           ? `Consulta relacionada: ${
-              note.appointment.title || "Consulta"
+              decryptNullableSensitiveText(note.appointment.title) || "Consulta"
             } em ${formatDate(note.appointment.dateTime)}`
           : "Consulta relacionada: não vinculada";
 

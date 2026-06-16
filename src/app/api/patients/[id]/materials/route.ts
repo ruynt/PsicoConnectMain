@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -55,11 +56,11 @@ function mapMaterial(material: {
 }) {
   return {
     id: material.id,
-    title: material.title,
-    description: material.description || "",
-    category: material.category || "",
-    url: material.url || "",
-    content: material.content || "",
+    title: decryptNullableSensitiveText(material.title),
+    description: decryptNullableSensitiveText(material.description),
+    category: decryptNullableSensitiveText(material.category),
+    url: decryptNullableSensitiveText(material.url),
+    content: decryptNullableSensitiveText(material.content),
     viewedAt: material.viewedAt?.toISOString() || null,
     createdAt: material.createdAt.toISOString(),
     updatedAt: material.updatedAt.toISOString(),
@@ -238,11 +239,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const material = await prisma.patientMaterial.create({
       data: {
-        title,
-        description,
-        category,
-        url,
-        content,
+        title: encryptNullableSensitiveText(title) || "Material",
+        description: encryptNullableSensitiveText(description),
+        category: encryptNullableSensitiveText(category),
+        url: encryptNullableSensitiveText(url),
+        content: encryptNullableSensitiveText(content),
         patientId,
         psychologistId: auth.psychologist.id,
       },

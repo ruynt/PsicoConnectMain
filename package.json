@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "encrypt:existing-data": "tsx scripts/encrypt-existing-sensitive-data.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",

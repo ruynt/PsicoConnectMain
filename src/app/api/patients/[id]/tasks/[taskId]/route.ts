@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
 import type { Prisma, TherapeuticTaskStatus } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -69,8 +70,8 @@ function mapTask(task: {
 }) {
   return {
     id: task.id,
-    title: task.title,
-    description: task.description || "",
+    title: decryptNullableSensitiveText(task.title) || "Tarefa",
+    description: decryptNullableSensitiveText(task.description),
     dueDate: task.dueDate?.toISOString() || null,
     status: task.status,
     completedAt: task.completedAt?.toISOString() || null,
@@ -187,7 +188,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         );
       }
 
-      data.title = title;
+      data.title = encryptNullableSensitiveText(title) || "Tarefa";
     }
 
     if (body.description !== undefined) {
@@ -200,7 +201,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         );
       }
 
-      data.description = description;
+      data.description = encryptNullableSensitiveText(description);
     }
 
     if (body.dueDate !== undefined) {

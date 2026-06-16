@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 export async function GET(
   req: NextRequest,
@@ -97,15 +98,16 @@ export async function GET(
     function mapAppointment(appointment: PatientAppointment) {
       return {
         id: appointment.id,
-        title: appointment.title || "Consulta",
-        description: appointment.description || "",
-        location: appointment.location || "",
+        title: decryptNullableSensitiveText(appointment.title) || "Consulta",
+        description: decryptNullableSensitiveText(appointment.description),
+        location: decryptNullableSensitiveText(appointment.location),
         dateTime: appointment.dateTime.toISOString(),
         endDateTime: appointment.endDateTime?.toISOString() || null,
         status: appointment.status,
         googleEventLink: appointment.googleEventLink || "",
 
-        cancellationReason: appointment.cancellationReason || null,
+        cancellationReason:
+          decryptNullableSensitiveText(appointment.cancellationReason) || null,
         cancelledAt: appointment.cancelledAt?.toISOString() || null,
 
         confirmationStatus: appointment.confirmationStatus,
@@ -114,7 +116,7 @@ export async function GET(
         cancellationRequestedAt:
           appointment.cancellationRequestedAt?.toISOString() || null,
         cancellationRequestReason:
-          appointment.cancellationRequestReason || null,
+          decryptNullableSensitiveText(appointment.cancellationRequestReason) || null,
         cancellationRequestStatus:
           appointment.cancellationRequestStatus || null,
 
@@ -129,7 +131,7 @@ export async function GET(
           appointment.paymentAmount !== undefined
             ? Number(appointment.paymentAmount)
             : null,
-        paymentNote: appointment.paymentNote || null,
+        paymentNote: decryptNullableSensitiveText(appointment.paymentNote) || null,
         paidAt: appointment.paidAt?.toISOString() || null,
 
         createdAt: appointment.createdAt.toISOString(),
@@ -146,17 +148,17 @@ export async function GET(
         createdAt: patient.user.createdAt.toISOString(),
 
         profileImageUrl: patient.user.profileImageUrl || "",
-        phone: patient.user.phone || "",
+        phone: decryptNullableSensitiveText(patient.user.phone),
         city: patient.user.city || "",
         state: patient.user.state || "",
-        bio: patient.user.bio || "",
+        bio: decryptNullableSensitiveText(patient.user.bio),
 
-        socialName: patient.socialName || "",
+        socialName: decryptNullableSensitiveText(patient.socialName),
         birthDate: patient.birthDate?.toISOString() || null,
-        contactPreference: patient.contactPreference || "",
-        emergencyContactName: patient.emergencyContactName || "",
-        emergencyContactPhone: patient.emergencyContactPhone || "",
-        patientNotes: patient.patientNotes || "",
+        contactPreference: decryptNullableSensitiveText(patient.contactPreference),
+        emergencyContactName: decryptNullableSensitiveText(patient.emergencyContactName),
+        emergencyContactPhone: decryptNullableSensitiveText(patient.emergencyContactPhone),
+        patientNotes: decryptNullableSensitiveText(patient.patientNotes),
 
         totalAppointments: appointments.length,
         scheduledAppointments: scheduledAppointments.length,

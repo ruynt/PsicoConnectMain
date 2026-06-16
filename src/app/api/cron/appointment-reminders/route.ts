@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import prisma from "../../../../lib/prisma";
 import { sendAppointmentReminderEmail } from "../../../../lib/emails";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -103,11 +104,11 @@ async function runAppointmentReminders(req: NextRequest) {
           patientEmail: appointment.patient.user.email,
           patientName: appointment.patient.user.name,
           psychologistName: appointment.psychologist.user.name,
-          title: appointment.title || "Consulta",
+          title: decryptNullableSensitiveText(appointment.title) || "Consulta",
           startDateTime: appointment.dateTime,
           endDateTime: appointment.endDateTime,
-          location: appointment.location || "",
-          description: appointment.description || "",
+          location: decryptNullableSensitiveText(appointment.location),
+          description: decryptNullableSensitiveText(appointment.description),
           googleEventLink: appointment.googleEventLink || "",
         });
 
