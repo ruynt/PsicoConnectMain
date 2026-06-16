@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authConfig } from "../../../lib/auth";
 import prisma from "../../../lib/prisma";
+import { decryptNullableSensitiveText, decryptSensitiveText } from "@/lib/encryption";
 
 const RAG_API_URL =
   process.env.PSICOBOT_RAG_API_URL || "http://localhost:8000/api/chat";
@@ -860,9 +861,9 @@ async function buildPsychologistPatientSummary(
   const recentNotes = notes
     .map(
       (note, index) =>
-        `${index + 1}. **${note.title || "Anotação"}** (${formatDateOnly(
+        `${index + 1}. **${decryptNullableSensitiveText(note.title) || "Anotação"}** (${formatDateOnly(
           note.createdAt,
-        )}): ${compactText(note.content, 220)}`,
+        )}): ${compactText(decryptSensitiveText(note.content), 220)}`,
     )
     .join("\n");
 
@@ -880,7 +881,7 @@ async function buildPsychologistPatientSummary(
 
       return `${index + 1}. ${formatDateOnly(checkin.createdAt)} — ${
         levels || "sem escalas preenchidas"
-      }${checkin.mainConcern ? `. Queixa: ${compactText(checkin.mainConcern, 120)}` : ""}`;
+      }${checkin.mainConcern ? `. Queixa: ${compactText(decryptNullableSensitiveText(checkin.mainConcern), 120)}` : ""}`;
     })
     .join("\n");
 
@@ -1039,7 +1040,7 @@ async function listPsychologistPatientCheckins(
 
       return `- ${formatDateOnly(checkin.createdAt)} (${checkin.appointment.title || "consulta"}): ${
         levels || "sem escalas preenchidas"
-      }${checkin.topicsToDiscuss ? `. Temas: ${compactText(checkin.topicsToDiscuss, 150)}` : ""}`;
+      }${checkin.topicsToDiscuss ? `. Temas: ${compactText(decryptNullableSensitiveText(checkin.topicsToDiscuss), 150)}` : ""}`;
     })
     .join("\n");
 
@@ -1065,7 +1066,7 @@ async function listPsychologistPatientMessages(
       (message) =>
         `- ${formatDateTime(message.createdAt)} — ${
           message.senderRole === "PSYCHOLOGIST" ? "Psicólogo" : "Paciente"
-        }: ${compactText(message.content, 180)}`,
+        }: ${compactText(decryptSensitiveText(message.content), 180)}`,
     )
     .join("\n");
 
@@ -1570,7 +1571,7 @@ async function listPatientMessages(patientId: string) {
           message.senderRole === "PSYCHOLOGIST"
             ? getPsychologistDisplayName(message.psychologist)
             : "Você"
-        }: ${compactText(message.content, 180)}`,
+        }: ${compactText(decryptSensitiveText(message.content), 180)}`,
     )
     .join("\n");
 

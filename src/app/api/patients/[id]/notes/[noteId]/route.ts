@@ -3,6 +3,12 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import {
+  decryptNullableSensitiveText,
+  decryptSensitiveText,
+  encryptNullableSensitiveText,
+  encryptSensitiveText,
+} from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -40,8 +46,8 @@ function mapNote(note: {
 }) {
   return {
     id: note.id,
-    title: note.title || "",
-    content: note.content,
+    title: decryptNullableSensitiveText(note.title),
+    content: decryptSensitiveText(note.content),
     archived: note.archived,
     archivedAt: note.archivedAt?.toISOString() || null,
     patientId: note.patientId,
@@ -228,8 +234,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         id: note.id,
       },
       data: {
-        title,
-        content,
+        title: encryptNullableSensitiveText(title),
+        content: encryptSensitiveText(content),
         appointmentId,
       },
     });

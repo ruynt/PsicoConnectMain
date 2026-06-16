@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
+import {
+  decryptSensitiveText,
+  encryptSensitiveText,
+} from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -97,6 +101,27 @@ function parseSourceNotesCount(value: unknown) {
   return value;
 }
 
+function mapSummary(summary: {
+  id: string;
+  title: string | null;
+  content: string;
+  patientId: string;
+  psychologistId: string;
+  sourceNotesCount: number | null;
+  generatedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    ...summary,
+    title: summary.title ? decryptSensitiveText(summary.title) : "Resumo para prontuário",
+    content: decryptSensitiveText(summary.content),
+    generatedAt: summary.generatedAt?.toISOString() || null,
+    createdAt: summary.createdAt.toISOString(),
+    updatedAt: summary.updatedAt.toISOString(),
+  };
+}
+
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const { id: patientId } = await context.params;
@@ -118,7 +143,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     });
 
     return NextResponse.json({
-      summaries,
+      summaries: summaries.map(mapSummary),
     });
   } catch (error) {
     console.error("Erro ao listar resumos do paciente:", error);
@@ -162,8 +187,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const summary = await prisma.patientSummary.create({
       data: {
-        title,
-        content,
+        title: encryptSensitiveText(title),
+        content: encryptSensitiveText(content),
         patientId,
         psychologistId: auth.psychologist.id,
         sourceNotesCount,
@@ -172,7 +197,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     });
 
     return NextResponse.json({
-      summary,
+      summary: mapSummary(summary),
       message: "Resumo salvo com sucesso.",
     });
   } catch (error) {

@@ -3,6 +3,12 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import {
+  decryptNullableSensitiveText,
+  decryptSensitiveText,
+  encryptNullableSensitiveText,
+  encryptSensitiveText,
+} from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -51,8 +57,8 @@ function mapNote(note: {
 }) {
   return {
     id: note.id,
-    title: note.title || "",
-    content: note.content,
+    title: decryptNullableSensitiveText(note.title),
+    content: decryptSensitiveText(note.content),
     archived: note.archived,
     archivedAt: note.archivedAt?.toISOString() || null,
     patientId: note.patientId,
@@ -242,8 +248,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const note = await prisma.sessionNote.create({
       data: {
-        title,
-        content,
+        title: encryptNullableSensitiveText(title),
+        content: encryptSensitiveText(content),
         patientId: auth.patient.id,
         psychologistId: auth.psychologist.id,
         appointmentId,
@@ -256,8 +262,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
       message: "Anotação salva com sucesso.",
       note: {
         id: note.id,
-        title: note.title || "",
-        content: note.content,
+        title: decryptNullableSensitiveText(note.title),
+        content: decryptSensitiveText(note.content),
         archived: note.archived,
         archivedAt: note.archivedAt?.toISOString() || null,
         patientId: note.patientId,

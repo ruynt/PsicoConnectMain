@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -38,9 +39,9 @@ function mapCheckin(checkin: {
     moodLevel: checkin.moodLevel,
     anxietyLevel: checkin.anxietyLevel,
     sleepLevel: checkin.sleepLevel,
-    mainConcern: checkin.mainConcern || "",
-    importantEvents: checkin.importantEvents || "",
-    topicsToDiscuss: checkin.topicsToDiscuss || "",
+    mainConcern: decryptNullableSensitiveText(checkin.mainConcern),
+    importantEvents: decryptNullableSensitiveText(checkin.importantEvents),
+    topicsToDiscuss: decryptNullableSensitiveText(checkin.topicsToDiscuss),
     createdAt: checkin.createdAt.toISOString(),
     updatedAt: checkin.updatedAt.toISOString(),
     appointment: {

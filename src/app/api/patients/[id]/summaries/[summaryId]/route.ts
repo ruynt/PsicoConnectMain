@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../../lib/prisma";
+import { decryptSensitiveText, encryptSensitiveText } from "@/lib/encryption";
 
 type RouteContext = {
   params: Promise<{
@@ -68,6 +69,27 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   };
 }
 
+function mapSummary(summary: {
+  id: string;
+  title: string | null;
+  content: string;
+  patientId: string;
+  psychologistId: string;
+  sourceNotesCount: number | null;
+  generatedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    ...summary,
+    title: summary.title ? decryptSensitiveText(summary.title) : "Resumo para prontuário",
+    content: decryptSensitiveText(summary.content),
+    generatedAt: summary.generatedAt?.toISOString() || null,
+    createdAt: summary.createdAt.toISOString(),
+    updatedAt: summary.updatedAt.toISOString(),
+  };
+}
+
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const { id: patientId, summaryId } = await context.params;
@@ -118,13 +140,13 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         id: existingSummary.id,
       },
       data: {
-        title,
-        content,
+        title: encryptSensitiveText(title),
+        content: encryptSensitiveText(content),
       },
     });
 
     return NextResponse.json({
-      summary,
+      summary: mapSummary(summary),
       message: "Resumo atualizado com sucesso.",
     });
   } catch (error) {

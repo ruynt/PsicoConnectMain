@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, decryptSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -165,10 +166,10 @@ export async function POST(req: NextRequest, context: Params) {
         return `
 ANOTAÇÃO ${index + 1}
 Data de criação: ${formatDate(note.createdAt)}
-Título: ${note.title || "Sem título"}
+Título: ${decryptNullableSensitiveText(note.title) || "Sem título"}
 ${appointmentInfo}
 Conteúdo:
-${limitText(note.content, MAX_NOTE_CONTENT_LENGTH)}
+${limitText(decryptSensitiveText(note.content), MAX_NOTE_CONTENT_LENGTH)}
         `.trim();
       })
       .join("\n\n---\n\n")

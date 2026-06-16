@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptSensitiveText, encryptSensitiveText } from "@/lib/encryption";
 
 type Params = {
   params: Promise<{
@@ -16,7 +17,7 @@ type PatientMessage = Prisma.PatientMessageGetPayload<Record<string, never>>;
 function mapMessage(message: PatientMessage) {
   return {
     id: message.id,
-    content: message.content,
+    content: decryptSensitiveText(message.content),
     senderRole: message.senderRole,
     patientId: message.patientId,
     psychologistId: message.psychologistId,
@@ -180,7 +181,7 @@ export async function POST(req: NextRequest, context: Params) {
 
     const message = await prisma.patientMessage.create({
       data: {
-        content,
+        content: encryptSensitiveText(content),
         senderRole: "PSYCHOLOGIST",
         patientId,
         psychologistId: auth.psychologist.id,

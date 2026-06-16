@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText } from "@/lib/encryption";
 
 function startOfToday() {
   const date = new Date();
@@ -619,16 +620,16 @@ export async function GET(req: NextRequest) {
         moodLevel: checkin.moodLevel,
         anxietyLevel: checkin.anxietyLevel,
         sleepLevel: checkin.sleepLevel,
-        mainConcern: checkin.mainConcern || "",
-        importantEvents: checkin.importantEvents || "",
-        topicsToDiscuss: checkin.topicsToDiscuss || "",
+        mainConcern: decryptNullableSensitiveText(checkin.mainConcern),
+        importantEvents: decryptNullableSensitiveText(checkin.importantEvents),
+        topicsToDiscuss: decryptNullableSensitiveText(checkin.topicsToDiscuss),
         updatedAt: checkin.updatedAt.toISOString(),
       })),
       recentNotes: recentNotes.map((note) => ({
         id: note.id,
         patientId: note.patientId,
         patientName: note.patient.user.name,
-        title: note.title || "Anotação sem título",
+        title: decryptNullableSensitiveText(note.title) || "Anotação sem título",
         updatedAt: note.updatedAt.toISOString(),
       })),
       dueSoonTasks: dueSoonTasks.map((task) => ({

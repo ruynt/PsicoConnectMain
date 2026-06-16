@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 
 function normalizeScaleValue(value: unknown) {
   if (value === null || value === undefined || value === "") {
@@ -78,9 +79,9 @@ function mapCheckin(checkin: {
     moodLevel: checkin.moodLevel,
     anxietyLevel: checkin.anxietyLevel,
     sleepLevel: checkin.sleepLevel,
-    mainConcern: checkin.mainConcern || "",
-    importantEvents: checkin.importantEvents || "",
-    topicsToDiscuss: checkin.topicsToDiscuss || "",
+    mainConcern: decryptNullableSensitiveText(checkin.mainConcern),
+    importantEvents: decryptNullableSensitiveText(checkin.importantEvents),
+    topicsToDiscuss: decryptNullableSensitiveText(checkin.topicsToDiscuss),
     createdAt: checkin.createdAt.toISOString(),
     updatedAt: checkin.updatedAt.toISOString(),
   };
@@ -308,9 +309,9 @@ export async function POST(req: NextRequest) {
         moodLevel: normalizeScaleValue(body?.moodLevel),
         anxietyLevel: normalizeScaleValue(body?.anxietyLevel),
         sleepLevel: normalizeScaleValue(body?.sleepLevel),
-        mainConcern,
-        importantEvents,
-        topicsToDiscuss,
+        mainConcern: encryptNullableSensitiveText(mainConcern),
+        importantEvents: encryptNullableSensitiveText(importantEvents),
+        topicsToDiscuss: encryptNullableSensitiveText(topicsToDiscuss),
       },
       create: {
         appointmentId: appointment.id,
@@ -318,9 +319,9 @@ export async function POST(req: NextRequest) {
         moodLevel: normalizeScaleValue(body?.moodLevel),
         anxietyLevel: normalizeScaleValue(body?.anxietyLevel),
         sleepLevel: normalizeScaleValue(body?.sleepLevel),
-        mainConcern,
-        importantEvents,
-        topicsToDiscuss,
+        mainConcern: encryptNullableSensitiveText(mainConcern),
+        importantEvents: encryptNullableSensitiveText(importantEvents),
+        topicsToDiscuss: encryptNullableSensitiveText(topicsToDiscuss),
       },
       select: {
         id: true,
