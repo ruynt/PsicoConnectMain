@@ -296,6 +296,11 @@ export default function PsicoPageSkeleton({
           box-shadow: 0 20px 50px rgba(37, 99, 235, 0.22);
         }
 
+        .psico-page-skeleton-hero,
+        .psico-page-skeleton-hero * {
+          color: #ffffff !important;
+        }
+
         .psico-page-skeleton-hero-circle {
           position: absolute;
           border-radius: 999px;
@@ -328,14 +333,14 @@ export default function PsicoPageSkeleton({
           font-size: 42px;
           line-height: 1.06;
           font-weight: 900;
-          color: #ffffff;
+          color: #ffffff !important;
           letter-spacing: -0.04em;
         }
 
         .psico-page-skeleton-subtitle {
           margin: 12px 0 0;
           max-width: 760px;
-          color: #ffffff;
+          color: rgba(255, 255, 255, 0.92) !important;
           font-size: 17px;
           line-height: 1.55;
         }

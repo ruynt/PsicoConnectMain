@@ -936,7 +936,7 @@ export default function PerfilPage() {
               }}
             >
               <section className="profile-left-column" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                <div style={softCardStyle}>
+                <div className="profile-about-card" style={softCardStyle}>
                   <p
                     style={{
                       color: "#5272a6",
@@ -948,6 +948,7 @@ export default function PerfilPage() {
                     Sobre
                   </p>
                   <p
+                    className="profile-about-text"
                     style={{
                       color: form.bio ? "#334155" : "#94a3b8",
                       lineHeight: 1.7,
@@ -957,6 +958,11 @@ export default function PerfilPage() {
                   >
                     {form.bio || "Você ainda não escreveu uma apresentação."}
                   </p>
+
+                  <details className="profile-about-mobile-details">
+                    <summary>Ver apresentação</summary>
+                    <p>{form.bio || "Você ainda não escreveu uma apresentação."}</p>
+                  </details>
                 </div>
 
                 {isPsychologist ? (
@@ -1598,6 +1604,10 @@ export default function PerfilPage() {
           max-width: 100%;
         }
 
+        .profile-about-mobile-details {
+          display: none;
+        }
+
         @media (max-width: 1180px) {
           .profile-page {
             padding: 28px !important;
@@ -1745,6 +1755,47 @@ export default function PerfilPage() {
           .profile-form-grid,
           .profile-right-aside {
             grid-template-columns: 1fr !important;
+          }
+
+          .profile-about-card {
+            display: none !important;
+          }
+
+          .profile-about-text {
+            display: none !important;
+          }
+
+          .profile-about-mobile-details {
+            display: block !important;
+            margin: 0;
+          }
+
+          .profile-about-mobile-details summary {
+            color: #1d4ed8;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 900;
+            list-style: none;
+          }
+
+          .profile-about-mobile-details summary::-webkit-details-marker {
+            display: none;
+          }
+
+          .profile-about-mobile-details summary::after {
+            content: " +";
+          }
+
+          .profile-about-mobile-details[open] summary::after {
+            content: " −";
+          }
+
+          .profile-about-mobile-details p {
+            color: #334155;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 10px 0 0;
+            white-space: pre-wrap;
           }
 
           .profile-edit-header {
