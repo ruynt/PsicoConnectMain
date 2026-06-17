@@ -54,8 +54,46 @@ const rateLimiters = redis
         analytics: true,
         prefix: "psicoconnect:ratelimit:upload",
       }),
+
+      aiSummary: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(10, "1 h"),
+        analytics: true,
+        prefix: "psicoconnect:ratelimit:ai-summary",
+      }),
+
+      mutation: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(120, "1 m"),
+        analytics: true,
+        prefix: "psicoconnect:ratelimit:mutation",
+      }),
     }
   : null;
+
+type RateLimiterName =
+  | "login"
+  | "signup"
+  | "password"
+  | "resendEmail"
+  | "chat"
+  | "upload"
+  | "aiSummary"
+  | "mutation";
+
+type RateLimitConfig = {
+  name: RateLimiterName;
+  publicName: string;
+  limit: number;
+  windowMs: number;
+};
+
+type InMemoryRateLimitBucket = {
+  count: number;
+  reset: number;
+};
+
+const inMemoryRateLimitBuckets = new Map<string, InMemoryRateLimitBucket>();
 
 function getClientIp(req: NextRequest) {
   const forwardedFor = req.headers.get("x-forwarded-for");
@@ -67,83 +105,184 @@ function getClientIp(req: NextRequest) {
   return req.headers.get("x-real-ip") || "unknown";
 }
 
-function getRateLimiter(pathname: string) {
-  if (!rateLimiters) {
-    return null;
-  }
+function isApiMutationMethod(method: string) {
+  return ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
+}
+
+function getRateLimiter(pathname: string, method: string): RateLimitConfig | null {
+  const normalizedMethod = method.toUpperCase();
 
   if (
-    pathname.startsWith("/api/auth/callback/credentials") ||
-    pathname.startsWith("/api/auth/signin")
+    normalizedMethod === "POST" &&
+    (pathname.startsWith("/api/auth/callback/credentials") ||
+      pathname.startsWith("/api/auth/signin"))
   ) {
     return {
       name: "login",
-      limiter: rateLimiters.login,
+      publicName: "login",
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
     };
   }
 
-  if (pathname.startsWith("/api/signup")) {
+  if (normalizedMethod === "POST" && pathname.startsWith("/api/signup")) {
     return {
       name: "signup",
-      limiter: rateLimiters.signup,
+      publicName: "signup",
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
     };
   }
 
   if (
-    pathname.startsWith("/api/forgot-password") ||
-    pathname.startsWith("/api/reset-password")
+    normalizedMethod === "POST" &&
+    (pathname.startsWith("/api/forgot-password") ||
+      pathname.startsWith("/api/reset-password"))
   ) {
     return {
       name: "password",
-      limiter: rateLimiters.password,
-    };
-  }
-
-  if (pathname.startsWith("/api/auth/resend-verification")) {
-    return {
-      name: "resend-email",
-      limiter: rateLimiters.resendEmail,
+      publicName: "password",
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
     };
   }
 
   if (
-    pathname.startsWith("/api/chat") ||
-    pathname.startsWith("/api/psicobot")
+    normalizedMethod === "POST" &&
+    pathname.startsWith("/api/auth/resend-verification")
   ) {
     return {
-      name: "chat",
-      limiter: rateLimiters.chat,
+      name: "resendEmail",
+      publicName: "resend-email",
+      limit: 3,
+      windowMs: 60 * 60 * 1000,
     };
   }
 
-  if (pathname.startsWith("/api/profile/upload-image")) {
+  if (
+    normalizedMethod === "POST" &&
+    (pathname.startsWith("/api/chat") || pathname.startsWith("/api/psicobot"))
+  ) {
+    return {
+      name: "chat",
+      publicName: "chat",
+      limit: 30,
+      windowMs: 60 * 1000,
+    };
+  }
+
+  if (
+    normalizedMethod === "POST" &&
+    pathname.startsWith("/api/profile/upload-image")
+  ) {
     return {
       name: "upload",
-      limiter: rateLimiters.upload,
+      publicName: "upload",
+      limit: 10,
+      windowMs: 60 * 60 * 1000,
+    };
+  }
+
+  if (
+    normalizedMethod === "POST" &&
+    pathname.includes("/generate-summary")
+  ) {
+    return {
+      name: "aiSummary",
+      publicName: "ai-summary",
+      limit: 10,
+      windowMs: 60 * 60 * 1000,
+    };
+  }
+
+  if (pathname.startsWith("/api/") && isApiMutationMethod(normalizedMethod)) {
+    return {
+      name: "mutation",
+      publicName: "api-mutation",
+      limit: 120,
+      windowMs: 60 * 1000,
     };
   }
 
   return null;
 }
 
+function clearExpiredInMemoryRateLimitBuckets(now: number) {
+  if (inMemoryRateLimitBuckets.size < 1000) {
+    return;
+  }
+
+  for (const [key, bucket] of inMemoryRateLimitBuckets.entries()) {
+    if (bucket.reset <= now) {
+      inMemoryRateLimitBuckets.delete(key);
+    }
+  }
+}
+
+function applyInMemoryRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+) {
+  const now = Date.now();
+  clearExpiredInMemoryRateLimitBuckets(now);
+
+  const currentBucket = inMemoryRateLimitBuckets.get(key);
+
+  if (!currentBucket || currentBucket.reset <= now) {
+    const reset = now + windowMs;
+
+    inMemoryRateLimitBuckets.set(key, {
+      count: 1,
+      reset,
+    });
+
+    return {
+      success: true,
+      limit,
+      remaining: Math.max(0, limit - 1),
+      reset,
+    };
+  }
+
+  currentBucket.count += 1;
+  inMemoryRateLimitBuckets.set(key, currentBucket);
+
+  return {
+    success: currentBucket.count <= limit,
+    limit,
+    remaining: Math.max(0, limit - currentBucket.count),
+    reset: currentBucket.reset,
+  };
+}
+
 async function applyRateLimit(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const rateLimitConfig = getRateLimiter(pathname);
+  const rateLimitConfig = getRateLimiter(pathname, req.method);
 
   if (!rateLimitConfig) {
     return null;
   }
 
   const ip = getClientIp(req);
-  const key = `${rateLimitConfig.name}:${ip}`;
-  const { success, limit, remaining, reset } =
-    await rateLimitConfig.limiter.limit(key);
+  const key = `${rateLimitConfig.publicName}:${ip}`;
 
-  if (success) {
+  const rateLimitResult = rateLimiters
+    ? await rateLimiters[rateLimitConfig.name].limit(key)
+    : applyInMemoryRateLimit(
+        key,
+        rateLimitConfig.limit,
+        rateLimitConfig.windowMs,
+      );
+
+  if (rateLimitResult.success) {
     return null;
   }
 
-  const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+  const retryAfter = Math.max(
+    1,
+    Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+  );
 
   return NextResponse.json(
     {
@@ -154,9 +293,11 @@ async function applyRateLimit(req: NextRequest) {
       status: 429,
       headers: {
         "Retry-After": String(retryAfter),
-        "X-RateLimit-Limit": String(limit),
-        "X-RateLimit-Remaining": String(remaining),
-        "X-RateLimit-Reset": String(reset),
+        "X-RateLimit-Limit": String(rateLimitResult.limit),
+        "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+        "X-RateLimit-Reset": String(rateLimitResult.reset),
+        "X-RateLimit-Policy": rateLimitConfig.publicName,
+        "X-RateLimit-Provider": rateLimiters ? "upstash" : "memory",
       },
     },
   );
@@ -175,7 +316,6 @@ function isStaticAsset(pathname: string) {
     pathname.includes(".")
   );
 }
-
 
 function shouldRedirectToHttps(req: NextRequest) {
   if (process.env.NODE_ENV !== "production") {
