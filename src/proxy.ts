@@ -261,11 +261,15 @@ async function applyRateLimit(req: NextRequest) {
   const rateLimitConfig = getRateLimiter(pathname, req.method);
 
   if (!rateLimitConfig) {
-    return null;
+    return {
+      response: null,
+      headers: null,
+    };
   }
 
   const ip = getClientIp(req);
   const key = `${rateLimitConfig.publicName}:${ip}`;
+  const provider = rateLimiters ? "upstash" : "memory";
 
   const rateLimitResult = rateLimiters
     ? await rateLimiters[rateLimitConfig.name].limit(key)
@@ -275,32 +279,57 @@ async function applyRateLimit(req: NextRequest) {
         rateLimitConfig.windowMs,
       );
 
-  if (rateLimitResult.success) {
-    return null;
-  }
-
   const retryAfter = Math.max(
     1,
     Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
   );
 
-  return NextResponse.json(
-    {
-      error:
-        "Muitas solicitações em pouco tempo. Aguarde um momento e tente novamente.",
-    },
-    {
-      status: 429,
-      headers: {
-        "Retry-After": String(retryAfter),
-        "X-RateLimit-Limit": String(rateLimitResult.limit),
-        "X-RateLimit-Remaining": String(rateLimitResult.remaining),
-        "X-RateLimit-Reset": String(rateLimitResult.reset),
-        "X-RateLimit-Policy": rateLimitConfig.publicName,
-        "X-RateLimit-Provider": rateLimiters ? "upstash" : "memory",
+  const headers = {
+    "X-RateLimit-Limit": String(rateLimitResult.limit),
+    "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+    "X-RateLimit-Reset": String(rateLimitResult.reset),
+    "X-RateLimit-Policy": rateLimitConfig.publicName,
+    "X-RateLimit-Provider": provider,
+  };
+
+  if (rateLimitResult.success) {
+    return {
+      response: null,
+      headers,
+    };
+  }
+
+  return {
+    response: NextResponse.json(
+      {
+        error:
+          "Muitas solicitações em pouco tempo. Aguarde um momento e tente novamente.",
       },
-    },
-  );
+      {
+        status: 429,
+        headers: {
+          ...headers,
+          "Retry-After": String(retryAfter),
+        },
+      },
+    ),
+    headers,
+  };
+}
+
+function withRateLimitHeaders(
+  response: NextResponse,
+  headers: Record<string, string> | null,
+) {
+  if (!headers) {
+    return response;
+  }
+
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value);
+  }
+
+  return response;
 }
 
 function isStaticAsset(pathname: string) {
@@ -352,7 +381,7 @@ function isPublicPath(pathname: string) {
   );
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (shouldRedirectToHttps(req)) {
@@ -366,14 +395,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const rateLimitResponse = await applyRateLimit(req);
+  const rateLimitResult = await applyRateLimit(req);
 
-  if (rateLimitResponse) {
-    return rateLimitResponse;
+  if (rateLimitResult.response) {
+    return rateLimitResult.response;
   }
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return withRateLimitHeaders(NextResponse.next(), rateLimitResult.headers);
   }
 
   const token = await getToken({
@@ -429,7 +458,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  return NextResponse.next();
+  return withRateLimitHeaders(NextResponse.next(), rateLimitResult.headers);
 }
 
 export const config = {
