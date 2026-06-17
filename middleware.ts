@@ -176,6 +176,22 @@ function isStaticAsset(pathname: string) {
   );
 }
 
+
+function shouldRedirectToHttps(req: NextRequest) {
+  if (process.env.NODE_ENV !== "production") {
+    return false;
+  }
+
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+  const host = req.headers.get("host") || "";
+
+  if (!forwardedProto || forwardedProto !== "http") {
+    return false;
+  }
+
+  return !host.startsWith("localhost") && !host.startsWith("127.0.0.1");
+}
+
 function isPublicPath(pathname: string) {
   return (
     pathname === "/" ||
@@ -198,6 +214,13 @@ function isPublicPath(pathname: string) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  if (shouldRedirectToHttps(req)) {
+    const url = req.nextUrl.clone();
+    url.protocol = "https:";
+
+    return NextResponse.redirect(url, 308);
+  }
 
   if (isStaticAsset(pathname)) {
     return NextResponse.next();
