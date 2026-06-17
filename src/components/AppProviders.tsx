@@ -4,12 +4,14 @@ import Image from "next/image";
 import { SessionProvider, useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PropsWithChildren, useEffect, useState } from "react";
+import { PropsWithChildren, useEffect, useRef, useState } from "react";
+import ClientFetchCacheInstaller from "@/components/ClientFetchCacheInstaller";
 import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 import PwaFirstLoginInstallBanner from "@/components/pwa/PwaFirstLoginInstallBanner";
 import PwaInstallGuideModal from "@/components/pwa/PwaInstallGuideModal";
 import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
+import { clearClientFetchCache } from "@/lib/client-fetch-cache";
 
 type SessionUserWithRoleAndCrp = {
   role?: string;
@@ -58,6 +60,7 @@ function PsicoBotMenuIcon() {
 function AuthGuard({ children }: PropsWithChildren) {
   const { data: session, status } = useSession();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const lastSessionUserKeyRef = useRef<string | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -96,6 +99,30 @@ function AuthGuard({ children }: PropsWithChildren) {
     isPsychologist && crpVerificationStatus !== "APPROVED";
 
   const homePath = isAdmin ? "/admin" : isPsychologist ? "/dashboard" : "/patient";
+  const sessionUserKey = session?.user?.email || userRole || null;
+
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      clearClientFetchCache();
+      lastSessionUserKeyRef.current = null;
+      return;
+    }
+
+    if (status !== "authenticated") return;
+
+    if (
+      lastSessionUserKeyRef.current &&
+      sessionUserKey &&
+      lastSessionUserKeyRef.current !== sessionUserKey
+    ) {
+      clearClientFetchCache();
+    }
+
+    if (sessionUserKey) {
+      lastSessionUserKeyRef.current = sessionUserKey;
+    }
+  }, [sessionUserKey, status]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -432,7 +459,10 @@ function AuthGuard({ children }: PropsWithChildren) {
 
               <button
                 title="Sair da conta"
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => {
+                  clearClientFetchCache();
+                  signOut({ callbackUrl: "/login" });
+                }}
               >
                 <i className="fa-solid fa-sign-out-alt" style={menuIconStyle}></i> Sair
               </button>
@@ -461,6 +491,7 @@ function AuthGuard({ children }: PropsWithChildren) {
 export default function AppProviders({ children }: PropsWithChildren) {
   return (
     <SessionProvider>
+      <ClientFetchCacheInstaller />
       <PwaInstallProvider>
         <AuthGuard>{children}</AuthGuard>
         <PwaFirstLoginInstallBanner />
