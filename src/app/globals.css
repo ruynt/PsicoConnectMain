@@ -3555,3 +3555,42 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
     contain-intrinsic-size: 1px 360px;
   }
 }
+
+/* =========================================================
+   Correção mobile: evita zoom automático do iOS ao focar campos
+   =========================================================
+   O Safari no iPhone aproxima a tela quando inputs, textareas ou selects
+   têm fonte menor que 16px. Mantemos a interface igual no desktop e
+   aumentamos somente o tamanho computado dos campos no mobile.
+*/
+@media (max-width: 900px) and (pointer: coarse) {
+  html body .chat-container .chat-main-wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  html body .chat-container .chat-main-wrapper textarea,
+  html body .chat-container .chat-main-wrapper select,
+  html body #login-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  html body #cadastro-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  html body #cadastro-form textarea,
+  html body #cadastro-form select,
+  html body input.mobile-no-zoom,
+  html body textarea.mobile-no-zoom,
+  html body select.mobile-no-zoom {
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html body .chat-container .chat-main-wrapper input::placeholder,
+  html body .chat-container .chat-main-wrapper textarea::placeholder,
+  html body #login-form input::placeholder,
+  html body #cadastro-form input::placeholder,
+  html body #cadastro-form textarea::placeholder {
+    font-size: 16px !important;
+  }
+
+  html body .chat-container .chat-main-wrapper button,
+  html body .chat-container .chat-main-wrapper a,
+  html body #login-form button,
+  html body #cadastro-form button {
+    touch-action: manipulation;
+  }
+}
