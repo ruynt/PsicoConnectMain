@@ -1,6 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
+
+type UserRole = "PATIENT" | "PSYCHOLOGIST" | "ADMIN" | "GENERAL";
+
+type SessionUserWithRole = {
+  role?: string | null;
+};
 
 type GuideSection = {
   id: string;
@@ -11,83 +19,478 @@ type GuideSection = {
   content: string[];
 };
 
-const guideSections: GuideSection[] = [
+type QuickCard = {
+  title: string;
+  text: string;
+  icon: string;
+  color: string;
+  bg: string;
+};
+
+type JourneyStep = {
+  step: string;
+  title: string;
+  text: string;
+};
+
+type PageContent = {
+  roleLabel: string;
+  badge: string;
+  heroTitle: string;
+  heroDescription: string;
+  alertTitle: string;
+  alertText: string;
+  quickCards: QuickCard[];
+  guideIntroTitle: string;
+  guideIntroText: string;
+  sections: GuideSection[];
+  journeyTitle: string;
+  journeyText: string;
+  journeySteps: JourneyStep[];
+  safeUseTitle: string;
+  safeUseText: string;
+};
+
+const commonSafetySections: GuideSection[] = [
+  {
+    id: "ia-responsavel",
+    title: "Uso responsável da IA",
+    subtitle: "A IA apoia a organização, mas não substitui cuidado humano.",
+    icon: "fa-solid fa-brain",
+    highlight: "IA com cuidado",
+    content: [
+      "Use o PsicoBot para tirar dúvidas gerais sobre a plataforma, organizar informações e receber explicações iniciais.",
+      "As respostas geradas por IA podem conter limitações e precisam ser avaliadas com responsabilidade.",
+      "A IA não substitui psicoterapia, avaliação psicológica, orientação clínica individualizada ou decisão profissional.",
+      "Em temas sensíveis, priorize sempre o diálogo com o profissional responsável pelo acompanhamento.",
+    ],
+  },
+  {
+    id: "privacidade-seguranca",
+    title: "Privacidade, segurança e sigilo",
+    subtitle: "Cuidados necessários com dados pessoais e informações sensíveis.",
+    icon: "fa-solid fa-lock",
+    highlight: "Proteção de dados",
+    content: [
+      "Acesse sua conta apenas em dispositivos confiáveis e evite compartilhar senha ou dados de acesso.",
+      "Registre somente informações necessárias para o acompanhamento e mantenha atenção ao preencher campos abertos.",
+      "O acesso às informações deve respeitar o vínculo entre paciente e profissional, além das regras de sigilo e proteção de dados.",
+      "A plataforma ajuda na organização, mas o uso ético das informações continua sendo uma responsabilidade de todos os envolvidos.",
+    ],
+  },
+  {
+    id: "limites-emergencia",
+    title: "Limites da plataforma e urgências",
+    subtitle: "O PsicoConnect não é um canal de emergência.",
+    icon: "fa-solid fa-triangle-exclamation",
+    highlight: "Atenção",
+    content: [
+      "A plataforma não deve ser usada como único meio de comunicação em situações de risco ou sofrimento intenso.",
+      "Em caso de urgência, crise, violência, risco imediato ou ideação suicida, procure serviços de emergência, unidade de saúde, rede de apoio ou atendimento presencial.",
+      "Mensagens, tarefas e registros na plataforma podem não ser acompanhados em tempo real pelo profissional.",
+      "Quando houver dúvida sobre condutas clínicas ou necessidade de suporte imediato, priorize contato direto com os serviços adequados.",
+    ],
+  },
+];
+
+const patientContent: PageContent = {
+  roleLabel: "Paciente",
+  badge: "Área do paciente",
+  heroTitle: "Orientações para usar o PsicoConnect no seu acompanhamento",
+  heroDescription:
+    "Entenda como acompanhar consultas, responder checklists, visualizar tarefas e materiais, enviar mensagens e usar o PsicoBot de forma segura.",
+  alertTitle: "Seu cuidado continua sendo conduzido pelo profissional.",
+  alertText:
+    "A plataforma organiza informações e facilita o acompanhamento entre sessões, mas não substitui atendimento psicológico, avaliação profissional ou suporte emergencial.",
+  quickCards: [
     {
-      id: "uso-plataforma",
-      title: "Como usar o PsicoConnect",
-      subtitle: "Entenda o papel de cada área da plataforma.",
+      title: "Consultas",
+      text: "Veja seus atendimentos, confirme presença e acompanhe solicitações de cancelamento.",
+      icon: "fa-solid fa-calendar-check",
+      color: "#2563eb",
+      bg: "#eff6ff",
+    },
+    {
+      title: "Checklists",
+      text: "Registre como você chega para a sessão e quais temas deseja abordar.",
+      icon: "fa-solid fa-clipboard-check",
+      color: "#ca8a04",
+      bg: "#fffbeb",
+    },
+    {
+      title: "Tarefas e materiais",
+      text: "Acesse atividades e conteúdos enviados pelo profissional entre as sessões.",
+      icon: "fa-solid fa-list-check",
+      color: "#059669",
+      bg: "#ecfdf5",
+    },
+    {
+      title: "Mensagens e IA",
+      text: "Use mensagens e PsicoBot como apoio, sem substituir o acompanhamento humano.",
+      icon: "fa-solid fa-comments",
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+    },
+  ],
+  guideIntroTitle: "Guia do paciente",
+  guideIntroText:
+    "Estas orientações ajudam você a entender cada área da plataforma e usar os recursos com mais segurança durante o acompanhamento.",
+  sections: [
+    {
+      id: "primeiros-passos",
+      title: "Primeiros passos",
+      subtitle: "Entenda onde encontrar cada recurso da sua área.",
       icon: "fa-solid fa-compass",
-      highlight: "Guia rápido",
+      highlight: "Comece por aqui",
       content: [
-        "A página Início reúne um resumo do seu acompanhamento, como próxima consulta, tarefas pendentes, materiais novos e checklists.",
-        "A área Minhas Consultas concentra atendimentos futuros, histórico de consultas e formulários pré-sessão.",
-        "A área Tarefas e materiais reúne atividades terapêuticas e conteúdos enviados pelo profissional.",
-        "O Chat funciona como apoio informativo e orientação de uso, sem substituir o acompanhamento profissional.",
+        "A página Início mostra um resumo do seu acompanhamento, incluindo consultas, tarefas pendentes, materiais e checklists recentes.",
+        "Em Minhas Consultas, você acompanha atendimentos futuros, histórico e formulários relacionados às sessões.",
+        "Em Tarefas e materiais, ficam reunidas as atividades terapêuticas e conteúdos psicoeducativos enviados pelo profissional.",
+        "A área Mensagens permite comunicação organizada com o profissional, respeitando os limites combinados para resposta.",
       ],
     },
     {
-      id: "checklists",
-      title: "Checklists pré-sessão",
-      subtitle: "Prepare melhor suas consultas.",
-      icon: "fa-solid fa-clipboard-check",
+      id: "consultas-checklists",
+      title: "Consultas e checklists pré-sessão",
+      subtitle: "Prepare melhor suas sessões e acompanhe seus atendimentos.",
+      icon: "fa-solid fa-calendar-day",
       highlight: "Antes da sessão",
       content: [
-        "Os checklists ajudam o profissional a compreender como você chegou para a sessão.",
-        "Você pode registrar informações como humor, ansiedade, sono, principais preocupações e temas que deseja abordar.",
-        "As respostas auxiliam a organização do atendimento e favorecem um acompanhamento mais direcionado.",
-        "Responda de forma honesta e objetiva. Não existe resposta certa ou errada.",
+        "Confira data, horário e status das consultas agendadas para evitar esquecimentos.",
+        "Quando disponível, confirme presença ou solicite cancelamento pelo sistema, explicando o motivo quando necessário.",
+        "O checklist pré-sessão ajuda você a registrar humor, ansiedade, sono, acontecimentos importantes e temas que deseja conversar.",
+        "Responda com sinceridade e objetividade. O checklist não é uma prova, avaliação de desempenho ou julgamento pessoal.",
       ],
     },
     {
-      id: "tarefas-materiais",
-      title: "Tarefas e materiais",
-      subtitle: "Acompanhe o que foi combinado em sessão.",
-      icon: "fa-solid fa-list-check",
+      id: "tarefas-materiais-mensagens",
+      title: "Tarefas, materiais e mensagens",
+      subtitle: "Acompanhe o que foi combinado entre as sessões.",
+      icon: "fa-solid fa-folder-open",
       highlight: "Entre sessões",
       content: [
-        "As tarefas terapêuticas são atividades combinadas com o profissional para apoiar o processo fora da sessão.",
-        "Os materiais podem incluir textos, links, orientações ou exercícios psicoeducativos.",
-        "A plataforma mostra indicadores de acompanhamento para ajudar você a visualizar sua participação.",
-        "Esses indicadores são simbólicos e não representam avaliação clínica, desempenho ou julgamento pessoal.",
+        "As tarefas terapêuticas são atividades combinadas para apoiar o processo fora do horário da consulta.",
+        "Os materiais podem incluir textos, links, orientações e conteúdos psicoeducativos escolhidos pelo profissional.",
+        "Ao marcar tarefas como concluídas ou visualizar materiais, você ajuda o profissional a acompanhar sua participação.",
+        "As mensagens devem ser usadas para comunicação relacionada ao acompanhamento, sem expectativa de atendimento emergencial em tempo real.",
       ],
     },
+    ...commonSafetySections,
+  ],
+  journeyTitle: "Como sua jornada acontece na plataforma",
+  journeyText:
+    "O fluxo abaixo resume como o PsicoConnect pode apoiar sua organização antes, durante e depois dos atendimentos.",
+  journeySteps: [
     {
-      id: "ia",
-      title: "Uso responsável da IA",
-      subtitle: "A inteligência artificial é apoio, não substituição.",
-      icon: "fa-solid fa-brain",
-      highlight: "IA com cuidado",
+      step: "01",
+      title: "Consulta agendada",
+      text: "O atendimento aparece na sua área com data, horário e informações importantes.",
+    },
+    {
+      step: "02",
+      title: "Preparação pré-sessão",
+      text: "Você pode responder checklists para registrar como está chegando para a consulta.",
+    },
+    {
+      step: "03",
+      title: "Atividades entre sessões",
+      text: "Tarefas e materiais ajudam a manter continuidade no acompanhamento.",
+    },
+    {
+      step: "04",
+      title: "Acompanhamento contínuo",
+      text: "As informações ficam organizadas para facilitar o diálogo com o profissional.",
+    },
+  ],
+  safeUseTitle: "Use a plataforma como apoio ao seu processo",
+  safeUseText:
+    "O PsicoConnect ajuda na organização, mas as decisões sobre o cuidado devem ser discutidas com o profissional responsável pelo acompanhamento.",
+};
+
+const psychologistContent: PageContent = {
+  roleLabel: "Psicólogo",
+  badge: "Área profissional",
+  heroTitle: "Orientações para conduzir acompanhamentos no PsicoConnect",
+  heroDescription:
+    "Organize agenda, pacientes, checklists, tarefas, materiais, mensagens e recursos de IA com atenção ao sigilo, à ética e à proteção de dados.",
+  alertTitle: "A tecnologia apoia, mas a responsabilidade técnica continua sendo profissional.",
+  alertText:
+    "Use a plataforma como ferramenta de organização e acompanhamento, mantendo julgamento clínico, revisão humana, sigilo profissional e cuidado ético nas decisões.",
+  quickCards: [
+    {
+      title: "Agenda e pacientes",
+      text: "Gerencie consultas, vínculos, confirmações e solicitações de cancelamento.",
+      icon: "fa-solid fa-user-doctor",
+      color: "#2563eb",
+      bg: "#eff6ff",
+    },
+    {
+      title: "Checklists",
+      text: "Use respostas pré-sessão para orientar a preparação do atendimento.",
+      icon: "fa-solid fa-clipboard-list",
+      color: "#ca8a04",
+      bg: "#fffbeb",
+    },
+    {
+      title: "Intervenções de apoio",
+      text: "Envie tarefas terapêuticas e materiais psicoeducativos com objetivo definido.",
+      icon: "fa-solid fa-book-medical",
+      color: "#059669",
+      bg: "#ecfdf5",
+    },
+    {
+      title: "Sigilo e IA",
+      text: "Use recursos inteligentes com revisão profissional e atenção aos dados sensíveis.",
+      icon: "fa-solid fa-lock",
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+    },
+  ],
+  guideIntroTitle: "Guia do psicólogo",
+  guideIntroText:
+    "Estas orientações reúnem boas práticas para usar o PsicoConnect como apoio à rotina profissional, sem substituir responsabilidade técnica e ética.",
+  sections: [
+    {
+      id: "primeiros-passos",
+      title: "Primeiros passos na área profissional",
+      subtitle: "Entenda como organizar sua rotina dentro da plataforma.",
+      icon: "fa-solid fa-compass",
+      highlight: "Comece por aqui",
       content: [
-        "A IA pode auxiliar na organização de informações, explicações gerais e navegação pela plataforma.",
-        "As respostas geradas por IA não substituem avaliação psicológica, psicoterapia ou orientação clínica profissional.",
-        "Informações sensíveis devem ser tratadas com cautela e revisadas pelo profissional responsável.",
-        "Em decisões importantes sobre saúde mental, procure sempre o acompanhamento de um profissional habilitado.",
+        "O Dashboard reúne indicadores de agenda, pacientes, checklists, tarefas, materiais e pontos de atenção recentes.",
+        "A página Pacientes concentra os vínculos ativos e permite acessar detalhes, tarefas, materiais, mensagens, anotações e resumos.",
+        "A Agenda ajuda a organizar atendimentos e acompanhar confirmações, cancelamentos e lembretes.",
+        "As áreas de Mensagens e PsicoBot devem ser usadas como apoio à organização, sempre com revisão e responsabilidade profissional.",
       ],
     },
     {
-      id: "privacidade",
-      title: "Privacidade e sigilo",
-      subtitle: "Cuidados com dados pessoais e informações sensíveis.",
+      id: "agenda-vinculos",
+      title: "Agenda, vínculos e confirmações",
+      subtitle: "Mantenha o acompanhamento organizado e rastreável.",
+      icon: "fa-solid fa-calendar-check",
+      highlight: "Rotina clínica",
+      content: [
+        "Crie e acompanhe consultas, observando status de confirmação e solicitações de cancelamento realizadas pelo paciente.",
+        "Quando houver integração com Google Calendar, confira se os eventos foram registrados corretamente e mantenha a agenda atualizada.",
+        "Use os vínculos psicólogo-paciente para restringir o acesso às informações apenas aos usuários relacionados ao acompanhamento.",
+        "Revise solicitações de cancelamento com critério e mantenha comunicação clara com o paciente quando houver mudança de horário.",
+      ],
+    },
+    {
+      id: "intervencoes-registros",
+      title: "Tarefas, materiais, checklists e registros",
+      subtitle: "Use os recursos para apoiar o processo entre sessões.",
+      icon: "fa-solid fa-notes-medical",
+      highlight: "Acompanhamento",
+      content: [
+        "Os checklists pré-sessão podem ajudar a identificar temas importantes, mas não devem ser interpretados isoladamente.",
+        "Tarefas terapêuticas e materiais devem ter objetivo clínico claro, linguagem adequada e relação com o plano de acompanhamento.",
+        "Anotações e resumos internos devem ser usados com atenção ao sigilo profissional e à necessidade de registro.",
+        "Evite inserir informações excessivas ou desnecessárias em campos abertos, principalmente quando envolver dados sensíveis.",
+      ],
+    },
+    {
+      id: "etica-ia",
+      title: "PsicoBot, IA e responsabilidade profissional",
+      subtitle: "A IA é apoio operacional, não substituição do raciocínio clínico.",
+      icon: "fa-solid fa-brain",
+      highlight: "Revisão humana",
+      content: [
+        "Use o PsicoBot para apoio na organização de informações, explicações gerais e recuperação de dados permitidos pelo acesso do usuário.",
+        "Não trate respostas da IA como diagnóstico, decisão clínica, prescrição de conduta ou documento psicológico final.",
+        "Revise criticamente qualquer conteúdo gerado por IA antes de usar em comunicação, registro ou tomada de decisão.",
+        "Mantenha atenção à confidencialidade e ao mínimo necessário ao lidar com informações clínicas e dados pessoais.",
+      ],
+    },
+    {
+      id: "sigilo-lgpd",
+      title: "Sigilo, LGPD e boas práticas",
+      subtitle: "Proteja dados pessoais e informações clínicas.",
       icon: "fa-solid fa-lock",
       highlight: "Segurança",
       content: [
-        "Evite compartilhar informações pessoais desnecessárias em campos abertos.",
-        "O acesso às informações deve ser restrito ao paciente e ao profissional vinculado.",
-        "Anotações clínicas internas são destinadas ao uso profissional e não aparecem para o paciente.",
-        "O uso da plataforma deve respeitar princípios de sigilo, ética profissional e proteção de dados.",
+        "Acesse a plataforma apenas por dispositivos confiáveis e evite deixar sessão aberta em computadores compartilhados.",
+        "Compartilhe dados e materiais apenas quando houver finalidade relacionada ao acompanhamento e acesso autorizado.",
+        "Use linguagem cuidadosa nos registros internos, mantendo pertinência, clareza e respeito à privacidade do paciente.",
+        "A tecnologia reduz tarefas operacionais, mas não elimina deveres de sigilo, ética, guarda adequada e responsabilidade profissional.",
       ],
     },
-  ];
+    commonSafetySections[2],
+  ],
+  journeyTitle: "Fluxo sugerido para o acompanhamento profissional",
+  journeyText:
+    "Um uso consistente da plataforma ajuda a manter agenda, intervenções e registros mais organizados ao longo do processo.",
+  journeySteps: [
+    {
+      step: "01",
+      title: "Vincule e acompanhe pacientes",
+      text: "Mantenha os vínculos atualizados para garantir acesso correto às informações.",
+    },
+    {
+      step: "02",
+      title: "Organize consultas",
+      text: "Registre atendimentos, acompanhe confirmações e revise solicitações de cancelamento.",
+    },
+    {
+      step: "03",
+      title: "Envie recursos entre sessões",
+      text: "Use tarefas e materiais com objetivo definido e linguagem adequada ao paciente.",
+    },
+    {
+      step: "04",
+      title: "Revise dados e registros",
+      text: "Utilize checklists, mensagens e anotações como apoio ao raciocínio profissional, não como substitutos dele.",
+    },
+  ],
+  safeUseTitle: "A tecnologia deve fortalecer o vínculo, não substituir a escuta",
+  safeUseText:
+    "O PsicoConnect apoia a organização do cuidado, mas a escuta clínica, a interpretação dos dados e as decisões profissionais permanecem humanas.",
+};
+
+const adminContent: PageContent = {
+  roleLabel: "Administrador",
+  badge: "Área administrativa",
+  heroTitle: "Orientações gerais para administração do PsicoConnect",
+  heroDescription:
+    "Acompanhe usuários, verificações profissionais, segurança de acesso e uso responsável dos recursos da plataforma.",
+  alertTitle: "A administração deve priorizar segurança, clareza e responsabilidade.",
+  alertText:
+    "As ações administrativas impactam o acesso de pacientes e profissionais. Revise dados com cuidado e mantenha atenção à proteção das informações.",
+  quickCards: [
+    {
+      title: "Usuários",
+      text: "Acompanhe contas, papéis e situações de acesso.",
+      icon: "fa-solid fa-users-gear",
+      color: "#2563eb",
+      bg: "#eff6ff",
+    },
+    {
+      title: "Verificações",
+      text: "Analise cadastros profissionais pendentes com critério.",
+      icon: "fa-solid fa-id-card-clip",
+      color: "#ca8a04",
+      bg: "#fffbeb",
+    },
+    {
+      title: "Segurança",
+      text: "Mantenha atenção a acessos, permissões e dados sensíveis.",
+      icon: "fa-solid fa-shield-halved",
+      color: "#059669",
+      bg: "#ecfdf5",
+    },
+    {
+      title: "Suporte",
+      text: "Oriente usuários sobre limites, privacidade e uso correto.",
+      icon: "fa-solid fa-circle-question",
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+    },
+  ],
+  guideIntroTitle: "Guia administrativo",
+  guideIntroText:
+    "Estas orientações apoiam a gestão responsável de usuários, verificações e permissões dentro do sistema.",
+  sections: [
+    {
+      id: "primeiros-passos",
+      title: "Visão geral administrativa",
+      subtitle: "Entenda as principais responsabilidades da área admin.",
+      icon: "fa-solid fa-compass",
+      highlight: "Administração",
+      content: [
+        "A área administrativa permite acompanhar usuários e situações de cadastro na plataforma.",
+        "Verificações profissionais devem ser analisadas com atenção aos dados enviados e aos critérios definidos pelo projeto.",
+        "Alterações de acesso devem ser feitas com cuidado, pois podem afetar pacientes e profissionais vinculados.",
+        "Em caso de dúvida, priorize a segurança da informação e a rastreabilidade das ações.",
+      ],
+    },
+    {
+      id: "usuarios-permissoes",
+      title: "Usuários, papéis e permissões",
+      subtitle: "Cuide para que cada pessoa tenha acesso adequado.",
+      icon: "fa-solid fa-user-shield",
+      highlight: "Controle de acesso",
+      content: [
+        "Pacientes, psicólogos e administradores possuem permissões diferentes dentro da plataforma.",
+        "Evite conceder acesso administrativo sem necessidade real e orientação adequada.",
+        "Acompanhe usuários com e-mail não verificado ou cadastro profissional em análise.",
+        "Quando houver inconsistência, oriente o usuário a corrigir os dados antes de liberar funcionalidades sensíveis.",
+      ],
+    },
+    ...commonSafetySections,
+  ],
+  journeyTitle: "Fluxo de gestão recomendado",
+  journeyText:
+    "Uma administração cuidadosa mantém a plataforma mais segura para pacientes e profissionais.",
+  journeySteps: [
+    {
+      step: "01",
+      title: "Verifique cadastros",
+      text: "Analise informações profissionais e pendências antes de liberar recursos sensíveis.",
+    },
+    {
+      step: "02",
+      title: "Acompanhe usuários",
+      text: "Observe contas criadas, e-mails verificados e papéis definidos no sistema.",
+    },
+    {
+      step: "03",
+      title: "Priorize segurança",
+      text: "Evite alterações desnecessárias em permissões e mantenha atenção a dados sensíveis.",
+    },
+    {
+      step: "04",
+      title: "Oriente o uso correto",
+      text: "Reforce limites da plataforma, uso responsável da IA e canais adequados de suporte.",
+    },
+  ],
+  safeUseTitle: "A gestão da plataforma também faz parte da segurança",
+  safeUseText:
+    "O cuidado com permissões, verificações e orientações reduz riscos e melhora a experiência dos usuários.",
+};
+
+const generalContent: PageContent = {
+  ...patientContent,
+  roleLabel: "Geral",
+  badge: "Central de orientação",
+  heroTitle: "Orientações para um uso seguro e consciente",
+  heroDescription:
+    "Entenda os recursos do PsicoConnect e os cuidados necessários para usar consultas, tarefas, materiais, mensagens e IA com responsabilidade.",
+};
+
+const pageContentByRole: Record<UserRole, PageContent> = {
+  PATIENT: patientContent,
+  PSYCHOLOGIST: psychologistContent,
+  ADMIN: adminContent,
+  GENERAL: generalContent,
+};
+
+function getRoleFromSession(role: string | null | undefined): UserRole {
+  if (role === "PATIENT") return "PATIENT";
+  if (role === "PSYCHOLOGIST") return "PSYCHOLOGIST";
+  if (role === "ADMIN") return "ADMIN";
+  return "GENERAL";
+}
 
 export default function OrientacoesPage() {
-  const [activeSectionId, setActiveSectionId] = useState("uso-plataforma");
+  const { data: session } = useSession();
+  const sessionUser = session?.user as SessionUserWithRole | undefined;
+  const userRole = getRoleFromSession(sessionUser?.role);
+  const pageContent = pageContentByRole[userRole];
+  const guideSections = useMemo(() => pageContent.sections, [pageContent]);
+  const [selectedSectionId, setSelectedSectionId] = useState("primeiros-passos");
+  const firstSectionId = guideSections[0]?.id || "primeiros-passos";
+  const activeSectionId = guideSections.some(
+    (section) => section.id === selectedSectionId,
+  )
+    ? selectedSectionId
+    : firstSectionId;
 
   const activeSection = useMemo(() => {
     return (
       guideSections.find((section) => section.id === activeSectionId) ||
       guideSections[0]
     );
-  }, [activeSectionId]);
+  }, [activeSectionId, guideSections]);
 
   const pageStyle = {
     padding: "36px",
@@ -122,7 +525,7 @@ export default function OrientacoesPage() {
           marginBottom: "26px",
           color: "#ffffff",
           background:
-           "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
+            "linear-gradient(135deg, #1d4ed8, #3b82f6 55%, #60a5fa)",
           boxShadow: "0 12px 30px rgba(37, 99, 235, 0.18)",
         }}
       >
@@ -179,7 +582,7 @@ export default function OrientacoesPage() {
               }}
             >
               <i className="fa-solid fa-book-open"></i>
-              Central de orientação
+              {pageContent.badge}
             </div>
 
             <h1
@@ -192,7 +595,7 @@ export default function OrientacoesPage() {
                 letterSpacing: "-0.04em",
               }}
             >
-              Orientações para um uso seguro e consciente
+              {pageContent.heroTitle}
             </h1>
 
             <p
@@ -205,9 +608,7 @@ export default function OrientacoesPage() {
                 margin: 0,
               }}
             >
-              Um guia para compreender os recursos do PsicoConnect, acompanhar
-              consultas, responder checklists, acessar tarefas e usar a IA de
-              forma ética e responsável.
+              {pageContent.heroDescription}
             </p>
           </div>
 
@@ -239,7 +640,7 @@ export default function OrientacoesPage() {
                 marginBottom: "14px",
               }}
             >
-              A plataforma apoia o cuidado, mas não substitui o profissional.
+              {pageContent.alertTitle}
             </p>
 
             <p
@@ -249,9 +650,7 @@ export default function OrientacoesPage() {
                 margin: 0,
               }}
             >
-              Em situações de urgência, risco ou sofrimento intenso, procure
-              atendimento presencial, serviços de emergência ou rede de apoio
-              imediatamente.
+              {pageContent.alertText}
             </p>
           </div>
         </div>
@@ -266,36 +665,7 @@ export default function OrientacoesPage() {
           marginBottom: "26px",
         }}
       >
-        {[
-          {
-            title: "Acompanhamento",
-            text: "Organize consultas, checklists, tarefas e materiais em um só lugar.",
-            icon: "fa-solid fa-route",
-            color: "#2563eb",
-            bg: "#eff6ff",
-          },
-          {
-            title: "Clareza",
-            text: "Entenda como cada recurso contribui para o processo terapêutico.",
-            icon: "fa-solid fa-lightbulb",
-            color: "#ca8a04",
-            bg: "#fffbeb",
-          },
-          {
-            title: "Privacidade",
-            text: "Use a plataforma com cuidado ao registrar informações sensíveis.",
-            icon: "fa-solid fa-lock",
-            color: "#059669",
-            bg: "#ecfdf5",
-          },
-          {
-            title: "IA responsável",
-            text: "A IA oferece apoio informativo, mas não substitui avaliação profissional.",
-            icon: "fa-solid fa-brain",
-            color: "#7c3aed",
-            bg: "#f5f3ff",
-          },
-        ].map((item) => (
+        {pageContent.quickCards.map((item) => (
           <div key={item.title} className="orientacoes-quick-card" style={miniCardStyle}>
             <div
               className="orientacoes-quick-icon"
@@ -360,7 +730,7 @@ export default function OrientacoesPage() {
               marginBottom: "8px",
             }}
           >
-            Guia interativo
+            {pageContent.roleLabel}
           </p>
 
           <h2
@@ -373,7 +743,7 @@ export default function OrientacoesPage() {
               letterSpacing: "-0.03em",
             }}
           >
-            Escolha um tema para ver orientações
+            {pageContent.guideIntroTitle}
           </h2>
 
           <p
@@ -383,8 +753,7 @@ export default function OrientacoesPage() {
               marginBottom: "20px",
             }}
           >
-            Esta área reúne orientações gerais sobre o uso da plataforma, o
-            acompanhamento entre sessões, privacidade e inteligência artificial.
+            {pageContent.guideIntroText}
           </p>
 
           <div
@@ -403,7 +772,7 @@ export default function OrientacoesPage() {
                   key={section.id}
                   className="orientacoes-guide-button"
                   type="button"
-                  onClick={() => setActiveSectionId(section.id)}
+                  onClick={() => setSelectedSectionId(section.id)}
                   style={{
                     width: "100%",
                     border: isActive
@@ -417,7 +786,9 @@ export default function OrientacoesPage() {
                     display: "flex",
                     alignItems: "center",
                     gap: "12px",
-                    boxShadow: isActive ? "0 8px 18px rgba(37, 99, 235, 0.10)" : "none",
+                    boxShadow: isActive
+                      ? "0 8px 18px rgba(37, 99, 235, 0.10)"
+                      : "none",
                   }}
                 >
                   <div
@@ -465,110 +836,112 @@ export default function OrientacoesPage() {
           </div>
         </div>
 
-        <div
-          className="orientacoes-guide-content"
-          style={{
-            borderRadius: "28px",
-            padding: "28px",
-            backgroundColor: "#f8fbff",
-            border: "1px solid #bfdbfe",
-            minHeight: "100%",
-          }}
-        >
+        {activeSection && (
           <div
-            className="orientacoes-active-pill"
+            className="orientacoes-guide-content"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#dbeafe",
-              color: "#1d4ed8",
-              borderRadius: "999px",
-              padding: "7px 12px",
-              fontSize: "13px",
-              fontWeight: 950,
-              marginBottom: "18px",
+              borderRadius: "28px",
+              padding: "28px",
+              backgroundColor: "#f8fbff",
+              border: "1px solid #bfdbfe",
+              minHeight: "100%",
             }}
           >
-            <i className={activeSection.icon}></i>
-            {activeSection.highlight}
-          </div>
+            <div
+              className="orientacoes-active-pill"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#dbeafe",
+                color: "#1d4ed8",
+                borderRadius: "999px",
+                padding: "7px 12px",
+                fontSize: "13px",
+                fontWeight: 950,
+                marginBottom: "18px",
+              }}
+            >
+              <i className={activeSection.icon}></i>
+              {activeSection.highlight}
+            </div>
 
-          <h2
-            className="orientacoes-active-title"
-            style={{
-              color: "#111827",
-              fontSize: "34px",
-              fontWeight: 950,
-              letterSpacing: "-0.035em",
-              lineHeight: 1.1,
-              marginBottom: "10px",
-            }}
-          >
-            {activeSection.title}
-          </h2>
+            <h2
+              className="orientacoes-active-title"
+              style={{
+                color: "#111827",
+                fontSize: "34px",
+                fontWeight: 950,
+                letterSpacing: "-0.035em",
+                lineHeight: 1.1,
+                marginBottom: "10px",
+              }}
+            >
+              {activeSection.title}
+            </h2>
 
-          <p
-            className="orientacoes-active-description"
-            style={{
-              color: "#6b7280",
-              lineHeight: 1.6,
-              marginBottom: "24px",
-              fontSize: "16px",
-            }}
-          >
-            {activeSection.subtitle}
-          </p>
+            <p
+              className="orientacoes-active-description"
+              style={{
+                color: "#6b7280",
+                lineHeight: 1.6,
+                marginBottom: "24px",
+                fontSize: "16px",
+              }}
+            >
+              {activeSection.subtitle}
+            </p>
 
-          <div
-            className="orientacoes-active-list"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-            }}
-          >
-            {activeSection.content.map((text, index) => (
-              <div
-                key={text}
-                className="orientacoes-active-item"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "38px 1fr",
-                  gap: "12px",
-                  alignItems: "flex-start",
-                }}
-              >
+            <div
+              className="orientacoes-active-list"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+              }}
+            >
+              {activeSection.content.map((text, index) => (
                 <div
+                  key={text}
+                  className="orientacoes-active-item"
                   style={{
-                    width: "34px",
-                    height: "34px",
-                    borderRadius: "12px",
-                    backgroundColor: "#2563eb",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 950,
-                    fontSize: "14px",
+                    display: "grid",
+                    gridTemplateColumns: "38px 1fr",
+                    gap: "12px",
+                    alignItems: "flex-start",
                   }}
                 >
-                  {index + 1}
-                </div>
+                  <div
+                    style={{
+                      width: "34px",
+                      height: "34px",
+                      borderRadius: "12px",
+                      backgroundColor: "#2563eb",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 950,
+                      fontSize: "14px",
+                    }}
+                  >
+                    {index + 1}
+                  </div>
 
-                <p
-                  style={{
-                    color: "#374151",
-                    lineHeight: 1.65,
-                    margin: 0,
-                  }}
-                >
-                  {text}
-                </p>
-              </div>
-            ))}
+                  <p
+                    style={{
+                      color: "#374151",
+                      lineHeight: 1.65,
+                      margin: 0,
+                    }}
+                  >
+                    {text}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       <section
@@ -604,12 +977,23 @@ export default function OrientacoesPage() {
               color: "#111827",
               fontSize: "28px",
               fontWeight: 950,
-              marginBottom: "20px",
+              marginBottom: "8px",
               letterSpacing: "-0.03em",
             }}
           >
-            Como o acompanhamento acontece na plataforma
+            {pageContent.journeyTitle}
           </h2>
+
+          <p
+            style={{
+              color: "#6b7280",
+              lineHeight: 1.6,
+              marginTop: 0,
+              marginBottom: "20px",
+            }}
+          >
+            {pageContent.journeyText}
+          </p>
 
           <div
             style={{
@@ -618,28 +1002,7 @@ export default function OrientacoesPage() {
               gap: "16px",
             }}
           >
-            {[
-              {
-                step: "01",
-                title: "Consulta agendada",
-                text: "O profissional registra o atendimento e ele aparece na área do paciente.",
-              },
-              {
-                step: "02",
-                title: "Checklist pré-sessão",
-                text: "Antes da consulta, o paciente pode registrar informações importantes para o atendimento.",
-              },
-              {
-                step: "03",
-                title: "Tarefas e materiais",
-                text: "Após ou entre sessões, o profissional pode enviar atividades e conteúdos de apoio.",
-              },
-              {
-                step: "04",
-                title: "Acompanhamento contínuo",
-                text: "O paciente visualiza seu progresso e mantém maior clareza sobre o processo.",
-              },
-            ].map((item, index) => (
+            {pageContent.journeySteps.map((item, index) => (
               <div
                 key={item.step}
                 className="orientacoes-step-item"
@@ -670,10 +1033,11 @@ export default function OrientacoesPage() {
                 <div
                   style={{
                     borderBottom:
-                      index === 3
+                      index === pageContent.journeySteps.length - 1
                         ? "none"
                         : "1px solid rgba(226, 232, 240, 0.9)",
-                    paddingBottom: index === 3 ? 0 : "16px",
+                    paddingBottom:
+                      index === pageContent.journeySteps.length - 1 ? 0 : "16px",
                   }}
                 >
                   <h3
@@ -779,7 +1143,7 @@ export default function OrientacoesPage() {
               }}
             >
               Acione serviços de emergência, unidades de saúde, familiares, rede
-              de apoio ou profissionais responsáveis pelo seu cuidado.
+              de apoio ou profissionais responsáveis pelo cuidado.
             </p>
           </div>
         </div>
@@ -790,7 +1154,7 @@ export default function OrientacoesPage() {
         style={{
           ...glassCardStyle,
           padding: "24px",
-          marginBottom: "48px",
+          marginBottom: "20px",
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           gap: "18px",
@@ -824,7 +1188,7 @@ export default function OrientacoesPage() {
               marginBottom: "6px",
             }}
           >
-            O cuidado continua sendo humano
+            {pageContent.safeUseTitle}
           </h2>
 
           <p
@@ -834,14 +1198,56 @@ export default function OrientacoesPage() {
               margin: 0,
             }}
           >
-            O PsicoConnect organiza informações e facilita o acompanhamento, mas
-            a escuta, a interpretação clínica e as decisões sobre o processo
-            terapêutico pertencem ao profissional e ao vínculo construído com o
-            paciente.
+            {pageContent.safeUseText}
           </p>
         </div>
       </section>
 
+      <section
+        className="orientacoes-links-card"
+        style={{
+          ...glassCardStyle,
+          padding: "20px",
+          marginBottom: "48px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              color: "#111827",
+              fontWeight: 950,
+              marginBottom: "4px",
+            }}
+          >
+            Informações gerais do PsicoConnect
+          </p>
+
+          <p style={{ color: "#6b7280", margin: 0, lineHeight: 1.5 }}>
+            Consulte os documentos públicos para entender regras de uso,
+            privacidade e exclusão de dados.
+          </p>
+        </div>
+
+        <div
+          className="orientacoes-links-actions"
+          style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+        >
+          <Link className="orientacoes-link-button" href="/termos-de-uso">
+            Termos de uso
+          </Link>
+          <Link className="orientacoes-link-button" href="/politica-de-privacidade">
+            Privacidade
+          </Link>
+          <Link className="orientacoes-link-button" href="/exclusao-de-dados">
+            Exclusão de dados
+          </Link>
+        </div>
+      </section>
 
       <style>{`
         .orientacoes-page {
@@ -861,11 +1267,13 @@ export default function OrientacoesPage() {
         .orientacoes-guide-card,
         .orientacoes-guide-content,
         .orientacoes-practice-card,
-        .orientacoes-human-card {
+        .orientacoes-human-card,
+        .orientacoes-links-card {
           min-width: 0;
         }
 
-        .orientacoes-guide-button {
+        .orientacoes-guide-button,
+        .orientacoes-link-button {
           transition:
             background-color 0.18s ease,
             border-color 0.18s ease,
@@ -873,8 +1281,29 @@ export default function OrientacoesPage() {
             transform 0.18s ease;
         }
 
-        .orientacoes-guide-button:hover {
+        .orientacoes-guide-button:hover,
+        .orientacoes-link-button:hover {
           transform: translateY(-1px);
+        }
+
+        .orientacoes-link-button {
+          border: 1px solid #bfdbfe;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border-radius: 999px;
+          padding: 10px 13px;
+          font-size: 13px;
+          font-weight: 950;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
+        }
+
+        .orientacoes-link-button:hover {
+          background: #dbeafe;
+          border-color: #93c5fd;
         }
 
         .orientacoes-active-item,
@@ -929,7 +1358,8 @@ export default function OrientacoesPage() {
           .orientacoes-guide-card,
           .orientacoes-guide-content,
           .orientacoes-practice-card,
-          .orientacoes-human-card {
+          .orientacoes-human-card,
+          .orientacoes-links-card {
             padding: 22px !important;
             border-radius: 22px !important;
           }
@@ -993,40 +1423,11 @@ export default function OrientacoesPage() {
             line-height: 1.45 !important;
           }
 
-          .orientacoes-quick-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 10px !important;
-            margin-bottom: 16px !important;
-          }
-
-          .orientacoes-quick-card {
-            padding: 14px !important;
-            border-radius: 18px !important;
-          }
-
-          .orientacoes-quick-icon {
-            width: 36px !important;
-            height: 36px !important;
-            border-radius: 12px !important;
-            font-size: 15px !important;
-            margin-bottom: 10px !important;
-          }
-
-          .orientacoes-quick-card h2 {
-            font-size: 14px !important;
-            line-height: 1.18 !important;
-            margin-bottom: 6px !important;
-          }
-
-          .orientacoes-quick-card p {
-            font-size: 12px !important;
-            line-height: 1.35 !important;
-          }
-
           .orientacoes-guide-card,
           .orientacoes-guide-content,
           .orientacoes-practice-card,
-          .orientacoes-human-card {
+          .orientacoes-human-card,
+          .orientacoes-links-card {
             padding: 16px !important;
             border-radius: 18px !important;
             margin-bottom: 16px !important;
@@ -1141,38 +1542,20 @@ export default function OrientacoesPage() {
             font-size: 13px !important;
             line-height: 1.45 !important;
           }
-        }
 
-        @media (max-width: 420px) {
-          .orientacoes-hero-title {
-            font-size: 25px !important;
-          }
-
-          .orientacoes-quick-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .orientacoes-quick-card {
-            display: grid !important;
-            grid-template-columns: 40px 1fr !important;
-            gap: 10px !important;
+          .orientacoes-links-card {
             align-items: flex-start !important;
           }
 
-          .orientacoes-quick-icon {
-            margin-bottom: 0 !important;
+          .orientacoes-links-actions {
+            width: 100% !important;
           }
 
-          .orientacoes-quick-card h2 {
-            margin-top: 1px !important;
-          }
-
-          .orientacoes-quick-card p {
-            grid-column: 2 !important;
+          .orientacoes-link-button {
+            flex: 1 1 100% !important;
           }
         }
 
-        /* Ajuste fino: painel do tema e cards rápidos compactos */
         @media (min-width: 1181px) {
           .orientacoes-guide-card {
             align-items: start !important;
@@ -1210,79 +1593,6 @@ export default function OrientacoesPage() {
           }
         }
 
-        @media (max-width: 900px) {
-          .orientacoes-quick-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            gap: 10px !important;
-          }
-
-          .orientacoes-quick-card {
-            min-height: 118px !important;
-            padding: 12px !important;
-            border-radius: 18px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: space-between !important;
-          }
-
-          .orientacoes-quick-icon {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 12px !important;
-            font-size: 14px !important;
-            margin-bottom: 8px !important;
-          }
-
-          .orientacoes-quick-card h2 {
-            font-size: 13px !important;
-            line-height: 1.15 !important;
-            margin-bottom: 0 !important;
-          }
-
-          .orientacoes-quick-card p {
-            display: none !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .orientacoes-quick-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 9px !important;
-          }
-
-          .orientacoes-quick-card {
-            min-height: 104px !important;
-            padding: 11px !important;
-          }
-
-          .orientacoes-quick-icon {
-            width: 32px !important;
-            height: 32px !important;
-            margin-bottom: 7px !important;
-          }
-        }
-
-        @media (max-width: 420px) {
-          .orientacoes-quick-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-
-          .orientacoes-quick-card {
-            display: flex !important;
-            min-height: 100px !important;
-            gap: 0 !important;
-          }
-
-          .orientacoes-quick-card h2 {
-            margin-top: 0 !important;
-          }
-
-          .orientacoes-quick-card p {
-            display: none !important;
-          }
-        }
-
-        /* Ajuste final dos cards rápidos: 4 colunas no tablet, 2 no celular */
         @media (max-width: 900px) {
           .chat-main-wrapper .orientacoes-page .orientacoes-quick-grid,
           .chat-main-wrapper > div.orientacoes-page .orientacoes-quick-grid,
@@ -1389,9 +1699,7 @@ export default function OrientacoesPage() {
             line-height: 1.12 !important;
           }
         }
-
       `}</style>
-
 
       <div style={{ height: "120px", flexShrink: 0 }} />
     </div>
