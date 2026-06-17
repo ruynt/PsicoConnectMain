@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { legalBlocks } from "@/lib/legal/legalContent";
 import LegalHashScroller from "./LegalHashScroller";
+import LegalTabs from "@/components/legal/LegalTabs";
 import styles from "./legal.module.css";
 
 const legalHubLinks = [
@@ -61,7 +62,7 @@ export default function LegalPage() {
         <div className={styles.heroInner}>
           <Link href="/" className={styles.backLink}>
             <i className="fa-solid fa-arrow-left" aria-hidden="true" />
-            Voltar para o início
+            Voltar
           </Link>
 
           <div className={styles.heroCard}>
@@ -80,6 +81,12 @@ export default function LegalPage() {
               Última atualização: Junho de 2026
             </span>
           </div>
+        </div>
+      </section>
+
+      <section className={styles.legalTabsSection} aria-label="Navegação principal da área legal">
+        <div className={styles.legalTabsInner}>
+          <LegalTabs active="central" />
         </div>
       </section>
 

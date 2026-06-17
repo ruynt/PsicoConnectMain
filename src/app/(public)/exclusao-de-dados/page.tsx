@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { legalBlocks } from "@/lib/legal/legalContent";
+import LegalTabs from "@/components/legal/LegalTabs";
 import styles from "../legal/legal.module.css";
 
 function getBlock(id: string) {
@@ -62,7 +63,7 @@ export default function LegalDocumentPage() {
         <div className={styles.heroInner}>
           <Link href="/" className={styles.backLink}>
             <i className="fa-solid fa-arrow-left" aria-hidden="true" />
-            Voltar para o início
+            Voltar
           </Link>
 
           <div className={styles.heroCard}>
@@ -81,11 +82,7 @@ export default function LegalDocumentPage() {
 
       <section className={styles.contentSection}>
         <div className={styles.singleDocumentInner}>
-          <div className={styles.documentActions}>
-                <Link href="/politica-de-privacidade">Política de Privacidade</Link>
-                <Link href="/termos-de-uso">Termos de Uso</Link>
-                <Link href="/legal">Central legal</Link>
-          </div>
+          <LegalTabs active="exclusao" />
 
           <DocumentContent blockId="exclusao-dados" />
         </div>

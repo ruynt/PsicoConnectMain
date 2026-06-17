@@ -583,3 +583,117 @@
     padding: 14px;
   }
 }
+/* Navegação principal da área legal */
+.legalTabsSection {
+  width: 100%;
+  padding: 0 20px 24px;
+}
+
+.legalTabsInner {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.documentActions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+  padding: 8px;
+  border: 1px solid rgba(82, 140, 255, 0.18);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 34px rgba(0, 30, 94, 0.07);
+}
+
+.documentActionLink,
+.documentActions a.documentActionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: #334155;
+  text-decoration: none;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.documentActionLink i,
+.documentActions a.documentActionLink i {
+  color: inherit;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.documentActionLink:hover,
+.documentActions a.documentActionLink:hover {
+  transform: translateY(-1px);
+  background: rgba(82, 140, 255, 0.12);
+  border-color: rgba(82, 140, 255, 0.28);
+  color: #001e5e;
+}
+
+.documentActionLinkActive,
+.documentActions a.documentActionLinkActive,
+.documentActionLinkActive:hover,
+.documentActions a.documentActionLinkActive:hover {
+  background: linear-gradient(135deg, #1c4bb3, #3f7afd);
+  border-color: rgba(63, 122, 253, 0.64);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(28, 75, 179, 0.2);
+}
+
+@media (max-width: 900px) {
+  .legalTabsSection {
+    padding: 0 16px 20px;
+  }
+
+  .documentActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .legalTabsSection {
+    padding: 0 14px 18px;
+  }
+
+  .documentActions {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 7px;
+    border-radius: 18px;
+  }
+
+  .documentActionLink,
+  .documentActions a.documentActionLink {
+    width: 100%;
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    font-size: 13px;
+    text-align: left;
+  }
+}
+
+@media (max-width: 420px) {
+  .legalTabsSection {
+    padding: 0 12px 16px;
+  }
+}
