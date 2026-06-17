@@ -12,6 +12,8 @@ const MAX_MESSAGE_LENGTH = 1600;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_TEXT_LENGTH = 700;
 const RAG_TIMEOUT_MS = 20000;
+const RAG_RETRY_ATTEMPTS = 2;
+const RAG_RETRY_DELAY_MS = 700;
 
 type UserRole = "ADMIN" | "PSYCHOLOGIST" | "PATIENT" | "UNKNOWN";
 
@@ -60,6 +62,47 @@ function normalizeText(value: string) {
 
 function hasAny(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(normalizeText(keyword)));
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isSimpleGreeting(message: string) {
+  const text = normalizeText(message);
+
+  return [
+    "oi",
+    "ola",
+    "olá",
+    "bom dia",
+    "boa tarde",
+    "boa noite",
+    "e ai",
+    "e aí",
+    "tudo bem",
+    "oi tudo bem",
+    "ola tudo bem",
+    "olá tudo bem",
+  ].includes(text);
+}
+
+function buildGreetingReply(role: UserRole) {
+  if (role === "ADMIN") {
+    return "Oi! Como você está? Posso ajudar com resumo dos usuários, CRPs pendentes, usuários recentes ou orientações sobre a área administrativa do PsicoConnect.";
+  }
+
+  if (role === "PSYCHOLOGIST") {
+    return "Oi! Como você está? Posso ajudar a consultar pacientes vinculados, próximas consultas, tarefas, materiais, checklists e mensagens. Também posso tirar dúvidas sobre o uso do PsicoConnect.";
+  }
+
+  if (role === "PATIENT") {
+    return "Oi! Como você está? Posso ajudar com suas consultas, tarefas, materiais, mensagens, psicólogos vinculados e dúvidas sobre o uso do PsicoConnect.";
+  }
+
+  return "Oi! Como você está? Posso ajudar com dúvidas sobre o uso do PsicoConnect.";
 }
 
 function isGenericPatientTerm(value: string) {
@@ -1621,7 +1664,7 @@ async function handlePatientIntent(intent: BotIntent, patientId: string) {
   return await buildPatientSummary(patientId);
 }
 
-async function forwardToRag(message: string, role: UserRole) {
+async function requestRagReply(message: string, role: UserRole) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RAG_TIMEOUT_MS);
 
@@ -1647,22 +1690,46 @@ async function forwardToRag(message: string, role: UserRole) {
       throw new Error("Falha no backend de IA.");
     }
 
-    return (
-      data?.reply ||
-      data?.answer ||
-      "Desculpe, não consegui obter uma resposta da IA."
-    );
-  } catch (error) {
-    console.error("Erro ao encaminhar mensagem para o backend RAG:", error);
+    const reply = data?.reply || data?.answer;
 
-    return [
-      "Não consegui conectar ao backend de IA agora.",
-      "",
-      "Para perguntas sobre dados do sistema, continuo usando as informações internas do PsicoConnect. Para perguntas informativas ou clínicas, tente novamente mais tarde e lembre-se de que o PsicoBot não substitui avaliação profissional.",
-    ].join("\n");
+    if (typeof reply !== "string" || !reply.trim()) {
+      throw new Error("Backend RAG retornou uma resposta vazia.");
+    }
+
+    return reply;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function forwardToRag(message: string, role: UserRole) {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= RAG_RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await requestRagReply(message, role);
+    } catch (error) {
+      lastError = error;
+      console.error(
+        `Erro ao encaminhar mensagem para o backend RAG. Tentativa ${attempt}/${RAG_RETRY_ATTEMPTS}:`,
+        error,
+      );
+
+      if (attempt < RAG_RETRY_ATTEMPTS) {
+        await wait(RAG_RETRY_DELAY_MS);
+      }
+    }
+  }
+
+  console.error("Todas as tentativas de contato com o backend RAG falharam:", lastError);
+
+  return [
+    "Não consegui responder com a IA externa agora.",
+    "",
+    "Para perguntas sobre dados do sistema, continuo usando as informações internas do PsicoConnect. Para perguntas informativas, tente novamente em alguns instantes.",
+    "",
+    "O PsicoBot é apenas um apoio informativo e não substitui avaliação profissional.",
+  ].join("\n");
 }
 
 export async function POST(req: Request) {
@@ -1701,6 +1768,10 @@ export async function POST(req: Request) {
         { error: "Perfil de usuário inválido para uso do PsicoBot." },
         { status: 403 },
       );
+    }
+
+    if (isSimpleGreeting(message)) {
+      return NextResponse.json({ reply: buildGreetingReply(role) });
     }
 
     let effectiveMessage = message;
