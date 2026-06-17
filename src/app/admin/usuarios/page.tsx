@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type Role = "ADMIN" | "PSYCHOLOGIST" | "PATIENT";
 type CrpVerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -636,21 +637,11 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 48px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#ffffff",
-        }}
-      >
-        <div className="psico-simple-loader">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="adminUsers"
+        title="Carregando usuários"
+        subtitle="Preparando lista de usuários, filtros e dados cadastrais."
+      />
     );
   }
 

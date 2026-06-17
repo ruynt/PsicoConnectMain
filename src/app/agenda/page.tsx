@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type CalendarEvent = {
   id: string;
@@ -946,22 +947,11 @@ export default function AgendaPage() {
 
   if (status === "loading") {
     return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 48px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "32px",
-          background: "#f8fbff",
-        }}
-      >
-        <div className="psico-simple-loader">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="agenda"
+        title="Carregando agenda"
+        subtitle="Sincronizando consultas, pacientes e informações do calendário."
+      />
     );
   }
 

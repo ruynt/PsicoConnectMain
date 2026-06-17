@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type PreSessionCheckin = {
   id: string;
@@ -798,20 +799,11 @@ export default function MyAppointmentsPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          ...pageStyle,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div className="psico-simple-loader" aria-label="Carregando">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="appointments"
+        title="Carregando consultas"
+        subtitle="Preparando suas consultas, confirmações e solicitações."
+      />
     );
   }
 

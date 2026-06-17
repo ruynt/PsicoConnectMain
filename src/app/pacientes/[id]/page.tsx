@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type Appointment = {
   id: string;
@@ -1212,23 +1213,11 @@ export default function PatientDetailsPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 48px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "32px",
-          background: "#f8fbff",
-          overflow: "visible",
-        }}
-      >
-        <div className="psico-simple-loader">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="patientDetail"
+        title="Carregando acompanhamento"
+        subtitle="Preparando dados, consultas, tarefas, materiais e registros do paciente."
+      />
     );
   }
 

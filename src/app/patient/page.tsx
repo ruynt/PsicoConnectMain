@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoInlineSkeleton from "@/components/PsicoInlineSkeleton";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type PreSessionCheckin = {
   id: string;
@@ -813,20 +815,11 @@ export default function PatientHomePage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          ...pageStyle,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div className="psico-simple-loader" aria-label="Carregando">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="patientHome"
+        title="Carregando acompanhamento"
+        subtitle="Preparando consultas, checklists, tarefas e materiais."
+      />
     );
   }
 
@@ -1711,15 +1704,7 @@ export default function PatientHomePage() {
             )}
 
             {loadingTasks ? (
-              <div
-                className="psico-simple-loader"
-                aria-label="Carregando tarefas"
-                style={{ padding: "18px 0" }}
-              >
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+              <PsicoInlineSkeleton rows={2} minHeight={150} />
             ) : recentTasks.length === 0 ? (
               <div
                 style={{
@@ -1906,15 +1891,7 @@ export default function PatientHomePage() {
           )}
 
           {loadingMaterials ? (
-            <div
-              className="psico-simple-loader"
-              aria-label="Carregando materiais"
-              style={{ padding: "18px 0" }}
-            >
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+            <PsicoInlineSkeleton rows={2} minHeight={150} />
           ) : recentMaterials.length === 0 ? (
             <div
               style={{

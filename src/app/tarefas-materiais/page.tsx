@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoInlineSkeleton from "@/components/PsicoInlineSkeleton";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type TaskStatus = "PENDING" | "COMPLETED" | "CANCELLED";
 
@@ -457,6 +459,16 @@ export default function TarefasMateriaisPage() {
 
   const isLoadingAnyData = loadingTasks || loadingMaterials;
 
+  if (isLoadingAnyData) {
+    return (
+      <PsicoPageSkeleton
+        variant="tasksMaterials"
+        title="Carregando atividades"
+        subtitle="Preparando tarefas terapêuticas e materiais psicoeducativos enviados."
+      />
+    );
+  }
+
   return (
     <div className="tasks-materials-page" style={pageStyle}>
       <section
@@ -540,21 +552,8 @@ export default function TarefasMateriaisPage() {
       </section>
 
       {isLoadingAnyData ? (
-        <div
-          style={{
-            ...cardStyle,
-            minHeight: "220px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: "24px",
-          }}
-        >
-          <div className="psico-simple-loader">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+        <div style={{ ...cardStyle, marginBottom: "24px" }}>
+          <PsicoInlineSkeleton rows={3} minHeight={220} />
         </div>
       ) : (
         <>

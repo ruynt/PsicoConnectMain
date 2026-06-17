@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type Psychologist = {
   id: string;
@@ -198,20 +199,11 @@ export default function MeusPsicologosPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          ...pageStyle,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div className="psico-simple-loader" aria-label="Carregando">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="psychologists"
+        title="Carregando psicólogos"
+        subtitle="Buscando profissionais vinculados ao seu acompanhamento."
+      />
     );
   }
 

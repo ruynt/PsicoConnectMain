@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type UserRole = "ADMIN" | "PSYCHOLOGIST" | "PATIENT";
 
@@ -391,6 +392,8 @@ function ProfilePhoto({
   );
 }
 
+
+
 export default function PerfilPage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
@@ -652,21 +655,11 @@ export default function PerfilPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 48px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f8fbff",
-        }}
-      >
-        <div className="psico-simple-loader">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="profile"
+        title="Carregando perfil"
+        subtitle="Preparando dados pessoais, profissionais e contatos."
+      />
     );
   }
 

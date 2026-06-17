@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type PatientSummary = {
   id: string;
@@ -414,6 +415,16 @@ export default function PatientsPage() {
           {description}
         </p>
       </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <PsicoPageSkeleton
+        variant="patients"
+        title="Carregando pacientes"
+        subtitle="Buscando vínculos, próximos atendimentos e dados principais dos pacientes."
+      />
     );
   }
 

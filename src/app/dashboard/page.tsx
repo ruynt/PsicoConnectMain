@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type DashboardData = {
   psychologist: {
@@ -544,25 +545,14 @@ export default function PsychologistDashboardPage() {
     );
   }
 
+
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 48px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "32px",
-          background: "#f8fbff",
-          overflow: "hidden",
-        }}
-      >
-        <div className="psico-simple-loader">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="dashboard"
+        title="Carregando dashboard"
+        subtitle="Preparando agenda, métricas, tarefas e materiais."
+      />
     );
   }
 

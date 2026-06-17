@@ -9,6 +9,7 @@ import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 import PwaFirstLoginInstallBanner from "@/components/pwa/PwaFirstLoginInstallBanner";
 import PwaInstallGuideModal from "@/components/pwa/PwaInstallGuideModal";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type SessionUserWithRoleAndCrp = {
   role?: string;
@@ -17,34 +18,12 @@ type SessionUserWithRoleAndCrp = {
 
 function PsicoLoadingScreen() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100%",
-        background: "#f8fbff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div className="psico-simple-loader">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-    </div>
-  );
-}
-
-function PsicoNavigationLoading() {
-  return (
-    <div className="psico-navigation-loading">
-      <div className="psico-simple-loader">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-    </div>
+    <PsicoPageSkeleton
+      variant="default"
+      title="Carregando PsicoConnect"
+      subtitle="Preparando sua área na plataforma."
+      compact
+    />
   );
 }
 
@@ -79,7 +58,6 @@ function PsicoBotMenuIcon() {
 function AuthGuard({ children }: PropsWithChildren) {
   const { data: session, status } = useSession();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -172,13 +150,8 @@ function AuthGuard({ children }: PropsWithChildren) {
   ]);
 
 
-  function handleMenuNavigation(path: string) {
+  function handleMenuNavigation() {
     setIsSidebarVisible(false);
-
-    if (pathname !== path) {
-      setIsNavigating(true);
-      window.setTimeout(() => setIsNavigating(false), 900);
-    }
   }
 
   if (status === "loading") {
@@ -250,8 +223,6 @@ function AuthGuard({ children }: PropsWithChildren) {
           }
         `}</style>
 
-        {isNavigating && <PsicoNavigationLoading />}
-
         {isSidebarVisible && (
           <div
             className="overlay"
@@ -274,7 +245,7 @@ function AuthGuard({ children }: PropsWithChildren) {
               <Link
                 href={homePath}
                 prefetch={false}
-                onClick={() => handleMenuNavigation(homePath)}
+                onClick={handleMenuNavigation}
                 title="Ir para o início"
                 aria-label="Ir para a página inicial do PsicoConnect"
                 style={{
@@ -307,7 +278,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                     href="/admin"
                     prefetch={false}
                     title="Ir para Administração"
-                    onClick={() => handleMenuNavigation("/admin")}
+                    onClick={handleMenuNavigation}
                     className={pathname === "/admin" ? "active" : ""}
                   >
                     <i className="fa-solid fa-user-shield" style={menuIconStyle}></i> Administração
@@ -317,7 +288,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                     href="/admin/usuarios"
                     prefetch={false}
                     title="Gerenciar usuários"
-                    onClick={() => handleMenuNavigation("/admin/usuarios")}
+                    onClick={handleMenuNavigation}
                     className={isActive("/admin/usuarios") ? "active" : ""}
                   >
                     <i className="fa-solid fa-users-gear" style={menuIconStyle}></i> Usuários
@@ -327,7 +298,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                     href="/chat"
                     prefetch={false}
                     title="Abrir PsicoBot"
-                    onClick={() => handleMenuNavigation("/chat")}
+                    onClick={handleMenuNavigation}
                     className={isActive("/chat") ? "active" : ""}
                   >
                     <PsicoBotMenuIcon /> PsicoBot
@@ -339,7 +310,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                     href={homePath}
                     prefetch={false}
                     title="Ir para o início"
-                    onClick={() => handleMenuNavigation(homePath)}
+                    onClick={handleMenuNavigation}
                     className={isActive(homePath) ? "active" : ""}
                   >
                     <i className="fa-solid fa-home" style={menuIconStyle}></i> Início
@@ -350,7 +321,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/perfil"
                       prefetch={false}
                       title="Abrir perfil"
-                      onClick={() => handleMenuNavigation("/perfil")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/perfil") ? "active" : ""}
                     >
                       <i className="fa-solid fa-user" style={menuIconStyle}></i> Perfil
@@ -362,7 +333,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/agenda"
                       prefetch={false}
                       title="Abrir agenda"
-                      onClick={() => handleMenuNavigation("/agenda")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/agenda") ? "active" : ""}
                     >
                       <i className="fa-solid fa-calendar-days" style={menuIconStyle}></i> Agenda
@@ -374,7 +345,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/pacientes"
                       prefetch={false}
                       title="Abrir pacientes"
-                      onClick={() => handleMenuNavigation("/pacientes")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/pacientes") ? "active" : ""}
                     >
                       <i className="fa-solid fa-users" style={menuIconStyle}></i> Pacientes
@@ -386,7 +357,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/meus-psicologos"
                       prefetch={false}
                       title="Ver psicólogos vinculados"
-                      onClick={() => handleMenuNavigation("/meus-psicologos")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/meus-psicologos") ? "active" : ""}
                     >
                       <i className="fa-solid fa-user-doctor" style={menuIconStyle}></i> Psicólogos
@@ -398,7 +369,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/minhas-consultas"
                       prefetch={false}
                       title="Ver minhas consultas"
-                      onClick={() => handleMenuNavigation("/minhas-consultas")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/minhas-consultas") ? "active" : ""}
                     >
                       <i className="fa-solid fa-calendar-alt" style={menuIconStyle}></i> Minhas Consultas
@@ -410,7 +381,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/tarefas-materiais"
                       prefetch={false}
                       title="Ver tarefas e materiais"
-                      onClick={() => handleMenuNavigation("/tarefas-materiais")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/tarefas-materiais") ? "active" : ""}
                     >
                       <i className="fa-solid fa-list-check" style={menuIconStyle}></i> Tarefas e materiais
@@ -422,7 +393,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                       href="/mensagens"
                       prefetch={false}
                       title="Abrir mensagens"
-                      onClick={() => handleMenuNavigation("/mensagens")}
+                      onClick={handleMenuNavigation}
                       className={isActive("/mensagens") ? "active" : ""}
                     >
                       <i className="fa-solid fa-comments" style={menuIconStyle}></i> Mensagens
@@ -433,7 +404,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                     href="/orientacoes"
                     prefetch={false}
                     title="Abrir orientações"
-                    onClick={() => handleMenuNavigation("/orientacoes")}
+                    onClick={handleMenuNavigation}
                     className={isActive("/orientacoes") ? "active" : ""}
                   >
                     <i className="fa-solid fa-book-open" style={menuIconStyle}></i> Orientações
@@ -443,7 +414,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                     href="/chat"
                     prefetch={false}
                     title="Abrir PsicoBot"
-                    onClick={() => handleMenuNavigation("/chat")}
+                    onClick={handleMenuNavigation}
                     className={isActive("/chat") ? "active" : ""}
                   >
                     <PsicoBotMenuIcon /> PsicoBot

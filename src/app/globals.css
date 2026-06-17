@@ -1354,7 +1354,7 @@ body {
   padding: 24px 32px;
 }
 
-.chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+.chat-main-wrapper > div:not(.overlay):not(.chat-page-shell) {
   background: #ffffff !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1408,54 +1408,6 @@ body {
   color: #8aa4c8;
 }
 
-.psico-simple-loader {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.psico-simple-loader span {
-  width: 13px;
-  height: 13px;
-  border-radius: 999px;
-  background-color: var(--psico-blue-light);
-  animation: psicoSimpleBounce 0.9s infinite ease-in-out;
-}
-
-.psico-simple-loader span:nth-child(2) {
-  animation-delay: 0.12s;
-}
-
-.psico-simple-loader span:nth-child(3) {
-  animation-delay: 0.24s;
-}
-
-@keyframes psicoSimpleBounce {
-  0%,
-  80%,
-  100% {
-    transform: scale(0.75);
-    opacity: 0.45;
-  }
-
-  40% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-}
-
-.psico-navigation-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(255, 255, 255, 0.74);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 button,
 a {
   transition:
@@ -1477,7 +1429,7 @@ a:hover {
     padding: 16px;
   }
 
-  .chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+  .chat-main-wrapper > div:not(.overlay):not(.chat-page-shell) {
     border-radius: 0 !important;
   }
 }
@@ -1756,7 +1708,7 @@ select {
     box-shadow: 0 10px 24px rgba(0, 30, 94, 0.10);
   }
 
-  .chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+  .chat-main-wrapper > div:not(.overlay):not(.chat-page-shell) {
     width: 100% !important;
     padding: 20px !important;
     min-height: auto !important;
@@ -1890,7 +1842,7 @@ select {
     padding: 12px;
   }
 
-  .chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+  .chat-main-wrapper > div:not(.overlay):not(.chat-page-shell) {
     padding: 16px !important;
   }
 
@@ -2069,7 +2021,7 @@ select {
     padding: 10px;
   }
 
-  .chat-main-wrapper > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
+  .chat-main-wrapper > div:not(.overlay):not(.chat-page-shell) {
     padding: 14px !important;
   }
 
@@ -2228,45 +2180,6 @@ select {
 
 .fa-clipboard-question::before {
   content: "\f46d";
-}
-
-/* Loading centralizado */
-.chat-main-wrapper {
-  position: relative;
-}
-
-.chat-main-wrapper:has(.psico-simple-loader) > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
-  min-height: calc(100dvh - 48px) !important;
-}
-
-.chat-main-wrapper:has(.psico-simple-loader) .psico-simple-loader {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  z-index: 120 !important;
-  transform: translate(-50%, -50%) !important;
-}
-
-.psico-navigation-loading .psico-simple-loader {
-  position: static !important;
-  transform: none !important;
-}
-
-.chat-main-wrapper .chat-page-shell .psico-simple-loader {
-  position: static !important;
-  transform: none !important;
-}
-
-@media (max-width: 900px) {
-  .chat-main-wrapper:has(.psico-simple-loader) > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
-    min-height: calc(100dvh - 32px) !important;
-  }
-}
-
-@media (max-width: 640px) {
-  .chat-main-wrapper:has(.psico-simple-loader) > div:not(.psico-navigation-loading):not(.overlay):not(.chat-page-shell) {
-    min-height: calc(100dvh - 24px) !important;
-  }
 }
 
 /* Ajustes finais da sidebar */

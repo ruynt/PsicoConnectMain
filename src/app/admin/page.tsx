@@ -5,6 +5,7 @@
 import { getErrorMessage } from "@/lib/errorUtils";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type CrpVerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -375,21 +376,11 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 48px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#ffffff",
-        }}
-      >
-        <div className="psico-simple-loader">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
+      <PsicoPageSkeleton
+        variant="admin"
+        title="Carregando painel administrativo"
+        subtitle="Preparando cadastros profissionais e estatísticas da plataforma."
+      />
     );
   }
 
