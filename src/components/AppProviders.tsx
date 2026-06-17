@@ -273,6 +273,7 @@ function AuthGuard({ children }: PropsWithChildren) {
             >
               <Link
                 href={homePath}
+                prefetch={false}
                 onClick={() => handleMenuNavigation(homePath)}
                 title="Ir para o início"
                 aria-label="Ir para a página inicial do PsicoConnect"
@@ -304,6 +305,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                 <>
                   <Link
                     href="/admin"
+                    prefetch={false}
                     title="Ir para Administração"
                     onClick={() => handleMenuNavigation("/admin")}
                     className={pathname === "/admin" ? "active" : ""}
@@ -313,6 +315,7 @@ function AuthGuard({ children }: PropsWithChildren) {
 
                   <Link
                     href="/admin/usuarios"
+                    prefetch={false}
                     title="Gerenciar usuários"
                     onClick={() => handleMenuNavigation("/admin/usuarios")}
                     className={isActive("/admin/usuarios") ? "active" : ""}
@@ -322,6 +325,7 @@ function AuthGuard({ children }: PropsWithChildren) {
 
                   <Link
                     href="/chat"
+                    prefetch={false}
                     title="Abrir PsicoBot"
                     onClick={() => handleMenuNavigation("/chat")}
                     className={isActive("/chat") ? "active" : ""}
@@ -333,6 +337,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                 <>
                   <Link
                     href={homePath}
+                    prefetch={false}
                     title="Ir para o início"
                     onClick={() => handleMenuNavigation(homePath)}
                     className={isActive(homePath) ? "active" : ""}
@@ -343,6 +348,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {(isPsychologist || isPatient) && (
                     <Link
                       href="/perfil"
+                      prefetch={false}
                       title="Abrir perfil"
                       onClick={() => handleMenuNavigation("/perfil")}
                       className={isActive("/perfil") ? "active" : ""}
@@ -354,6 +360,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {isPsychologist && !shouldBlockPsychologistByCrp && (
                     <Link
                       href="/agenda"
+                      prefetch={false}
                       title="Abrir agenda"
                       onClick={() => handleMenuNavigation("/agenda")}
                       className={isActive("/agenda") ? "active" : ""}
@@ -365,6 +372,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {isPsychologist && !shouldBlockPsychologistByCrp && (
                     <Link
                       href="/pacientes"
+                      prefetch={false}
                       title="Abrir pacientes"
                       onClick={() => handleMenuNavigation("/pacientes")}
                       className={isActive("/pacientes") ? "active" : ""}
@@ -376,6 +384,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {isPatient && (
                     <Link
                       href="/meus-psicologos"
+                      prefetch={false}
                       title="Ver psicólogos vinculados"
                       onClick={() => handleMenuNavigation("/meus-psicologos")}
                       className={isActive("/meus-psicologos") ? "active" : ""}
@@ -387,6 +396,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {isPatient && (
                     <Link
                       href="/minhas-consultas"
+                      prefetch={false}
                       title="Ver minhas consultas"
                       onClick={() => handleMenuNavigation("/minhas-consultas")}
                       className={isActive("/minhas-consultas") ? "active" : ""}
@@ -398,6 +408,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {isPatient && (
                     <Link
                       href="/tarefas-materiais"
+                      prefetch={false}
                       title="Ver tarefas e materiais"
                       onClick={() => handleMenuNavigation("/tarefas-materiais")}
                       className={isActive("/tarefas-materiais") ? "active" : ""}
@@ -409,6 +420,7 @@ function AuthGuard({ children }: PropsWithChildren) {
                   {isPatient && (
                     <Link
                       href="/mensagens"
+                      prefetch={false}
                       title="Abrir mensagens"
                       onClick={() => handleMenuNavigation("/mensagens")}
                       className={isActive("/mensagens") ? "active" : ""}
@@ -419,6 +431,7 @@ function AuthGuard({ children }: PropsWithChildren) {
 
                   <Link
                     href="/orientacoes"
+                    prefetch={false}
                     title="Abrir orientações"
                     onClick={() => handleMenuNavigation("/orientacoes")}
                     className={isActive("/orientacoes") ? "active" : ""}
@@ -428,6 +441,7 @@ function AuthGuard({ children }: PropsWithChildren) {
 
                   <Link
                     href="/chat"
+                    prefetch={false}
                     title="Abrir PsicoBot"
                     onClick={() => handleMenuNavigation("/chat")}
                     className={isActive("/chat") ? "active" : ""}
