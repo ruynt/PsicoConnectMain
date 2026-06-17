@@ -35,6 +35,8 @@ type MetricCardProps = {
   tone: "blue" | "green" | "amber" | "purple" | "red" | "slate";
 };
 
+const INITIAL_VISIBLE_PATIENTS = 8;
+
 const tones = {
   blue: {
     bg: "#eff6ff",
@@ -74,6 +76,7 @@ export default function PatientsPage() {
   const [error, setError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAllPatients, setShowAllPatients] = useState(false);
 
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [patientEmailToLink, setPatientEmailToLink] = useState("");
@@ -115,6 +118,10 @@ export default function PatientsPage() {
     loadPatients();
   }, []);
 
+  useEffect(() => {
+    setShowAllPatients(false);
+  }, [searchTerm]);
+
   const filteredPatients = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -131,6 +138,21 @@ export default function PatientsPage() {
       );
     });
   }, [patients, searchTerm]);
+
+  const visiblePatients = useMemo(() => {
+    if (searchTerm.trim()) {
+      return filteredPatients;
+    }
+
+    return showAllPatients
+      ? filteredPatients
+      : filteredPatients.slice(0, INITIAL_VISIBLE_PATIENTS);
+  }, [filteredPatients, searchTerm, showAllPatients]);
+
+  const hiddenPatientsCount = Math.max(
+    filteredPatients.length - visiblePatients.length,
+    0,
+  );
 
   const patientsWithFutureAppointment = useMemo(() => {
     return patients.filter((patient) => patient.nextAppointment).length;
@@ -749,7 +771,7 @@ export default function PatientsPage() {
               gap: "20px",
             }}
           >
-            {filteredPatients.map((patient) => (
+            {visiblePatients.map((patient) => (
               <div
                 key={patient.id}
                 className="patient-card"
@@ -1025,6 +1047,20 @@ export default function PatientsPage() {
 
               </div>
             ))}
+
+            {hiddenPatientsCount > 0 && (
+              <button
+                type="button"
+                style={{
+                  ...buttonSecondaryStyle,
+                  gridColumn: "1 / -1",
+                  width: "100%",
+                }}
+                onClick={() => setShowAllPatients(true)}
+              >
+                Exibir mais {hiddenPatientsCount} paciente(s)
+              </button>
+            )}
           </div>
         )}
 

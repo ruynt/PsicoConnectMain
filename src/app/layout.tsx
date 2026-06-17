@@ -10,6 +10,7 @@ const inter = Inter({
   weight: ["500"],
   variable: "--font-inter",
   display: "swap",
+  preload: true,
 });
 
 const montserrat = Montserrat({
@@ -17,6 +18,7 @@ const montserrat = Montserrat({
   weight: ["700"],
   variable: "--font-montserrat",
   display: "swap",
+  preload: false,
 });
 
 const poppins = Poppins({
@@ -24,6 +26,7 @@ const poppins = Poppins({
   weight: ["400", "600", "700"],
   variable: "--font-poppins",
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -96,8 +99,6 @@ export default function RootLayout({ children }: PropsWithChildren) {
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-
-        <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
       </head>
 
       <body>

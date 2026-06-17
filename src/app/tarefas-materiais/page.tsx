@@ -57,6 +57,7 @@ const NAVY = "#001e5e";
 const NAVY_SOFT = "#102a56";
 const MUTED = "#5272a6";
 const BORDER = "#e6edf7";
+const INITIAL_ITEMS_PER_TAB = 6;
 
 async function readJsonSafely(response: Response) {
   const text = await response.text();
@@ -89,6 +90,8 @@ export default function TarefasMateriaisPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("TASKS");
   const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([]);
   const [expandedMaterialIds, setExpandedMaterialIds] = useState<string[]>([]);
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [showAllMaterials, setShowAllMaterials] = useState(false);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -301,6 +304,20 @@ export default function TarefasMateriaisPage() {
         : [...previous, materialId],
     );
   }
+
+  const visibleTasks = showAllTasks
+    ? tasks
+    : tasks.slice(0, INITIAL_ITEMS_PER_TAB);
+
+  const visibleMaterials = showAllMaterials
+    ? materials
+    : materials.slice(0, INITIAL_ITEMS_PER_TAB);
+
+  const hiddenTasksCount = Math.max(tasks.length - visibleTasks.length, 0);
+  const hiddenMaterialsCount = Math.max(
+    materials.length - visibleMaterials.length,
+    0,
+  );
 
   function formatDate(dateString: string | null) {
     if (!dateString) return "--";
@@ -913,7 +930,7 @@ export default function TarefasMateriaisPage() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: "14px" }}
                 >
-                  {tasks.map((task) => {
+                  {visibleTasks.map((task) => {
                     const isTaskExpanded = expandedTaskIds.includes(task.id);
 
                     return (
@@ -1069,6 +1086,20 @@ export default function TarefasMateriaisPage() {
                   })}
                 </div>
               )}
+
+              {hiddenTasksCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTasks(true)}
+                  style={{
+                    ...buttonSecondaryStyle,
+                    width: "100%",
+                    marginTop: "14px",
+                  }}
+                >
+                  Exibir mais {hiddenTasksCount} tarefa(s)
+                </button>
+              )}
             </section>
           )}
 
@@ -1105,7 +1136,7 @@ export default function TarefasMateriaisPage() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: "14px" }}
                 >
-                  {materials.map((material) => {
+                  {visibleMaterials.map((material) => {
                     const isMaterialExpanded = expandedMaterialIds.includes(
                       material.id,
                     );
@@ -1283,6 +1314,20 @@ export default function TarefasMateriaisPage() {
                     );
                   })}
                 </div>
+              )}
+
+              {hiddenMaterialsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllMaterials(true)}
+                  style={{
+                    ...buttonSecondaryStyle,
+                    width: "100%",
+                    marginTop: "14px",
+                  }}
+                >
+                  Exibir mais {hiddenMaterialsCount} material(is)
+                </button>
               )}
             </section>
           )}

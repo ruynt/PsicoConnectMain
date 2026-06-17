@@ -3518,3 +3518,20 @@ body .chat-main-wrapper .agenda-page .agenda-appointment-toggle i::before {
     padding-right: 36px;
   }
 }
+
+/* =========================================================
+   Otimização mobile: evita renderização completa de blocos abaixo da dobra
+   ========================================================= */
+@media (max-width: 768px) {
+  .dashboard-collapsible-card,
+  .patient-detail-section,
+  .patient-card,
+  .tasks-content-section,
+  .tasks-progress-card,
+  .messages-card,
+  .appointments-card,
+  .agenda-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 360px;
+  }
+}

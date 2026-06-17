@@ -335,7 +335,7 @@ export default function PsicoPageSkeleton({
         .psico-page-skeleton-subtitle {
           margin: 12px 0 0;
           max-width: 760px;
-          color: #dbeafe;
+          color: #ffffff;
           font-size: 17px;
           line-height: 1.55;
         }

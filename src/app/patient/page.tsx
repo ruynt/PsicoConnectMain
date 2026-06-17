@@ -168,6 +168,14 @@ export default function PatientHomePage() {
   });
   const [isMobileLayout, setIsMobileLayout] = useState(false);
 
+  const shouldRenderAppointmentDetails =
+    !isMobileLayout || expandedPatientSections.appointment;
+  const shouldRenderTaskDetails = !isMobileLayout || expandedPatientSections.tasks;
+  const shouldRenderMaterialDetails =
+    !isMobileLayout || expandedPatientSections.materials;
+  const shouldRenderSummaryDetails =
+    !isMobileLayout || expandedPatientSections.summary;
+
   function togglePatientSection(
     section: keyof typeof expandedPatientSections,
   ) {
@@ -1363,9 +1371,10 @@ export default function PatientHomePage() {
               </button>
             )}
 
-            {nextAppointment ? (
-              <div
-                className="patient-clean-panel"
+            {shouldRenderAppointmentDetails ? (
+              nextAppointment ? (
+                <div
+                  className="patient-clean-panel"
                 style={{
                   border: "1px solid #dbeafe",
                   borderRadius: "18px",
@@ -1652,8 +1661,9 @@ export default function PatientHomePage() {
                   Quando o profissional agendar uma nova consulta, ela aparecerá
                   aqui.
                 </p>
-              </div>
-            )}
+                </div>
+              )
+            ) : null}
           </section>
 
           <section
@@ -1687,8 +1697,10 @@ export default function PatientHomePage() {
               </button>
             )}
 
-            {taskError && (
-              <div
+            {shouldRenderTaskDetails && (
+              <>
+                {taskError && (
+                  <div
                 style={{
                   backgroundColor: "#fef2f2",
                   border: "1px solid #fecaca",
@@ -1839,6 +1851,8 @@ export default function PatientHomePage() {
                   </div>
                 ))}
               </div>
+                )}
+              </>
             )}
           </section>
         </div>
@@ -1874,8 +1888,10 @@ export default function PatientHomePage() {
             </button>
           )}
 
-          {materialError && (
-            <div
+          {shouldRenderMaterialDetails && (
+            <>
+              {materialError && (
+                <div
               style={{
                 backgroundColor: "#fef2f2",
                 border: "1px solid #fecaca",
@@ -2082,6 +2098,8 @@ export default function PatientHomePage() {
                 </div>
               ))}
             </div>
+              )}
+            </>
           )}
         </section>
 
@@ -2116,8 +2134,9 @@ export default function PatientHomePage() {
             </button>
           )}
 
-          <div
-            className="patient-summary-metrics-grid"
+          {shouldRenderSummaryDetails && (
+            <div
+              className="patient-summary-metrics-grid"
             style={{
               display: "grid",
               gridTemplateColumns: isMobileLayout
@@ -2157,7 +2176,8 @@ export default function PatientHomePage() {
               icon="fa-solid fa-clipboard-check"
               tone="amber"
             />
-          </div>
+            </div>
+          )}
         </section>
 
         <div style={{ height: "90px" }} aria-hidden="true" />
