@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
 import prisma from "../../../lib/prisma";
+import { hashLookupToken } from "../../../lib/token-hash";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -126,12 +127,13 @@ export async function POST(req: NextRequest) {
     });
 
     const token = randomBytes(32).toString("hex");
+    const tokenHash = hashLookupToken(token);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
 
     await prisma.passwordResetToken.create({
       data: {
         email,
-        token,
+        token: tokenHash,
         expiresAt,
       },
     });

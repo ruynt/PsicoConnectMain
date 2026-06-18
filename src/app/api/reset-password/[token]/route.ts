@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 
 import prisma from "../../../../lib/prisma";
+import { getTokenLookupCandidates } from "../../../../lib/token-hash";
 import {
   isPasswordLongEnough,
   PASSWORD_MIN_LENGTH_MESSAGE,
@@ -34,8 +35,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const passwordResetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
+    const tokenCandidates = getTokenLookupCandidates(token);
+
+    const passwordResetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token: {
+          in: tokenCandidates,
+        },
+      },
     });
 
     if (!passwordResetToken) {
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     if (passwordResetToken.expiresAt < new Date()) {
       await prisma.passwordResetToken.delete({
-        where: { token },
+        where: { id: passwordResetToken.id },
       });
 
       return NextResponse.json(
@@ -63,7 +70,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     if (!user) {
       await prisma.passwordResetToken.delete({
-        where: { token },
+        where: { id: passwordResetToken.id },
       });
 
       return NextResponse.json(
@@ -80,7 +87,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         data: { passwordHash },
       }),
       prisma.passwordResetToken.delete({
-        where: { token },
+        where: { id: passwordResetToken.id },
       }),
     ]);
 

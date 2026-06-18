@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import prisma from "./prisma";
+import { hashLookupToken } from "./token-hash";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -37,6 +38,7 @@ function escapeHtml(value: string | null | undefined) {
 
 export async function generateVerificationToken(email: string) {
   const token = crypto.randomUUID();
+  const tokenHash = hashLookupToken(token);
   const expires = new Date(new Date().getTime() + 3600 * 1000);
 
   await prisma.verificationToken.deleteMany({
@@ -46,12 +48,15 @@ export async function generateVerificationToken(email: string) {
   const verificationToken = await prisma.verificationToken.create({
     data: {
       email,
-      token,
+      token: tokenHash,
       expiresAt: expires,
     },
   });
 
-  return verificationToken;
+  return {
+    ...verificationToken,
+    token,
+  };
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
