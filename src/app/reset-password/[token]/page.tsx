@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import {
+  isPasswordLongEnough,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+} from "@/lib/password-policy";
+
 type Feedback = {
   type: "success" | "error";
   message: string;
@@ -46,10 +52,10 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (!isPasswordLongEnough(password)) {
       setFeedback({
         type: "error",
-        message: "A nova senha deve ter pelo menos 6 caracteres.",
+        message: PASSWORD_MIN_LENGTH_MESSAGE,
       });
       return;
     }
@@ -161,7 +167,7 @@ export default function ResetPasswordPage() {
           )}
 
           <form id="login-form" onSubmit={handleSubmit} noValidate>
-            <label htmlFor="senha">Nova senha</label>
+            <label htmlFor="senha">Nova senha (mín. {PASSWORD_MIN_LENGTH} caracteres)</label>
             <input
               type="password"
               id="senha"

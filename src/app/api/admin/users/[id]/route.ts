@@ -5,6 +5,10 @@ import { z } from "zod";
 
 import { authConfig } from "../../../../../lib/auth";
 import prisma from "../../../../../lib/prisma";
+import {
+  isPasswordLongEnough,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+} from "../../../../../lib/password-policy";
 
 type RouteContext = {
   params: Promise<{
@@ -132,9 +136,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       );
     }
 
-    if (data.password && data.password.length < 8) {
+    if (data.password && !isPasswordLongEnough(data.password)) {
       return NextResponse.json(
-        { error: "A nova senha deve ter pelo menos 8 caracteres." },
+        { error: PASSWORD_MIN_LENGTH_MESSAGE },
         { status: 400 },
       );
     }

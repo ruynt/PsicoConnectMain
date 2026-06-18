@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  isPasswordLongEnough,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+} from "@/lib/password-policy";
+
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
 import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
@@ -519,8 +524,8 @@ export default function AdminUsersPage() {
       return;
     }
 
-    if (editForm.newPassword && editForm.newPassword.length < 8) {
-      showFeedback("error", "A nova senha deve ter pelo menos 8 caracteres.");
+    if (editForm.newPassword && !isPasswordLongEnough(editForm.newPassword)) {
+      showFeedback("error", PASSWORD_MIN_LENGTH_MESSAGE);
       return;
     }
 

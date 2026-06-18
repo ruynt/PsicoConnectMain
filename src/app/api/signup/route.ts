@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { getErrorCode } from "@/lib/errorUtils";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+} from "@/lib/password-policy";
 
 import {
   generateVerificationToken,
@@ -43,8 +47,8 @@ const schema = z
   .object({
     name: z.string().min(2, "Informe um nome com pelo menos 2 caracteres."),
     email: z.string().email("Informe um e-mail válido."),
-    password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
-    confirmPassword: z.string().min(8, "Confirme sua senha."),
+    password: z.string().min(PASSWORD_MIN_LENGTH, PASSWORD_MIN_LENGTH_MESSAGE),
+    confirmPassword: z.string().min(PASSWORD_MIN_LENGTH, "Confirme sua senha."),
     role: z.enum(["PSICOLOGO", "PACIENTE"], {
       error: "Selecione se o cadastro é de psicólogo ou paciente.",
     }),

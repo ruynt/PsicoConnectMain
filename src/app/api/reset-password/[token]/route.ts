@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 
 import prisma from "../../../../lib/prisma";
+import {
+  isPasswordLongEnough,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+} from "../../../../lib/password-policy";
 
 type RouteContext = {
   params: Promise<{
@@ -23,9 +27,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const body = await req.json();
     const password = String(body?.password || "");
 
-    if (password.length < 6) {
+    if (!isPasswordLongEnough(password)) {
       return NextResponse.json(
-        { error: "A nova senha deve ter pelo menos 6 caracteres." },
+        { error: PASSWORD_MIN_LENGTH_MESSAGE },
         { status: 400 },
       );
     }

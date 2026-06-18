@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
+import {
+  isPasswordLongEnough,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+} from "@/lib/password-policy";
+
 type CrpOption = {
   state: string;
   region: string;
@@ -157,8 +163,8 @@ export default function SignupPage() {
       isValid = false;
     }
 
-    if (senha.length < 8) {
-      setSenhaError("A senha deve ter no mínimo 8 caracteres.");
+    if (!isPasswordLongEnough(senha)) {
+      setSenhaError(PASSWORD_MIN_LENGTH_MESSAGE);
       isValid = false;
     }
 
@@ -356,7 +362,7 @@ export default function SignupPage() {
                 {emailError}
               </small>
 
-              <label htmlFor="senha">Senha (mín. 8 caracteres)</label>
+              <label htmlFor="senha">Senha (mín. {PASSWORD_MIN_LENGTH} caracteres)</label>
               <input
                 type="password"
                 id="senha"
