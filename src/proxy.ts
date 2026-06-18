@@ -1,4 +1,4 @@
-// middleware.ts
+// src/proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -374,7 +374,8 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/api/signup") ||
     pathname.startsWith("/api/confirm-email") ||
     pathname.startsWith("/api/forgot-password") ||
-    pathname.startsWith("/api/reset-password")
+    pathname.startsWith("/api/reset-password") ||
+    pathname.startsWith("/api/cron/appointment-reminders")
   );
 }
 
