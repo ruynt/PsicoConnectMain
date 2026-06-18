@@ -269,7 +269,6 @@ async function applyRateLimit(req: NextRequest) {
 
   const ip = getClientIp(req);
   const key = `${rateLimitConfig.publicName}:${ip}`;
-  const provider = rateLimiters ? "upstash" : "memory";
 
   const rateLimitResult = rateLimiters
     ? await rateLimiters[rateLimitConfig.name].limit(key)
@@ -288,8 +287,6 @@ async function applyRateLimit(req: NextRequest) {
     "X-RateLimit-Limit": String(rateLimitResult.limit),
     "X-RateLimit-Remaining": String(rateLimitResult.remaining),
     "X-RateLimit-Reset": String(rateLimitResult.reset),
-    "X-RateLimit-Policy": rateLimitConfig.publicName,
-    "X-RateLimit-Provider": provider,
   };
 
   if (rateLimitResult.success) {
