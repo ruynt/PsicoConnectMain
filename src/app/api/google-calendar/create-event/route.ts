@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
+import { decryptGoogleToken, encryptGoogleToken } from "@/lib/google-calendar-tokens";
 
 const TIME_ZONE = "America/Fortaleza";
 
@@ -78,28 +79,27 @@ async function getValidGoogleAccessToken(psychologist: {
   googleRefreshToken: string | null;
   googleAccessTokenExpires: Date | null;
 }) {
+  const accessToken = decryptGoogleToken(psychologist.googleAccessToken);
+  const refreshToken = decryptGoogleToken(psychologist.googleRefreshToken);
   const expiresAt = psychologist.googleAccessTokenExpires?.getTime() || 0;
-  const tokenIsValid =
-    psychologist.googleAccessToken && expiresAt > Date.now() + 60 * 1000;
+  const tokenIsValid = accessToken && expiresAt > Date.now() + 60 * 1000;
 
   if (tokenIsValid) {
-    return psychologist.googleAccessToken as string;
+    return accessToken;
   }
 
-  if (!psychologist.googleRefreshToken) {
+  if (!refreshToken) {
     return null;
   }
 
-  const refreshed = await refreshGoogleAccessToken(
-    psychologist.googleRefreshToken,
-  );
+  const refreshed = await refreshGoogleAccessToken(refreshToken);
 
   await prisma.psychologist.update({
     where: {
       id: psychologist.id,
     },
     data: {
-      googleAccessToken: refreshed.accessToken,
+      googleAccessToken: encryptGoogleToken(refreshed.accessToken),
       googleAccessTokenExpires: refreshed.expiresAt,
     },
   });
@@ -220,17 +220,17 @@ export async function POST(req: NextRequest) {
       payload,
     );
 
-    if (response.status === 401 && psychologist.googleRefreshToken) {
-      const refreshed = await refreshGoogleAccessToken(
-        psychologist.googleRefreshToken,
-      );
+    const refreshToken = decryptGoogleToken(psychologist.googleRefreshToken);
+
+    if (response.status === 401 && refreshToken) {
+      const refreshed = await refreshGoogleAccessToken(refreshToken);
 
       await prisma.psychologist.update({
         where: {
           id: psychologist.id,
         },
         data: {
-          googleAccessToken: refreshed.accessToken,
+          googleAccessToken: encryptGoogleToken(refreshed.accessToken),
           googleAccessTokenExpires: refreshed.expiresAt,
         },
       });

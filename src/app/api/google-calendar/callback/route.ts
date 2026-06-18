@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
+import { decryptGoogleToken, encryptGoogleToken } from "@/lib/google-calendar-tokens";
 
 const REQUIRED_CALENDAR_SCOPE =
   "https://www.googleapis.com/auth/calendar.events";
@@ -153,8 +154,8 @@ export async function GET(req: NextRequest) {
 
     const googleUser = await fetchGoogleUserInfo(tokenData.access_token);
 
-    const refreshTokenToSave =
-      tokenData.refresh_token || psychologist.googleRefreshToken;
+    const existingRefreshToken = decryptGoogleToken(psychologist.googleRefreshToken);
+    const refreshTokenToSave = tokenData.refresh_token || existingRefreshToken;
 
     if (!refreshTokenToSave) {
       return redirectToAgenda(req, { googleError: "missing_refresh_token" });
@@ -168,8 +169,8 @@ export async function GET(req: NextRequest) {
         id: psychologist.id,
       },
       data: {
-        googleAccessToken: tokenData.access_token,
-        googleRefreshToken: refreshTokenToSave,
+        googleAccessToken: encryptGoogleToken(tokenData.access_token),
+        googleRefreshToken: encryptGoogleToken(refreshTokenToSave),
         googleAccessTokenExpires: expiresAt,
         googleCalendarEmail: googleUser.email || null,
       },

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { decryptGoogleToken } from "@/lib/google-calendar-tokens";
 
 async function getAuthorizedPsychologist(req: NextRequest) {
   const token = await getToken({
@@ -69,8 +70,8 @@ export async function POST(req: NextRequest) {
     }
 
     const tokenToRevoke =
-      auth.psychologist.googleRefreshToken ||
-      auth.psychologist.googleAccessToken ||
+      decryptGoogleToken(auth.psychologist.googleRefreshToken) ||
+      decryptGoogleToken(auth.psychologist.googleAccessToken) ||
       "";
 
     if (tokenToRevoke) {

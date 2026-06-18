@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { hasGoogleToken } from "@/lib/google-calendar-tokens";
 
 async function getAuthorizedPsychologist(req: NextRequest) {
   const token = await getToken({
@@ -57,9 +58,9 @@ export async function GET(req: NextRequest) {
       return auth.error;
     }
 
-    const connected = Boolean(
-      auth.psychologist.googleAccessToken || auth.psychologist.googleRefreshToken,
-    );
+    const connected =
+      hasGoogleToken(auth.psychologist.googleAccessToken) ||
+      hasGoogleToken(auth.psychologist.googleRefreshToken);
 
     return NextResponse.json({
       connected,

@@ -31,6 +31,47 @@ function hasEncryptedChange(original: NullableText, encrypted: NullableText) {
   return original !== encrypted;
 }
 
+async function updatePsychologistGoogleTokens() {
+  const rows = await prisma.psychologist.findMany({
+    select: {
+      id: true,
+      googleAccessToken: true,
+      googleRefreshToken: true,
+    },
+  });
+
+  let updated = 0;
+
+  for (const row of rows) {
+    const data = {
+      googleAccessToken: encryptNullable(row.googleAccessToken),
+      googleRefreshToken: encryptNullable(row.googleRefreshToken),
+    };
+
+    if (
+      !hasEncryptedChange(row.googleAccessToken, data.googleAccessToken) &&
+      !hasEncryptedChange(row.googleRefreshToken, data.googleRefreshToken)
+    ) {
+      continue;
+    }
+
+    updated += 1;
+
+    if (!isDryRun) {
+      await prisma.psychologist.update({
+        where: { id: row.id },
+        data,
+      });
+    }
+  }
+
+  return {
+    table: "PsychologistGoogleTokens",
+    scanned: rows.length,
+    updated,
+  } satisfies TableReport;
+}
+
 async function updateUsers() {
   const rows = await prisma.user.findMany({
     select: {
@@ -389,6 +430,7 @@ async function main() {
 
   const reports: TableReport[] = [];
 
+  reports.push(await updatePsychologistGoogleTokens());
   reports.push(await updateUsers());
   reports.push(await updatePatients());
   reports.push(await updateAppointments());
