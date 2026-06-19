@@ -3,6 +3,7 @@
 type CachedResponseEntry = {
   bodyText: string;
   createdAt: number;
+  expiresAt: number;
   headers: [string, string][];
   status: number;
   statusText: string;
@@ -14,6 +15,10 @@ type WindowWithFetchCache = Window & {
 };
 
 const MAX_CACHE_ENTRIES = 80;
+const SECOND_IN_MS = 1000;
+const MINUTE_IN_MS = 60 * SECOND_IN_MS;
+const DEFAULT_CACHE_TTL_MS = 60 * SECOND_IN_MS;
+
 const apiFetchCache = new Map<string, CachedResponseEntry>();
 const pendingApiFetches = new Map<string, Promise<CachedResponseEntry | null>>();
 
@@ -41,6 +46,62 @@ function getUrl(input: RequestInfo | URL) {
   }
 
   return new URL(input.url, window.location.origin);
+}
+
+function getCacheTtlMs(pathname: string) {
+  if (
+    pathname.startsWith("/api/patient/messages") ||
+    pathname.includes("/messages") ||
+    pathname.startsWith("/api/patient/checkins") ||
+    pathname.includes("/checkins")
+  ) {
+    return 15 * SECOND_IN_MS;
+  }
+
+  if (
+    pathname.startsWith("/api/appointments") ||
+    pathname.startsWith("/api/patient/appointments") ||
+    pathname.startsWith("/api/google-calendar/events") ||
+    pathname.startsWith("/api/google-calendar/status")
+  ) {
+    return 30 * SECOND_IN_MS;
+  }
+
+  if (
+    pathname.startsWith("/api/dashboard") ||
+    pathname.startsWith("/api/patients")
+  ) {
+    return 60 * SECOND_IN_MS;
+  }
+
+  if (
+    pathname.startsWith("/api/patient/tasks") ||
+    pathname.startsWith("/api/patient/materials") ||
+    pathname.includes("/tasks") ||
+    pathname.includes("/materials")
+  ) {
+    return 2 * MINUTE_IN_MS;
+  }
+
+  if (pathname.startsWith("/api/profile")) {
+    return 5 * MINUTE_IN_MS;
+  }
+
+  return DEFAULT_CACHE_TTL_MS;
+}
+
+function isCacheEntryFresh(entry: CachedResponseEntry) {
+  return entry.expiresAt > Date.now();
+}
+
+function clearExpiredCacheEntries() {
+  const now = Date.now();
+
+  for (const [key, entry] of apiFetchCache.entries()) {
+    if (entry.expiresAt <= now) {
+      apiFetchCache.delete(key);
+    }
+  }
 }
 
 function shouldHandleRequest(input: RequestInfo | URL) {
@@ -73,6 +134,7 @@ function createResponseFromCache(entry: CachedResponseEntry) {
 }
 
 function rememberCacheEntry(key: string, entry: CachedResponseEntry) {
+  clearExpiredCacheEntries();
   apiFetchCache.set(key, entry);
 
   if (apiFetchCache.size <= MAX_CACHE_ENTRIES) return;
@@ -84,7 +146,11 @@ function rememberCacheEntry(key: string, entry: CachedResponseEntry) {
   }
 }
 
-async function cacheSuccessfulResponse(key: string, response: Response) {
+async function cacheSuccessfulResponse(
+  key: string,
+  response: Response,
+  ttlMs: number,
+) {
   if (!response.ok) return null;
 
   const bodyText = await response.clone().text();
@@ -94,9 +160,12 @@ async function cacheSuccessfulResponse(key: string, response: Response) {
     headers.push([headerKey, value]);
   });
 
+  const createdAt = Date.now();
+
   const entry: CachedResponseEntry = {
     bodyText,
-    createdAt: Date.now(),
+    createdAt,
+    expiresAt: createdAt + ttlMs,
     headers,
     status: response.status,
     statusText: response.statusText,
@@ -155,11 +224,17 @@ export function installClientFetchCache() {
       return response;
     }
 
+    const requestUrl = getUrl(input);
     const cacheKey = getCacheKey(input, init);
+    const cacheTtlMs = getCacheTtlMs(requestUrl.pathname);
     const cachedEntry = apiFetchCache.get(cacheKey);
 
     if (cachedEntry) {
-      return createResponseFromCache(cachedEntry);
+      if (isCacheEntryFresh(cachedEntry)) {
+        return createResponseFromCache(cachedEntry);
+      }
+
+      apiFetchCache.delete(cacheKey);
     }
 
     const pendingFetch = pendingApiFetches.get(cacheKey);
@@ -167,7 +242,7 @@ export function installClientFetchCache() {
     if (pendingFetch) {
       const pendingEntry = await pendingFetch;
 
-      if (pendingEntry) {
+      if (pendingEntry && isCacheEntryFresh(pendingEntry)) {
         return createResponseFromCache(pendingEntry);
       }
 
@@ -187,6 +262,7 @@ export function installClientFetchCache() {
       const cachedNetworkEntry = await cacheSuccessfulResponse(
         cacheKey,
         networkResponse,
+        cacheTtlMs,
       );
 
       resolvePendingFetch!(cachedNetworkEntry);
