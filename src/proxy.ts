@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import type { JWT } from "next-auth/jwt";
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 
@@ -88,6 +89,13 @@ type RateLimitConfig = {
   windowMs: number;
 };
 
+const publicRateLimiterNames: RateLimiterName[] = [
+  "login",
+  "signup",
+  "password",
+  "resendEmail",
+];
+
 type InMemoryRateLimitBucket = {
   count: number;
   reset: number;
@@ -103,6 +111,36 @@ function getClientIp(req: NextRequest) {
   }
 
   return req.headers.get("x-real-ip") || "unknown";
+}
+
+function getTokenUserId(token: JWT | null) {
+  if (typeof token?.id === "string" && token.id.trim()) {
+    return token.id;
+  }
+
+  if (typeof token?.sub === "string" && token.sub.trim()) {
+    return token.sub;
+  }
+
+  return null;
+}
+
+function shouldScopeRateLimitByUser(rateLimitConfig: RateLimitConfig) {
+  return !publicRateLimiterNames.includes(rateLimitConfig.name);
+}
+
+function getRateLimitKey(
+  rateLimitConfig: RateLimitConfig,
+  req: NextRequest,
+  token: JWT | null,
+) {
+  const ip = getClientIp(req);
+  const userId = shouldScopeRateLimitByUser(rateLimitConfig)
+    ? getTokenUserId(token)
+    : null;
+  const identity = userId ? `user:${userId}:ip:${ip}` : `ip:${ip}`;
+
+  return `${rateLimitConfig.publicName}:${identity}`;
 }
 
 function isApiMutationMethod(method: string) {
@@ -256,7 +294,7 @@ function applyInMemoryRateLimit(
   };
 }
 
-async function applyRateLimit(req: NextRequest) {
+async function applyRateLimit(req: NextRequest, token: JWT | null) {
   const { pathname } = req.nextUrl;
   const rateLimitConfig = getRateLimiter(pathname, req.method);
 
@@ -267,8 +305,7 @@ async function applyRateLimit(req: NextRequest) {
     };
   }
 
-  const ip = getClientIp(req);
-  const key = `${rateLimitConfig.publicName}:${ip}`;
+  const key = getRateLimitKey(rateLimitConfig, req, token);
 
   const rateLimitResult = rateLimiters
     ? await rateLimiters[rateLimitConfig.name].limit(key)
@@ -393,7 +430,12 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const rateLimitResult = await applyRateLimit(req);
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  const rateLimitResult = await applyRateLimit(req, token);
 
   if (rateLimitResult.response) {
     return rateLimitResult.response;
@@ -402,11 +444,6 @@ export async function proxy(req: NextRequest) {
   if (isPublicPath(pathname)) {
     return withRateLimitHeaders(NextResponse.next(), rateLimitResult.headers);
   }
-
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
 
   if (!token) {
     return NextResponse.redirect(new URL("/login", req.url));
