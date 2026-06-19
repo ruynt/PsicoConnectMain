@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 import { decryptNullableSensitiveText, decryptSensitiveText } from "@/lib/encryption";
+import { logAuditEvent } from "@/lib/audit-log";
 
 type Params = {
   params: Promise<{
@@ -98,6 +99,8 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   return {
     psychologist,
     patient,
+    actorUserId: String(token.id),
+    actorRole: token.role,
   };
 }
 
@@ -254,6 +257,21 @@ ${notesText}
     const summary =
       openAiData?.choices?.[0]?.message?.content?.trim() ||
       "Não foi possível gerar o resumo.";
+
+    await logAuditEvent({
+      action: "AI_SUMMARY_GENERATED",
+      entityType: "Patient",
+      entityId: auth.patient.id,
+      actorUserId: auth.actorUserId,
+      actorRole: auth.actorRole,
+      request: req,
+      metadata: {
+        patientId: auth.patient.id,
+        psychologistId: auth.psychologist.id,
+        sourceNotesCount: notes.length,
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      },
+    });
 
     return NextResponse.json({
       summary,

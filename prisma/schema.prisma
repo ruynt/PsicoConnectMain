@@ -342,6 +342,31 @@ model PatientSummary {
   @@index([psychologistId, createdAt])
 }
 
+model AuditLog {
+  id String @id @default(uuid())
+
+  actorUserId String?
+  actorRole   Role?
+
+  action     String
+  entityType String
+  entityId   String?
+
+  targetUserId String?
+
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
 enum Role {
   ADMIN
   PSYCHOLOGIST

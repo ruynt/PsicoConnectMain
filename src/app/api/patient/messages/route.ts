@@ -11,6 +11,7 @@ import {
   parseJsonBody,
   requiredTrimmedString,
 } from "@/lib/api-validation";
+import { logAuditEvent } from "@/lib/audit-log";
 
 type PatientMessageWithPsychologist = Prisma.PatientMessageGetPayload<{
   include: {
@@ -107,6 +108,8 @@ async function getAuthenticatedPatient(req: NextRequest) {
 
   return {
     patient,
+    actorUserId: String(token.id),
+    actorRole: token.role,
   };
 }
 
@@ -315,6 +318,20 @@ export async function POST(req: NextRequest) {
             },
           },
         },
+      },
+    });
+
+    await logAuditEvent({
+      action: "PATIENT_MESSAGE_SENT",
+      entityType: "PatientMessage",
+      entityId: message.id,
+      actorUserId: auth.actorUserId,
+      actorRole: auth.actorRole,
+      targetUserId: auth.actorUserId,
+      request: req,
+      metadata: {
+        patientId: auth.patient.id,
+        psychologistId,
       },
     });
 

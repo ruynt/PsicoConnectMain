@@ -16,6 +16,7 @@ import {
   parseJsonBody,
   requiredTrimmedString,
 } from "@/lib/api-validation";
+import { logAuditEvent } from "@/lib/audit-log";
 
 type RouteContext = {
   params: Promise<{
@@ -146,6 +147,8 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
   return {
     psychologist,
     patient: patientAccess,
+    actorUserId: String(token.id),
+    actorRole: token.role,
   };
 }
 
@@ -270,6 +273,20 @@ export async function POST(req: NextRequest, context: RouteContext) {
         appointmentId,
         archived: false,
         archivedAt: null,
+      },
+    });
+
+    await logAuditEvent({
+      action: "SESSION_NOTE_CREATED",
+      entityType: "SessionNote",
+      entityId: note.id,
+      actorUserId: auth.actorUserId,
+      actorRole: auth.actorRole,
+      request: req,
+      metadata: {
+        patientId: auth.patient.id,
+        psychologistId: auth.psychologist.id,
+        appointmentId,
       },
     });
 

@@ -10,6 +10,7 @@ import {
   parseJsonBody,
   requiredTrimmedString,
 } from "@/lib/api-validation";
+import { logAuditEvent } from "@/lib/audit-log";
 
 const INVALID_VALUE = "__INVALID_VALUE__";
 
@@ -476,6 +477,23 @@ export async function PATCH(req: Request) {
           },
         });
       }
+    });
+
+    await logAuditEvent({
+      action: "PROFILE_UPDATED",
+      entityType: "User",
+      entityId: user.id,
+      actorUserId: user.id,
+      actorRole: user.role,
+      targetUserId: user.id,
+      request: req,
+      metadata: {
+        updatedSections: {
+          user: true,
+          psychologist: user.role === "PSYCHOLOGIST",
+          patient: user.role === "PATIENT",
+        },
+      },
     });
 
     return NextResponse.json({

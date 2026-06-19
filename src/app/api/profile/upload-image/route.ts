@@ -5,6 +5,7 @@ import { getToken } from "next-auth/jwt";
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -195,6 +196,21 @@ export async function POST(req: NextRequest) {
       },
       data: {
         profileImageUrl,
+      },
+    });
+
+    await logAuditEvent({
+      action: "PROFILE_IMAGE_UPLOADED",
+      entityType: "User",
+      entityId: user.id,
+      actorUserId: user.id,
+      actorRole: token.role,
+      targetUserId: user.id,
+      request: req,
+      metadata: {
+        fileType: file.type,
+        fileSize: file.size,
+        cloudinaryPublicId: result.public_id,
       },
     });
 

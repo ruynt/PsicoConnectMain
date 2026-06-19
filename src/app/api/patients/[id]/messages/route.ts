@@ -5,6 +5,7 @@ import prisma from "../../../../../lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
 import { decryptSensitiveText, encryptSensitiveText } from "@/lib/encryption";
+import { logAuditEvent } from "@/lib/audit-log";
 
 type Params = {
   params: Promise<{
@@ -84,6 +85,8 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
 
   return {
     psychologist,
+    actorUserId: String(token.id),
+    actorRole: token.role,
   };
 }
 
@@ -186,6 +189,19 @@ export async function POST(req: NextRequest, context: Params) {
         patientId,
         psychologistId: auth.psychologist.id,
         readByPsychologistAt: new Date(),
+      },
+    });
+
+    await logAuditEvent({
+      action: "PSYCHOLOGIST_MESSAGE_SENT",
+      entityType: "PatientMessage",
+      entityId: message.id,
+      actorUserId: auth.actorUserId,
+      actorRole: auth.actorRole,
+      request: req,
+      metadata: {
+        patientId,
+        psychologistId: auth.psychologist.id,
       },
     });
 
