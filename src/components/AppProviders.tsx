@@ -322,6 +322,16 @@ function AuthGuard({ children }: PropsWithChildren) {
                   </Link>
 
                   <Link
+                    href="/admin/auditoria"
+                    prefetch={false}
+                    title="Ver logs de auditoria"
+                    onClick={handleMenuNavigation}
+                    className={isActive("/admin/auditoria") ? "active" : ""}
+                  >
+                    <i className="fa-solid fa-list-check" style={menuIconStyle}></i> Auditoria
+                  </Link>
+
+                  <Link
                     href="/chat"
                     prefetch={false}
                     title="Abrir PsicoBot"

@@ -504,6 +504,19 @@ export default function AdminPage() {
               Gerenciar usuários
             </Link>
 
+            <Link
+              href="/admin/auditoria"
+              style={{
+                ...primaryButtonStyle,
+                background: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.32)",
+                boxShadow: "none",
+              }}
+            >
+              <i className="fa-solid fa-shield-halved"></i>
+              Ver auditoria
+            </Link>
+
             <button
               type="button"
               onClick={loadAdminData}
@@ -727,6 +740,13 @@ export default function AdminPage() {
                     <i className="fa-solid fa-users-gear"></i>
                   </span>
                   Gerenciar usuários cadastrados
+                </Link>
+
+                <Link href="/admin/auditoria" style={quickActionStyle}>
+                  <span>
+                    <i className="fa-solid fa-user-shield"></i>
+                  </span>
+                  Ver logs de auditoria
                 </Link>
 
                 <button
