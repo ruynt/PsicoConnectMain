@@ -1,25 +1,22 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
+import {
+  optionalTrimmedString,
+  optionalUuidString,
+  parseJsonBody,
+  requiredTrimmedString,
+} from "@/lib/api-validation";
 
 type RouteContext = {
   params: Promise<{
     id: string;
   }>;
 };
-
-function normalizeText(value: unknown) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-
-  return trimmed || null;
-}
 
 function normalizeDate(value: unknown) {
   if (typeof value !== "string" || !value.trim()) {
@@ -34,6 +31,25 @@ function normalizeDate(value: unknown) {
 
   return date;
 }
+
+const createTaskSchema = z.object({
+  title: requiredTrimmedString(
+    120,
+    "O título da tarefa é obrigatório.",
+    "O título deve ter no máximo 120 caracteres.",
+  ),
+  description: optionalTrimmedString(
+    1000,
+    "A descrição deve ter no máximo 1000 caracteres.",
+  ),
+  dueDate: optionalTrimmedString(
+    10,
+    "Informe uma data válida para o prazo da tarefa.",
+  ),
+  appointmentId: optionalUuidString(
+    "Consulta vinculada inválida.",
+  ),
+});
 
 function mapTask(task: {
   id: string;
@@ -185,12 +201,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return auth.error;
     }
 
-    const body = await req.json();
+    const parsedBody = await parseJsonBody(req, createTaskSchema);
 
-    const title = normalizeText(body.title);
-    const description = normalizeText(body.description);
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const title = body.title;
+    const description = body.description;
     const dueDate = normalizeDate(body.dueDate);
-    const appointmentId = normalizeText(body.appointmentId);
+    const appointmentId = body.appointmentId;
 
     if (!title) {
       return NextResponse.json(

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
@@ -6,6 +7,12 @@ import { sendAppointmentCreatedEmail } from "../../../../lib/emails";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 import { encryptNullableSensitiveText } from "@/lib/encryption";
 import { decryptGoogleToken, encryptGoogleToken } from "@/lib/google-calendar-tokens";
+import {
+  optionalTrimmedString,
+  parseJsonBody,
+  requiredTrimmedString,
+  requiredUuidString,
+} from "@/lib/api-validation";
 
 const TIME_ZONE = "America/Fortaleza";
 
@@ -29,21 +36,38 @@ type GoogleCalendarEventResponse = {
   error?: unknown;
 };
 
-function cleanText(value: unknown, maxLength = 500) {
-  if (typeof value !== "string") {
-    return "";
-  }
+const timeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{2}:\d{2}$/, "Informe um horário válido no formato HH:mm.");
 
-  return value.trim().slice(0, maxLength);
-}
+const dateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida.");
 
-function parsePatientId(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
-}
+const createAppointmentSchema = z.object({
+  title: requiredTrimmedString(
+    120,
+    "O título da consulta é obrigatório.",
+    "O título deve ter no máximo 120 caracteres.",
+  ),
+  location: optionalTrimmedString(
+    250,
+    "O local deve ter no máximo 250 caracteres.",
+  ),
+  description: optionalTrimmedString(
+    1000,
+    "A descrição deve ter no máximo 1000 caracteres.",
+  ),
+  patientId: requiredUuidString(
+    "Paciente é obrigatório.",
+    "Paciente inválido.",
+  ),
+  date: dateSchema,
+  startTime: timeSchema,
+  endTime: timeSchema,
+});
 
 function parseDateTime(date: unknown, time: unknown) {
   if (typeof date !== "string" || typeof time !== "string") {
@@ -172,12 +196,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const parsedBody = await parseJsonBody(req, createAppointmentSchema);
 
-    const title = cleanText(body.title, 120);
-    const location = cleanText(body.location, 250);
-    const description = cleanText(body.description, 1000);
-    const patientId = parsePatientId(body.patientId);
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const title = body.title;
+    const location = body.location || "";
+    const description = body.description || "";
+    const patientId = body.patientId;
     const startDateTime = parseDateTime(body.date, body.startTime);
     const endDateTime = parseDateTime(body.date, body.endTime);
 

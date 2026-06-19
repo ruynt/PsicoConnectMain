@@ -1,11 +1,93 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { authConfig } from "../../../lib/auth";
 import prisma from "../../../lib/prisma";
 import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
+import {
+  optionalTrimmedString,
+  parseJsonBody,
+  requiredTrimmedString,
+} from "@/lib/api-validation";
 
 const INVALID_VALUE = "__INVALID_VALUE__";
+
+const updateProfileSchema = z.object({
+  name: requiredTrimmedString(
+    120,
+    "Informe o nome completo.",
+    "O nome deve ter no máximo 120 caracteres.",
+  ),
+  profileImageUrl: optionalTrimmedString(
+    1000,
+    "A URL da foto de perfil deve ter no máximo 1000 caracteres.",
+  ),
+  phone: optionalTrimmedString(
+    32,
+    "O telefone deve ter no máximo 32 caracteres.",
+  ),
+  city: optionalTrimmedString(
+    80,
+    "A cidade deve ter no máximo 80 caracteres.",
+  ),
+  state: optionalTrimmedString(
+    20,
+    "O estado deve ter no máximo 20 caracteres.",
+  ),
+  bio: optionalTrimmedString(
+    1200,
+    "A biografia deve ter no máximo 1200 caracteres.",
+  ),
+  professionalTitle: optionalTrimmedString(
+    120,
+    "O título profissional deve ter no máximo 120 caracteres.",
+  ),
+  approach: optionalTrimmedString(
+    250,
+    "A abordagem deve ter no máximo 250 caracteres.",
+  ),
+  specialties: optionalTrimmedString(
+    500,
+    "As especialidades devem ter no máximo 500 caracteres.",
+  ),
+  education: optionalTrimmedString(
+    700,
+    "A formação deve ter no máximo 700 caracteres.",
+  ),
+  targetAudience: optionalTrimmedString(
+    250,
+    "O público atendido deve ter no máximo 250 caracteres.",
+  ),
+  instagramUrl: optionalTrimmedString(
+    120,
+    "O usuário do Instagram deve ter no máximo 120 caracteres.",
+  ),
+  socialName: optionalTrimmedString(
+    120,
+    "O nome social deve ter no máximo 120 caracteres.",
+  ),
+  birthDate: optionalTrimmedString(
+    10,
+    "Informe uma data de nascimento válida.",
+  ),
+  contactPreference: optionalTrimmedString(
+    250,
+    "A preferência de contato deve ter no máximo 250 caracteres.",
+  ),
+  emergencyContactName: optionalTrimmedString(
+    120,
+    "O contato de emergência deve ter no máximo 120 caracteres.",
+  ),
+  emergencyContactPhone: optionalTrimmedString(
+    32,
+    "O telefone de emergência deve ter no máximo 32 caracteres.",
+  ),
+  patientNotes: optionalTrimmedString(
+    1200,
+    "As observações devem ter no máximo 1200 caracteres.",
+  ),
+});
 
 function cleanText(value: unknown, maxLength = 500) {
   if (typeof value !== "string") {
@@ -265,9 +347,14 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
+    const parsedBody = await parseJsonBody(req, updateProfileSchema);
 
-    const name = cleanText(body.name, 120);
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const name = body.name;
 
     if (!name) {
       return NextResponse.json(

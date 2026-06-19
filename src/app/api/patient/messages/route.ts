@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { getErrorMessage } from "@/lib/errorUtils";
 import { decryptSensitiveText, encryptSensitiveText } from "@/lib/encryption";
+import {
+  optionalUuidString,
+  parseJsonBody,
+  requiredTrimmedString,
+} from "@/lib/api-validation";
 
 type PatientMessageWithPsychologist = Prisma.PatientMessageGetPayload<{
   include: {
@@ -104,21 +110,14 @@ async function getAuthenticatedPatient(req: NextRequest) {
   };
 }
 
-function parseMessageContent(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
-}
-
-function parsePsychologistId(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
-}
+const patientMessageSchema = z.object({
+  content: requiredTrimmedString(
+    2000,
+    "Escreva uma mensagem antes de enviar.",
+    "A mensagem deve ter no máximo 2000 caracteres.",
+  ),
+  psychologistId: optionalUuidString("Profissional inválido."),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -231,10 +230,15 @@ export async function POST(req: NextRequest) {
       return auth.error;
     }
 
-    const body = await req.json();
+    const parsedBody = await parseJsonBody(req, patientMessageSchema);
 
-    const content = parseMessageContent(body?.content);
-    let psychologistId = parsePsychologistId(body?.psychologistId);
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const content = body.content;
+    let psychologistId = body.psychologistId || "";
 
     if (!content) {
       return NextResponse.json(

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../../lib/prisma";
@@ -9,6 +10,12 @@ import {
   encryptNullableSensitiveText,
   encryptSensitiveText,
 } from "@/lib/encryption";
+import {
+  optionalTrimmedString,
+  optionalUuidString,
+  parseJsonBody,
+  requiredTrimmedString,
+} from "@/lib/api-validation";
 
 type RouteContext = {
   params: Promise<{
@@ -16,15 +23,18 @@ type RouteContext = {
   }>;
 };
 
-function normalizeText(value: unknown) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-
-  return trimmed || null;
-}
+const createNoteSchema = z.object({
+  title: optionalTrimmedString(
+    120,
+    "O título deve ter no máximo 120 caracteres.",
+  ),
+  content: requiredTrimmedString(
+    10000,
+    "O conteúdo da anotação é obrigatório.",
+    "O conteúdo deve ter no máximo 10000 caracteres.",
+  ),
+  appointmentId: optionalUuidString("Consulta vinculada inválida."),
+});
 
 function getArchivedFilter(statusParam: string | null) {
   if (statusParam === "ALL") {
@@ -199,11 +209,16 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return auth.error;
     }
 
-    const body = await req.json();
+    const parsedBody = await parseJsonBody(req, createNoteSchema);
 
-    const title = normalizeText(body.title);
-    const content = normalizeText(body.content);
-    const appointmentId = normalizeText(body.appointmentId);
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const title = body.title;
+    const content = body.content;
+    const appointmentId = body.appointmentId;
 
     if (!content) {
       return NextResponse.json(

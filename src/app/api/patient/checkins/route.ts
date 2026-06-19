@@ -1,37 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
 import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
-
-function normalizeScaleValue(value: unknown) {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const numberValue = Number(value);
-
-  if (Number.isNaN(numberValue)) {
-    return null;
-  }
-
-  if (numberValue < 0 || numberValue > 10) {
-    return null;
-  }
-
-  return numberValue;
-}
-
-function normalizeText(value: unknown) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-
-  return trimmed || null;
-}
+import {
+  optionalScaleNumber,
+  optionalTrimmedString,
+  parseJsonBody,
+  requiredUuidString,
+} from "@/lib/api-validation";
 
 function normalizeAppointmentId(value: unknown) {
   if (typeof value !== "string") {
@@ -40,6 +19,28 @@ function normalizeAppointmentId(value: unknown) {
 
   return value.trim();
 }
+
+const checkinSchema = z.object({
+  appointmentId: requiredUuidString(
+    "ID da consulta é obrigatório.",
+    "ID da consulta inválido.",
+  ),
+  moodLevel: optionalScaleNumber("Informe um valor entre 0 e 10."),
+  anxietyLevel: optionalScaleNumber("Informe um valor entre 0 e 10."),
+  sleepLevel: optionalScaleNumber("Informe um valor entre 0 e 10."),
+  mainConcern: optionalTrimmedString(
+    1000,
+    "A preocupação principal deve ter no máximo 1000 caracteres.",
+  ),
+  importantEvents: optionalTrimmedString(
+    1000,
+    "Os acontecimentos importantes devem ter no máximo 1000 caracteres.",
+  ),
+  topicsToDiscuss: optionalTrimmedString(
+    1000,
+    "Os assuntos para discutir devem ter no máximo 1000 caracteres.",
+  ),
+});
 
 function getAppointmentEndReference(appointment: {
   dateTime: Date;
@@ -125,17 +126,6 @@ async function getAuthenticatedPatient(req: NextRequest) {
   };
 }
 
-function validateTextLength(label: string, value: string | null, max: number) {
-  if (value && value.length > max) {
-    return NextResponse.json(
-      { error: `${label} deve ter no máximo ${max} caracteres.` },
-      { status: 400 },
-    );
-  }
-
-  return null;
-}
-
 export async function GET(req: NextRequest) {
   try {
     const auth = await getAuthenticatedPatient(req);
@@ -219,9 +209,14 @@ export async function POST(req: NextRequest) {
       return auth.error;
     }
 
-    const body = await req.json();
+    const parsedBody = await parseJsonBody(req, checkinSchema);
 
-    const appointmentId = normalizeAppointmentId(body?.appointmentId);
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const appointmentId = body.appointmentId;
 
     if (!appointmentId) {
       return NextResponse.json(
@@ -230,39 +225,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const mainConcern = normalizeText(body?.mainConcern);
-    const importantEvents = normalizeText(body?.importantEvents);
-    const topicsToDiscuss = normalizeText(body?.topicsToDiscuss);
-
-    const mainConcernError = validateTextLength(
-      "A preocupação principal",
-      mainConcern,
-      1000,
-    );
-
-    if (mainConcernError) {
-      return mainConcernError;
-    }
-
-    const importantEventsError = validateTextLength(
-      "Os acontecimentos importantes",
-      importantEvents,
-      1000,
-    );
-
-    if (importantEventsError) {
-      return importantEventsError;
-    }
-
-    const topicsToDiscussError = validateTextLength(
-      "Os assuntos para discutir",
-      topicsToDiscuss,
-      1000,
-    );
-
-    if (topicsToDiscussError) {
-      return topicsToDiscussError;
-    }
+    const mainConcern = body.mainConcern;
+    const importantEvents = body.importantEvents;
+    const topicsToDiscuss = body.topicsToDiscuss;
 
     const appointment = await prisma.appointment.findFirst({
       where: {
@@ -306,9 +271,9 @@ export async function POST(req: NextRequest) {
         },
       },
       update: {
-        moodLevel: normalizeScaleValue(body?.moodLevel),
-        anxietyLevel: normalizeScaleValue(body?.anxietyLevel),
-        sleepLevel: normalizeScaleValue(body?.sleepLevel),
+        moodLevel: body.moodLevel,
+        anxietyLevel: body.anxietyLevel,
+        sleepLevel: body.sleepLevel,
         mainConcern: encryptNullableSensitiveText(mainConcern),
         importantEvents: encryptNullableSensitiveText(importantEvents),
         topicsToDiscuss: encryptNullableSensitiveText(topicsToDiscuss),
@@ -316,9 +281,9 @@ export async function POST(req: NextRequest) {
       create: {
         appointmentId: appointment.id,
         patientId: auth.patient.id,
-        moodLevel: normalizeScaleValue(body?.moodLevel),
-        anxietyLevel: normalizeScaleValue(body?.anxietyLevel),
-        sleepLevel: normalizeScaleValue(body?.sleepLevel),
+        moodLevel: body.moodLevel,
+        anxietyLevel: body.anxietyLevel,
+        sleepLevel: body.sleepLevel,
         mainConcern: encryptNullableSensitiveText(mainConcern),
         importantEvents: encryptNullableSensitiveText(importantEvents),
         topicsToDiscuss: encryptNullableSensitiveText(topicsToDiscuss),

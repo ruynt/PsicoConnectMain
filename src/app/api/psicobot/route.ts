@@ -1,9 +1,11 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { authConfig } from "../../../lib/auth";
 import prisma from "../../../lib/prisma";
 import { decryptNullableSensitiveText, decryptSensitiveText } from "@/lib/encryption";
+import { parseJsonBody, requiredTrimmedString } from "@/lib/api-validation";
 
 const RAG_API_URL =
   process.env.PSICOBOT_RAG_API_URL || "http://localhost:8000/api/chat";
@@ -14,6 +16,20 @@ const MAX_HISTORY_TEXT_LENGTH = 700;
 const RAG_TIMEOUT_MS = 20000;
 const RAG_RETRY_ATTEMPTS = 2;
 const RAG_RETRY_DELAY_MS = 700;
+
+const psicobotHistoryItemSchema = z.object({
+  sender: z.enum(["user", "bot"]).optional(),
+  text: z.string().max(5000).optional(),
+});
+
+const psicobotMessageSchema = z.object({
+  message: requiredTrimmedString(
+    MAX_MESSAGE_LENGTH,
+    "Mensagem inválida ou ausente.",
+    `A mensagem deve ter no máximo ${MAX_MESSAGE_LENGTH} caracteres.`,
+  ),
+  history: z.array(psicobotHistoryItemSchema).max(30).optional(),
+});
 
 type UserRole = "ADMIN" | "PSYCHOLOGIST" | "PATIENT" | "UNKNOWN";
 
@@ -1734,7 +1750,13 @@ async function forwardToRag(message: string, role: UserRole) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const parsedBody = await parseJsonBody(req, psicobotMessageSchema);
+
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
     const message = normalizeChatMessage(body.message);
     const history = normalizeHistory(body.history);
 

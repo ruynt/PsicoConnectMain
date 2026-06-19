@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
@@ -6,14 +7,22 @@ import { sendAppointmentCancelledEmail } from "../../../../lib/emails";
 import { getErrorMessage, getExternalApiErrorMessage } from "@/lib/errorUtils";
 import { decryptNullableSensitiveText, encryptNullableSensitiveText } from "@/lib/encryption";
 import { decryptGoogleToken, encryptGoogleToken } from "@/lib/google-calendar-tokens";
+import {
+  optionalTrimmedString,
+  parseJsonBody,
+  requiredUuidString,
+} from "@/lib/api-validation";
 
-function cleanText(value: unknown, maxLength = 1000) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().slice(0, maxLength);
-}
+const cancelAppointmentSchema = z.object({
+  appointmentId: requiredUuidString(
+    "ID da consulta é obrigatório.",
+    "ID da consulta inválido.",
+  ),
+  cancellationReason: optionalTrimmedString(
+    1000,
+    "O motivo do cancelamento deve ter no máximo 1000 caracteres.",
+  ),
+});
 
 function getAppointmentEndReference(appointment: {
   dateTime: Date;
@@ -31,14 +40,6 @@ function isAppointmentCompleted(appointment: {
     appointment.status !== "CANCELLED" &&
     getAppointmentEndReference(appointment).getTime() < Date.now()
   );
-}
-
-function parseAppointmentId(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
 }
 
 async function refreshGoogleAccessToken(refreshToken: string) {
@@ -152,9 +153,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const appointmentId = parseAppointmentId(body.appointmentId);
-    const cancellationReason = cleanText(body.cancellationReason, 1000);
+    const parsedBody = await parseJsonBody(req, cancelAppointmentSchema);
+
+    if (parsedBody.error) {
+      return parsedBody.error;
+    }
+
+    const body = parsedBody.data;
+    const appointmentId = body.appointmentId;
+    const cancellationReason = body.cancellationReason;
 
     if (!appointmentId) {
       return NextResponse.json(
