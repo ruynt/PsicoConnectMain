@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { readApiErrorMessage } from "@/lib/client-api-error";
 import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type UserRole = "ADMIN" | "PSYCHOLOGIST" | "PATIENT";
@@ -502,11 +503,13 @@ export default function PerfilPage() {
         body: uploadFormData,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data?.error || "Erro ao enviar foto de perfil.");
+        throw new Error(
+          await readApiErrorMessage(response, "Erro ao enviar foto de perfil."),
+        );
       }
+
+      const data = await response.json();
 
       const uploadedImageUrl = data?.profileImageUrl || "";
 

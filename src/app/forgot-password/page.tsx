@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
+import { readApiErrorMessage } from "@/lib/client-api-error";
+
 type Feedback = {
   type: "success" | "error";
   message: string;
@@ -47,13 +49,16 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: normalizedEmail }),
       });
 
-      const data = (await response.json()) as ForgotPasswordResponse;
-
       if (!response.ok) {
         throw new Error(
-          data.error || "Não foi possível solicitar a recuperação de senha.",
+          await readApiErrorMessage(
+            response,
+            "Não foi possível solicitar a recuperação de senha.",
+          ),
         );
       }
+
+      const data = (await response.json()) as ForgotPasswordResponse;
 
       setFeedback({
         type: "success",

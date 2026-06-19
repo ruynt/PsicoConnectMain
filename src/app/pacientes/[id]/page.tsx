@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { readApiErrorMessage } from "@/lib/client-api-error";
 import PsicoPageSkeleton from "@/components/PsicoPageSkeleton";
 
 type Appointment = {
@@ -760,11 +761,16 @@ export default function PatientDetailsPage() {
         },
       );
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data?.error || "Erro ao gerar resumo para prontuário.");
+        throw new Error(
+          await readApiErrorMessage(
+            response,
+            "Erro ao gerar resumo para prontuário.",
+          ),
+        );
       }
+
+      const data = await response.json();
 
       setGeneratedSummary(data.summary || "");
       setSummaryGeneratedAt(data.generatedAt || "");

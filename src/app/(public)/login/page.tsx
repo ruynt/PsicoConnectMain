@@ -6,8 +6,22 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
+import {
+  getRateLimitMessage,
+  readApiErrorMessage,
+} from "@/lib/client-api-error";
+
 function getLoginErrorMessage(error: string | null | undefined) {
   if (!error) return "";
+
+  if (
+    error === "429" ||
+    error.includes("Too Many") ||
+    error.includes("Muitas solicitações") ||
+    error.includes("Muitas tentativas")
+  ) {
+    return getRateLimitMessage();
+  }
 
   if (
     error === "CredentialsSignin" ||
@@ -91,9 +105,23 @@ export default function LoginPage() {
         }),
       });
 
+      if (!response.ok) {
+        if (response.status === 429) {
+          setApiError(
+            await readApiErrorMessage(
+              response,
+              "Não foi possível reenviar o e-mail de verificação.",
+            ),
+          );
+          return true;
+        }
+
+        return false;
+      }
+
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok || !data?.resent) {
+      if (!data?.resent) {
         return false;
       }
 
@@ -120,6 +148,11 @@ export default function LoginPage() {
         email: email.trim().toLowerCase(),
         password,
       });
+
+      if (result?.status === 429) {
+        setApiError(getRateLimitMessage());
+        return;
+      }
 
       if (result?.error) {
         const verificationEmailWasResent = await tryResendVerificationEmail();

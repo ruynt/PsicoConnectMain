@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 
+import { readApiErrorMessage } from "@/lib/client-api-error";
+
 interface Message {
   id: number;
   text: string;
@@ -328,7 +330,12 @@ export default function ChatBotPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Erro ${response.status}: Falha na API.`);
+        throw new Error(
+          await readApiErrorMessage(
+            response,
+            "Não foi possível enviar sua mensagem ao PsicoBot.",
+          ),
+        );
       }
 
       const data = await response.json();
@@ -341,10 +348,10 @@ export default function ChatBotPage() {
       };
 
       setMessages((prev) => [...prev, botMessage]);
-    } catch {
+    } catch (error: unknown) {
       const errorMessage: Message = {
         id: Date.now() + 1,
-        text: GENERIC_BOT_ERROR_MESSAGE,
+        text: error instanceof Error ? error.message : GENERIC_BOT_ERROR_MESSAGE,
         sender: "bot",
         timestamp: formatTimestamp(),
       };

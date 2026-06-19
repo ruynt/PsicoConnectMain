@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { readApiErrorMessage } from "@/lib/client-api-error";
+
 import {
   isPasswordLongEnough,
   PASSWORD_MIN_LENGTH,
@@ -79,11 +81,16 @@ export default function ResetPasswordPage() {
         body: JSON.stringify({ password }),
       });
 
-      const data = (await response.json()) as ResetPasswordResponse;
-
       if (!response.ok) {
-        throw new Error(data.error || "Não foi possível redefinir a senha.");
+        throw new Error(
+          await readApiErrorMessage(
+            response,
+            "Não foi possível redefinir a senha.",
+          ),
+        );
       }
+
+      const data = (await response.json()) as ResetPasswordResponse;
 
       setFeedback({
         type: "success",

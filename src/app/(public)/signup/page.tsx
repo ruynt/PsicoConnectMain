@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { readApiErrorMessage } from "@/lib/client-api-error";
 import {
   isPasswordLongEnough,
   PASSWORD_MIN_LENGTH,
@@ -230,17 +231,24 @@ export default function SignupPage() {
         }),
       });
 
-      const data = (await response.json()) as ApiResponse;
-
       if (!response.ok) {
-        setApiMessage(
-          data.error ||
-            "Não foi possível concluir o cadastro. Confira os dados e tente novamente.",
-        );
+        let data: ApiResponse | null = null;
+        let message = "Não foi possível concluir o cadastro. Confira os dados e tente novamente.";
+
+        if (response.status === 429) {
+          message = await readApiErrorMessage(response, message);
+        } else {
+          data = (await response.json().catch(() => null)) as ApiResponse | null;
+          message = data?.error || message;
+        }
+
+        setApiMessage(message);
         setApiMessageType("error");
-        applyApiFieldErrors(data.details);
+        applyApiFieldErrors(data?.details);
         return;
       }
+
+      const data = (await response.json()) as ApiResponse;
 
       setApiMessage(
         data.message ||
