@@ -228,3 +228,112 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const auth = await getAuthorizedPsychologist(req);
+
+    if (auth.error) {
+      return auth.error;
+    }
+
+    const body = await req.json();
+    const linkId = typeof body.linkId === "string" ? body.linkId.trim() : "";
+
+    if (!linkId) {
+      return NextResponse.json(
+        { error: "ID da solicitação é obrigatório." },
+        { status: 400 },
+      );
+    }
+
+    const existingLink = await prisma.psychologistPatient.findUnique({
+      where: {
+        id: linkId,
+      },
+      include: {
+        patient: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!existingLink || existingLink.psychologistId !== auth.psychologist.id) {
+      return NextResponse.json(
+        { error: "Solicitação não encontrada." },
+        { status: 404 },
+      );
+    }
+
+    if (existingLink.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "Apenas solicitações pendentes podem ser canceladas." },
+        { status: 409 },
+      );
+    }
+
+    const updatedLink = await prisma.psychologistPatient.update({
+      where: {
+        id: existingLink.id,
+      },
+      data: {
+        active: false,
+        status: "REJECTED",
+        respondedAt: new Date(),
+        rejectedAt: new Date(),
+      },
+      select: {
+        id: true,
+        psychologistId: true,
+        patientId: true,
+        active: true,
+        status: true,
+        requestedAt: true,
+        respondedAt: true,
+        rejectedAt: true,
+      },
+    });
+
+    await logAuditEvent({
+      action: "PATIENT_LINK_CANCELLED",
+      entityType: "PsychologistPatient",
+      entityId: updatedLink.id,
+      actorUserId: String(auth.token.id),
+      actorRole: auth.token.role,
+      targetUserId: existingLink.patient.user.id,
+      request: req,
+      metadata: {
+        psychologistId: updatedLink.psychologistId,
+        patientId: updatedLink.patientId,
+        patientEmail: existingLink.patient.user.email,
+        status: updatedLink.status,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Solicitação de vínculo cancelada com sucesso.",
+      link: updatedLink,
+    });
+  } catch (error: unknown) {
+    console.error("Erro ao cancelar solicitação de vínculo:", error);
+
+    return NextResponse.json(
+      {
+        error: getErrorMessage(
+          error,
+          "Erro interno ao cancelar solicitação de vínculo.",
+        ),
+      },
+      { status: 500 },
+    );
+  }
+}

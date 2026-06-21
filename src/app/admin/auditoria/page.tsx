@@ -60,6 +60,7 @@ const actionLabels: Record<string, string> = {
   GOOGLE_CALENDAR_CONNECTED: "Google Calendar conectado",
   GOOGLE_CALENDAR_DISCONNECTED: "Google Calendar desconectado",
   PATIENT_LINK_ACCEPTED: "Vínculo aceito pelo paciente",
+  PATIENT_LINK_CANCELLED: "Solicitação de vínculo cancelada",
   PATIENT_LINK_REJECTED: "Vínculo recusado pelo paciente",
   PATIENT_LINK_REQUESTED: "Solicitação de vínculo enviada",
   PATIENT_LINKED: "Paciente vinculado",

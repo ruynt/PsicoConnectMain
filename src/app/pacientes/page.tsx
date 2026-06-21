@@ -22,6 +22,18 @@ type PatientSummary = {
   } | null;
 };
 
+type PendingPatientLink = {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  requestedAt: string;
+  patient: {
+    id: string;
+    name: string;
+    email: string;
+    profileImageUrl?: string | null;
+  };
+};
+
 type Feedback = {
   type: "success" | "error" | "info";
   message: string;
@@ -72,6 +84,7 @@ const tones = {
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<PatientSummary[]>([]);
+  const [pendingLinks, setPendingLinks] = useState<PendingPatientLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -89,7 +102,10 @@ export default function PatientsPage() {
     name: string;
   } | null>(null);
 
+  const [pendingLinkToCancel, setPendingLinkToCancel] = useState<PendingPatientLink | null>(null);
+
   const [unlinkingPatientId, setUnlinkingPatientId] = useState("");
+  const [cancellingPendingLinkId, setCancellingPendingLinkId] = useState("");
 
   async function loadPatients() {
     try {
@@ -107,6 +123,7 @@ export default function PatientsPage() {
       }
 
       setPatients(data.patients || []);
+      setPendingLinks(data.pendingLinks || []);
     } catch (error: unknown) {
       setError(getErrorMessage(error, "Erro ao carregar pacientes."));
     } finally {
@@ -283,6 +300,43 @@ export default function PatientsPage() {
       showFeedback("error", getErrorMessage(error, "Erro ao desvincular paciente."));
     } finally {
       setUnlinkingPatientId("");
+    }
+  }
+
+  async function confirmCancelPendingLink() {
+    if (!pendingLinkToCancel) return;
+
+    try {
+      setCancellingPendingLinkId(pendingLinkToCancel.id);
+
+      const response = await fetch("/api/patients/link", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          linkId: pendingLinkToCancel.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao cancelar solicitação.");
+      }
+
+      await loadPatients();
+
+      setPendingLinkToCancel(null);
+
+      showFeedback("success", "Solicitação de vínculo cancelada com sucesso.");
+    } catch (error: unknown) {
+      showFeedback(
+        "error",
+        getErrorMessage(error, "Erro ao cancelar solicitação."),
+      );
+    } finally {
+      setCancellingPendingLinkId("");
     }
   }
 
@@ -593,6 +647,220 @@ export default function PatientsPage() {
           >
             {feedback.message}
           </div>
+        )}
+
+        {pendingLinks.length > 0 && (
+          <section
+            className="patients-pending-links-card"
+            style={{
+              ...cardStyle,
+              marginBottom: "24px",
+              border: "1px solid #fde68a",
+              background:
+                "linear-gradient(135deg, rgba(255, 251, 235, 0.96), rgba(255, 255, 255, 0.96))",
+            }}
+          >
+            <div
+              className="patients-pending-links-header"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: "16px",
+                marginBottom: "16px",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    backgroundColor: "#fffbeb",
+                    color: "#b45309",
+                    border: "1px solid #fde68a",
+                    borderRadius: "999px",
+                    padding: "6px 11px",
+                    fontSize: "12px",
+                    fontWeight: 900,
+                    marginBottom: "10px",
+                  }}
+                >
+                  <i className="fa-solid fa-hourglass-half"></i>
+                  Aguardando aceite
+                </span>
+
+                <h2
+                  style={{
+                    color: "#0f172a",
+                    fontSize: "24px",
+                    fontWeight: 900,
+                    marginBottom: "6px",
+                  }}
+                >
+                  Solicitações pendentes
+                </h2>
+
+                <p
+                  style={{
+                    color: "#64748b",
+                    fontSize: "14px",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  Estes pacientes ainda precisam aceitar o vínculo para aparecerem
+                  na sua lista e liberarem o acesso aos dados. Peça para o
+                  paciente entrar em <strong>Psicólogos</strong> e aceitar a
+                  solicitação pendente.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  width: "46px",
+                  height: "46px",
+                  borderRadius: "16px",
+                  backgroundColor: "#fffbeb",
+                  color: "#b45309",
+                  border: "1px solid #fde68a",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  flexShrink: 0,
+                }}
+              >
+                <i className="fa-solid fa-user-clock"></i>
+              </div>
+            </div>
+
+            <div
+              className="patients-pending-links-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: "12px",
+              }}
+            >
+              {pendingLinks.map((link) => (
+                <article
+                  key={link.id}
+                  style={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #fde68a",
+                    borderRadius: "18px",
+                    padding: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    minWidth: 0,
+                  }}
+                >
+                  {link.patient.profileImageUrl ? (
+                    <Image
+                      src={link.patient.profileImageUrl}
+                      alt={`Foto de ${link.patient.name}`}
+                      width={48}
+                      height={48}
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "15px",
+                        objectFit: "cover",
+                        border: "2px solid #fde68a",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "15px",
+                        backgroundColor: "#fffbeb",
+                        color: "#b45309",
+                        border: "1px solid #fde68a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "16px",
+                        fontWeight: 900,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {getInitials(link.patient.name)}
+                    </div>
+                  )}
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3
+                      style={{
+                        color: "#0f172a",
+                        fontSize: "16px",
+                        fontWeight: 900,
+                        marginBottom: "4px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {link.patient.name}
+                    </h3>
+
+                    <p
+                      style={{
+                        color: "#64748b",
+                        fontSize: "13px",
+                        marginBottom: "6px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {link.patient.email}
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#b45309",
+                        fontSize: "12px",
+                        fontWeight: 800,
+                        margin: 0,
+                      }}
+                    >
+                      Enviada em {formatDate(link.requestedAt)}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="patients-pending-cancel-button"
+                    onClick={() => setPendingLinkToCancel(link)}
+                    disabled={cancellingPendingLinkId === link.id}
+                    style={{
+                      backgroundColor: "#fff7ed",
+                      color: "#c2410c",
+                      border: "1px solid #fed7aa",
+                      borderRadius: "12px",
+                      padding: "9px 11px",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      cursor:
+                        cancellingPendingLinkId === link.id
+                          ? "not-allowed"
+                          : "pointer",
+                      opacity: cancellingPendingLinkId === link.id ? 0.7 : 1,
+                      flexShrink: 0,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
         )}
 
         <div
@@ -1077,6 +1345,7 @@ export default function PatientsPage() {
         .patients-hero,
         .patients-search-card,
         .patients-metric-card,
+        .patients-pending-links-card,
         .patient-card,
         .patient-next-appointment-card {
           min-width: 0;
@@ -1301,6 +1570,51 @@ export default function PatientsPage() {
 
           .patients-hero p {
             display: none !important;
+          }
+
+          .patients-pending-links-card {
+            padding: 16px !important;
+            border-radius: 18px !important;
+            margin-bottom: 14px !important;
+          }
+
+          .patients-pending-links-header {
+            flex-direction: column !important;
+            gap: 10px !important;
+            margin-bottom: 12px !important;
+          }
+
+          .patients-pending-links-header h2 {
+            font-size: 20px !important;
+          }
+
+          .patients-pending-links-header p {
+            font-size: 13px !important;
+          }
+
+          .patients-pending-links-grid {
+            display: flex !important;
+            overflow-x: auto !important;
+            gap: 10px !important;
+            padding-bottom: 6px !important;
+            scroll-snap-type: x proximity;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .patients-pending-links-grid > article {
+            flex: 0 0 280px !important;
+            scroll-snap-align: start;
+            align-items: flex-start !important;
+            flex-wrap: wrap !important;
+          }
+
+          .patients-pending-cancel-button {
+            flex: 0 0 100% !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-top: 4px !important;
+            align-self: stretch !important;
+            text-align: center !important;
           }
 
           .patients-metrics-grid {
@@ -1686,6 +2000,126 @@ export default function PatientsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {pendingLinkToCancel && (
+        <div
+          onClick={() => setPendingLinkToCancel(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            zIndex: 1001,
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "500px",
+              backgroundColor: "#ffffff",
+              borderRadius: "24px",
+              padding: "30px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#fff7ed",
+                color: "#c2410c",
+                border: "1px solid #fed7aa",
+                borderRadius: "999px",
+                padding: "6px 12px",
+                fontSize: "13px",
+                fontWeight: 900,
+                marginBottom: "12px",
+              }}
+            >
+              <i className="fa-solid fa-triangle-exclamation"></i>
+              Confirmação
+            </span>
+
+            <h2
+              style={{
+                fontSize: "28px",
+                fontWeight: 900,
+                color: "#0f172a",
+                marginBottom: "10px",
+              }}
+            >
+              Cancelar solicitação?
+            </h2>
+
+            <p
+              style={{
+                color: "#475569",
+                marginBottom: "10px",
+                lineHeight: 1.5,
+              }}
+            >
+              A solicitação enviada para <strong>{pendingLinkToCancel.patient.name}</strong> será cancelada.
+            </p>
+
+            <p
+              style={{
+                color: "#64748b",
+                marginBottom: "18px",
+                lineHeight: 1.5,
+              }}
+            >
+              O paciente não verá mais esse pedido em <strong>Psicólogos</strong>. Se necessário, você poderá enviar uma nova solicitação depois.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setPendingLinkToCancel(null)}
+                style={buttonSecondaryStyle}
+                disabled={cancellingPendingLinkId === pendingLinkToCancel.id}
+              >
+                Voltar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmCancelPendingLink}
+                disabled={cancellingPendingLinkId === pendingLinkToCancel.id}
+                style={{
+                  ...buttonDangerStyle,
+                  backgroundColor: "#ea580c",
+                  color: "#fff",
+                  border: "none",
+                  cursor:
+                    cancellingPendingLinkId === pendingLinkToCancel.id
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity:
+                    cancellingPendingLinkId === pendingLinkToCancel.id ? 0.7 : 1,
+                }}
+              >
+                {cancellingPendingLinkId === pendingLinkToCancel.id
+                  ? "Cancelando..."
+                  : "Confirmar cancelamento"}
+              </button>
+            </div>
           </div>
         </div>
       )}

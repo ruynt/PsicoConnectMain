@@ -34,42 +34,66 @@ export async function GET(req: NextRequest) {
 
     const now = new Date();
 
-    const patients = await prisma.patient.findMany({
-      where: {
-        psychologistLinks: {
-          some: {
-            psychologistId: psychologist.id,
-            active: true,
-            status: "APPROVED",
+    const [patients, pendingLinks] = await Promise.all([
+      prisma.patient.findMany({
+        where: {
+          psychologistLinks: {
+            some: {
+              psychologistId: psychologist.id,
+              active: true,
+              status: "APPROVED",
+            },
           },
         },
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-            profileImageUrl: true,
-            phone: true,
-            city: true,
-            state: true,
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+              profileImageUrl: true,
+              phone: true,
+              city: true,
+              state: true,
+            },
+          },
+          appointments: {
+            where: {
+              psychologistId: psychologist.id,
+            },
+            orderBy: {
+              dateTime: "asc",
+            },
           },
         },
-        appointments: {
-          where: {
-            psychologistId: psychologist.id,
-          },
-          orderBy: {
-            dateTime: "asc",
+        orderBy: {
+          user: {
+            name: "asc",
           },
         },
-      },
-      orderBy: {
-        user: {
-          name: "asc",
+      }),
+      prisma.psychologistPatient.findMany({
+        where: {
+          psychologistId: psychologist.id,
+          status: "PENDING",
         },
-      },
-    });
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                  profileImageUrl: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          requestedAt: "desc",
+        },
+      }),
+    ]);
 
     const formattedPatients = patients.map((patient) => {
       const scheduledAppointments = patient.appointments.filter(
@@ -109,8 +133,23 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const formattedPendingLinks = pendingLinks.map((link) => ({
+      id: link.id,
+      status: link.status,
+      requestedAt: link.requestedAt.toISOString(),
+      patient: {
+        id: link.patient.id,
+        name:
+          decryptNullableSensitiveText(link.patient.socialName).trim() ||
+          link.patient.user.name,
+        email: link.patient.user.email,
+        profileImageUrl: link.patient.user.profileImageUrl,
+      },
+    }));
+
     return NextResponse.json({
       patients: formattedPatients,
+      pendingLinks: formattedPendingLinks,
     });
   } catch (error: unknown) {
     console.error("Erro ao listar pacientes:", error);
