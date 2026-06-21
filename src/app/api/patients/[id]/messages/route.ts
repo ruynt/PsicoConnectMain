@@ -68,6 +68,7 @@ async function getAuthorizedPsychologist(req: NextRequest, patientId: string) {
       patientId,
       psychologistId: psychologist.id,
       active: true,
+      status: "APPROVED",
     },
     select: {
       id: true,

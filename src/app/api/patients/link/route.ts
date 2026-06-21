@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { logAuditEvent } from "@/lib/audit-log";
 
 function normalizeEmail(value: unknown) {
   if (typeof value !== "string") {
@@ -33,6 +34,13 @@ async function getAuthorizedPsychologist(req: NextRequest) {
     },
     select: {
       id: true,
+      userId: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
     },
   });
 
@@ -47,6 +55,7 @@ async function getAuthorizedPsychologist(req: NextRequest) {
 
   return {
     psychologist,
+    token,
   };
 }
 
@@ -109,33 +118,98 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const link = await prisma.psychologistPatient.upsert({
+    const existingLink = await prisma.psychologistPatient.findUnique({
       where: {
         psychologistId_patientId: {
           psychologistId: auth.psychologist.id,
           patientId: user.patient.id,
         },
       },
-      update: {
-        active: true,
-      },
-      create: {
-        psychologistId: auth.psychologist.id,
-        patientId: user.patient.id,
-        active: true,
-      },
       select: {
         id: true,
-        psychologistId: true,
-        patientId: true,
         active: true,
-        createdAt: true,
-        updatedAt: true,
+        status: true,
+      },
+    });
+
+    if (existingLink?.active && existingLink.status === "APPROVED") {
+      return NextResponse.json(
+        { error: "Este paciente já está vinculado a você." },
+        { status: 409 },
+      );
+    }
+
+    if (existingLink?.status === "PENDING") {
+      return NextResponse.json(
+        {
+          error:
+            "Já existe uma solicitação de vínculo pendente para este paciente.",
+        },
+        { status: 409 },
+      );
+    }
+
+    const link = existingLink
+      ? await prisma.psychologistPatient.update({
+          where: {
+            id: existingLink.id,
+          },
+          data: {
+            active: false,
+            status: "PENDING",
+            requestedAt: new Date(),
+            respondedAt: null,
+            rejectedAt: null,
+          },
+          select: {
+            id: true,
+            psychologistId: true,
+            patientId: true,
+            active: true,
+            status: true,
+            requestedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      : await prisma.psychologistPatient.create({
+          data: {
+            psychologistId: auth.psychologist.id,
+            patientId: user.patient.id,
+            active: false,
+            status: "PENDING",
+          },
+          select: {
+            id: true,
+            psychologistId: true,
+            patientId: true,
+            active: true,
+            status: true,
+            requestedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+    await logAuditEvent({
+      action: "PATIENT_LINK_REQUESTED",
+      entityType: "PsychologistPatient",
+      entityId: link.id,
+      actorUserId: String(auth.token.id),
+      actorRole: auth.token.role,
+      targetUserId: user.id,
+      request: req,
+      metadata: {
+        psychologistId: auth.psychologist.id,
+        patientId: user.patient.id,
+        patientEmail: user.email,
+        status: link.status,
       },
     });
 
     return NextResponse.json({
-      message: "Paciente vinculado com sucesso.",
+      message:
+        "Solicitação enviada. O paciente precisa aceitar o vínculo antes de você acessar os dados dele.",
       link,
       patient: {
         id: user.patient.id,
@@ -144,11 +218,11 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    console.error("Erro ao vincular paciente:", error);
+    console.error("Erro ao solicitar vínculo com paciente:", error);
 
     return NextResponse.json(
       {
-        error: getErrorMessage(error, "Erro interno ao vincular paciente."),
+        error: getErrorMessage(error, "Erro interno ao solicitar vínculo."),
       },
       { status: 500 },
     );

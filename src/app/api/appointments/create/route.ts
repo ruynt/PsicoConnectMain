@@ -271,6 +271,7 @@ export async function POST(req: NextRequest) {
           some: {
             psychologistId: psychologist.id,
             active: true,
+            status: "APPROVED",
           },
         },
       },

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "../../../../lib/prisma";
 import { getErrorMessage } from "@/lib/errorUtils";
+import { logAuditEvent } from "@/lib/audit-log";
 
 function normalizeText(value: unknown) {
   if (typeof value !== "string") {
@@ -47,6 +48,7 @@ async function getAuthorizedPsychologist(req: NextRequest) {
 
   return {
     psychologist,
+    token,
   };
 }
 
@@ -78,10 +80,11 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         active: true,
+        status: true,
       },
     });
 
-    if (!link || !link.active) {
+    if (!link || !link.active || link.status !== "APPROVED") {
       return NextResponse.json(
         { error: "Este paciente não está vinculado a você." },
         { status: 404 },
@@ -94,14 +97,32 @@ export async function POST(req: NextRequest) {
       },
       data: {
         active: false,
+        status: "REJECTED",
+        respondedAt: new Date(),
+        rejectedAt: new Date(),
       },
       select: {
         id: true,
         psychologistId: true,
         patientId: true,
         active: true,
+        status: true,
         createdAt: true,
         updatedAt: true,
+      },
+    });
+
+    await logAuditEvent({
+      action: "PATIENT_UNLINKED",
+      entityType: "PsychologistPatient",
+      entityId: updatedLink.id,
+      actorUserId: String(auth.token.id),
+      actorRole: auth.token.role,
+      request: req,
+      metadata: {
+        psychologistId: updatedLink.psychologistId,
+        patientId: updatedLink.patientId,
+        status: updatedLink.status,
       },
     });
 

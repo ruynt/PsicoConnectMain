@@ -44,6 +44,7 @@ export async function GET(
           some: {
             psychologistId: psychologist.id,
             active: true,
+            status: "APPROVED",
           },
         },
       },

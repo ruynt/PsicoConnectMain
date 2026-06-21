@@ -145,6 +145,7 @@ export async function GET(req: NextRequest) {
         psychologistLinks: {
           where: {
             active: true,
+            status: "APPROVED",
           },
           include: {
             psychologist: {
@@ -262,6 +263,7 @@ export async function POST(req: NextRequest) {
         where: {
           patientId: auth.patient.id,
           active: true,
+          status: "APPROVED",
         },
         select: {
           psychologistId: true,
@@ -286,6 +288,7 @@ export async function POST(req: NextRequest) {
         patientId: auth.patient.id,
         psychologistId,
         active: true,
+        status: "APPROVED",
       },
       select: {
         id: true,

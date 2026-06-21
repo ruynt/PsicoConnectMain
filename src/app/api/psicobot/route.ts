@@ -666,6 +666,7 @@ async function buildPatientNameHelp(psychologistId: string) {
     where: {
       psychologistId,
       active: true,
+      status: "APPROVED",
     },
     include: {
       patient: {
@@ -732,6 +733,7 @@ async function getLinkedPatientForPsychologist(
     where: {
       psychologistId,
       active: true,
+      status: "APPROVED",
     },
     include: {
       patient: {
@@ -787,6 +789,7 @@ async function listPsychologistPatients(psychologistId: string) {
     where: {
       psychologistId,
       active: true,
+      status: "APPROVED",
     },
     include: {
       patient: {
@@ -1435,7 +1438,7 @@ async function buildPatientSummary(patientId: string) {
       take: 5,
     }),
     prisma.psychologistPatient.findMany({
-      where: { patientId, active: true },
+      where: { patientId, active: true, status: "APPROVED" },
       include: {
         psychologist: {
           include: {
@@ -1588,7 +1591,7 @@ async function listPatientMaterials(patientId: string) {
 
 async function listPatientPsychologists(patientId: string) {
   const links = await prisma.psychologistPatient.findMany({
-    where: { patientId, active: true },
+    where: { patientId, active: true, status: "APPROVED" },
     include: {
       psychologist: {
         include: {

@@ -30,10 +30,14 @@ type Psychologist = {
   instagramUrl: string;
 
   linkedAt: string;
+  requestedAt?: string;
 };
 
 export default function MeusPsicologosPage() {
   const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<Psychologist[]>([]);
+  const [respondingLinkId, setRespondingLinkId] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [expandedPsychologistIds, setExpandedPsychologistIds] = useState<
     string[]
   >([]);
@@ -58,6 +62,7 @@ export default function MeusPsicologosPage() {
       }
 
       setPsychologists(data.psychologists || []);
+      setPendingRequests(data.pendingRequests || []);
     } catch (error: unknown) {
       setError(getErrorMessage(error, "Erro ao carregar psicólogos vinculados."));
     } finally {
@@ -68,6 +73,42 @@ export default function MeusPsicologosPage() {
   useEffect(() => {
     loadPsychologists();
   }, []);
+
+
+  async function respondToLinkRequest(linkId: string, action: "accept" | "reject") {
+    try {
+      setRespondingLinkId(linkId);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await fetch(`/api/patient/psychologists/${linkId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Erro ao responder solicitação.");
+      }
+
+      setSuccessMessage(
+        data?.message ||
+          (action === "accept"
+            ? "Vínculo aceito com sucesso."
+            : "Solicitação recusada."),
+      );
+
+      await loadPsychologists();
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao responder solicitação."));
+    } finally {
+      setRespondingLinkId("");
+    }
+  }
 
   function togglePsychologistDetails(psychologistId: string) {
     setExpandedPsychologistIds((currentIds) => {
@@ -310,9 +351,27 @@ export default function MeusPsicologosPage() {
             {totalPsychologists === 1
               ? "1 profissional vinculado"
               : `${totalPsychologists} profissionais vinculados`}
+            {pendingRequests.length > 0
+              ? ` • ${pendingRequests.length} solicitação${pendingRequests.length === 1 ? "" : "ões"} pendente${pendingRequests.length === 1 ? "" : "s"}`
+              : ""}
           </p>
         </div>
       </section>
+
+      {successMessage && (
+        <div
+          style={{
+            ...cardStyle,
+            backgroundColor: "#ecfdf5",
+            border: "1px solid #a7f3d0",
+            marginBottom: "24px",
+          }}
+        >
+          <p style={{ color: "#047857", fontWeight: 800, margin: 0 }}>
+            {successMessage}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div
@@ -327,6 +386,187 @@ export default function MeusPsicologosPage() {
             {error}
           </p>
         </div>
+      )}
+
+
+      {pendingRequests.length > 0 && (
+        <section
+          style={{
+            ...cardStyle,
+            marginBottom: "24px",
+            border: "1px solid #bfdbfe",
+            background:
+              "linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.98))",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+              marginBottom: "18px",
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#dbeafe",
+                  color: "#1d4ed8",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "999px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  fontWeight: 900,
+                  marginBottom: "10px",
+                }}
+              >
+                <i className="fa-solid fa-user-check"></i>
+                Aceite necessário
+              </span>
+
+              <h2
+                style={{
+                  color: "#0f172a",
+                  fontSize: "26px",
+                  fontWeight: 900,
+                  marginBottom: "6px",
+                }}
+              >
+                Solicitações de vínculo
+              </h2>
+
+              <p style={{ color: "#64748b", margin: 0, lineHeight: 1.6 }}>
+                Aceite apenas profissionais que realmente acompanham você. O
+                psicólogo só acessa seus dados depois da sua confirmação.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="meus-psicologos-pending-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "14px",
+            }}
+          >
+            {pendingRequests.map((request) => (
+              <article
+                key={request.linkId}
+                style={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #dbeafe",
+                  borderRadius: "20px",
+                  padding: "18px",
+                  boxShadow: "0 12px 28px rgba(37, 99, 235, 0.08)",
+                }}
+              >
+                <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
+                  {request.profileImageUrl ? (
+                    <Image
+                      src={request.profileImageUrl}
+                      alt={`Foto de ${request.name}`}
+                      width={58}
+                      height={58}
+                      style={{
+                        width: "58px",
+                        height: "58px",
+                        borderRadius: "18px",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "58px",
+                        height: "58px",
+                        borderRadius: "18px",
+                        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "20px",
+                        fontWeight: 900,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {getInitials(request.name)}
+                    </div>
+                  )}
+
+                  <div style={{ minWidth: 0 }}>
+                    <h3
+                      style={{
+                        color: "#0f172a",
+                        fontSize: "18px",
+                        fontWeight: 900,
+                        marginBottom: "4px",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {request.name}
+                    </h3>
+                    <p style={{ color: "#64748b", margin: 0, fontSize: "13px", fontWeight: 800 }}>
+                      {request.professionalTitle || "Psicólogo(a)"}
+                    </p>
+                    <p style={{ color: "#1d4ed8", margin: "4px 0 0", fontSize: "12px", fontWeight: 900 }}>
+                      CRP {request.crp || "não informado"}
+                    </p>
+                  </div>
+                </div>
+
+                <p style={{ color: "#64748b", margin: "14px 0 0", lineHeight: 1.55 }}>
+                  Este profissional solicitou acesso ao seu acompanhamento em {" "}
+                  <strong>{formatDate(request.requestedAt || request.linkedAt)}</strong>.
+                </p>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "10px",
+                    marginTop: "16px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => respondToLinkRequest(request.linkId, "reject")}
+                    disabled={respondingLinkId === request.linkId}
+                    style={{
+                      ...secondaryButtonStyle,
+                      backgroundColor: "#fff7ed",
+                      color: "#c2410c",
+                      border: "1px solid #fed7aa",
+                      opacity: respondingLinkId === request.linkId ? 0.7 : 1,
+                    }}
+                  >
+                    Recusar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => respondToLinkRequest(request.linkId, "accept")}
+                    disabled={respondingLinkId === request.linkId}
+                    style={{
+                      ...primaryButtonStyle,
+                      background: "linear-gradient(135deg, #059669, #22c55e)",
+                      opacity: respondingLinkId === request.linkId ? 0.7 : 1,
+                    }}
+                  >
+                    Aceitar
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
 
       {psychologists.length === 0 ? (
@@ -361,8 +601,8 @@ export default function MeusPsicologosPage() {
           </h2>
 
           <p style={{ color: "#64748b", margin: 0, lineHeight: 1.6 }}>
-            Quando um profissional vincular você ao acompanhamento, ele aparecerá
-            nesta página.
+            Quando um profissional solicitar vínculo, você poderá aceitar ou recusar
+            nesta página. Após o aceite, ele aparecerá como vinculado.
           </p>
         </section>
       ) : (

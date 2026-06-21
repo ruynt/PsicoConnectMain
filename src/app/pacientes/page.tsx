@@ -240,7 +240,11 @@ export default function PatientsPage() {
       await loadPatients();
       closeLinkModal();
 
-      showFeedback("success", "Paciente vinculado com sucesso.");
+      showFeedback(
+        "success",
+        data?.message ||
+          "Solicitação enviada. O paciente precisa aceitar o vínculo antes de aparecer na sua lista.",
+      );
     } catch (error: unknown) {
       setLinkError(getErrorMessage(error, "Erro ao vincular paciente."));
     } finally {
@@ -1609,8 +1613,8 @@ export default function PatientsPage() {
               </h2>
 
               <p style={{ color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-                Informe o e-mail de um paciente já cadastrado para vinculá-lo ao
-                seu acompanhamento.
+                Informe o e-mail de um paciente já cadastrado. O vínculo ficará
+                pendente até o paciente aceitar a solicitação.
               </p>
             </div>
 

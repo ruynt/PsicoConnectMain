@@ -113,6 +113,11 @@ model PsychologistPatient {
   patient   Patient @relation(fields: [patientId], references: [id])
 
   active Boolean @default(true)
+  status PsychologistPatientStatus @default(APPROVED)
+
+  requestedAt DateTime  @default(now())
+  respondedAt DateTime?
+  rejectedAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -120,6 +125,9 @@ model PsychologistPatient {
   @@unique([psychologistId, patientId])
   @@index([psychologistId])
   @@index([patientId])
+  @@index([status])
+  @@index([patientId, status])
+  @@index([psychologistId, status])
 }
 
 model Appointment {
@@ -371,6 +379,12 @@ enum Role {
   ADMIN
   PSYCHOLOGIST
   PATIENT
+}
+
+enum PsychologistPatientStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum AppointmentStatus {

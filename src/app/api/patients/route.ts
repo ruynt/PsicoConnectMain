@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
           some: {
             psychologistId: psychologist.id,
             active: true,
+            status: "APPROVED",
           },
         },
       },

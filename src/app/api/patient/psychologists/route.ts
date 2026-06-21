@@ -14,7 +14,7 @@ async function getAuthenticatedPatient(req: NextRequest) {
   if (!token || token.role !== "PATIENT") {
     return {
       error: NextResponse.json(
-        { error: "Acesso não autorizado.", psychologists: [] },
+        { error: "Acesso não autorizado.", psychologists: [], pendingRequests: [] },
         { status: 403 },
       ),
     };
@@ -32,7 +32,7 @@ async function getAuthenticatedPatient(req: NextRequest) {
   if (!patient) {
     return {
       error: NextResponse.json(
-        { error: "Paciente não encontrado.", psychologists: [] },
+        { error: "Paciente não encontrado.", psychologists: [], pendingRequests: [] },
         { status: 404 },
       ),
     };
@@ -40,6 +40,88 @@ async function getAuthenticatedPatient(req: NextRequest) {
 
   return {
     patient,
+  };
+}
+
+function getLinks(patientId: string) {
+  return prisma.psychologistPatient.findMany({
+    where: {
+      patientId,
+      status: {
+        in: ["PENDING", "APPROVED"],
+      },
+    },
+    select: {
+      id: true,
+      status: true,
+      active: true,
+      createdAt: true,
+      requestedAt: true,
+      respondedAt: true,
+      psychologist: {
+        select: {
+          id: true,
+          crp: true,
+          crpState: true,
+          crpRegion: true,
+          crpNumber: true,
+          professionalTitle: true,
+          approach: true,
+          specialties: true,
+          education: true,
+          targetAudience: true,
+          instagramUrl: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+              profileImageUrl: true,
+              phone: true,
+              city: true,
+              state: true,
+              bio: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      requestedAt: "desc",
+    },
+  });
+}
+
+type PsychologistLink = Awaited<ReturnType<typeof getLinks>>[number];
+
+function mapPsychologistFromLink(link: PsychologistLink) {
+  const psychologist = link.psychologist;
+
+  return {
+    id: psychologist.id,
+    linkId: link.id,
+
+    name: psychologist.user.name,
+    email: psychologist.user.email,
+    profileImageUrl: psychologist.user.profileImageUrl || "",
+    phone: decryptNullableSensitiveText(psychologist.user.phone),
+    city: psychologist.user.city || "",
+    state: psychologist.user.state || "",
+    bio: decryptNullableSensitiveText(psychologist.user.bio),
+
+    crp: psychologist.crp,
+    crpState: psychologist.crpState || "",
+    crpRegion: psychologist.crpRegion || "",
+    crpNumber: psychologist.crpNumber || "",
+
+    professionalTitle: psychologist.professionalTitle || "",
+    approach: psychologist.approach || "",
+    specialties: psychologist.specialties || "",
+    education: psychologist.education || "",
+    targetAudience: psychologist.targetAudience || "",
+    instagramUrl: psychologist.instagramUrl || "",
+
+    linkedAt: (link.respondedAt || link.createdAt).toISOString(),
+    requestedAt: link.requestedAt.toISOString(),
   };
 }
 
@@ -51,79 +133,17 @@ export async function GET(req: NextRequest) {
       return auth.error;
     }
 
-    const links = await prisma.psychologistPatient.findMany({
-      where: {
-        patientId: auth.patient.id,
-        active: true,
-      },
-      select: {
-        id: true,
-        createdAt: true,
-        psychologist: {
-          select: {
-            id: true,
-            crp: true,
-            crpState: true,
-            crpRegion: true,
-            crpNumber: true,
-            professionalTitle: true,
-            approach: true,
-            specialties: true,
-            education: true,
-            targetAudience: true,
-            instagramUrl: true,
-            user: {
-              select: {
-                name: true,
-                email: true,
-                profileImageUrl: true,
-                phone: true,
-                city: true,
-                state: true,
-                bio: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const links = await getLinks(auth.patient.id);
 
-    const psychologists = links.map((link) => {
-      const psychologist = link.psychologist;
+    const approvedLinks = links.filter(
+      (link) => link.active && link.status === "APPROVED",
+    );
 
-      return {
-        id: psychologist.id,
-        linkId: link.id,
-
-        name: psychologist.user.name,
-        email: psychologist.user.email,
-        profileImageUrl: psychologist.user.profileImageUrl || "",
-        phone: decryptNullableSensitiveText(psychologist.user.phone),
-        city: psychologist.user.city || "",
-        state: psychologist.user.state || "",
-        bio: decryptNullableSensitiveText(psychologist.user.bio),
-
-        crp: psychologist.crp,
-        crpState: psychologist.crpState || "",
-        crpRegion: psychologist.crpRegion || "",
-        crpNumber: psychologist.crpNumber || "",
-
-        professionalTitle: psychologist.professionalTitle || "",
-        approach: psychologist.approach || "",
-        specialties: psychologist.specialties || "",
-        education: psychologist.education || "",
-        targetAudience: psychologist.targetAudience || "",
-        instagramUrl: psychologist.instagramUrl || "",
-
-        linkedAt: link.createdAt.toISOString(),
-      };
-    });
+    const pendingLinks = links.filter((link) => link.status === "PENDING");
 
     return NextResponse.json({
-      psychologists,
+      psychologists: approvedLinks.map(mapPsychologistFromLink),
+      pendingRequests: pendingLinks.map(mapPsychologistFromLink),
     });
   } catch (error: unknown) {
     console.error("Erro ao buscar psicólogos do paciente:", error);
@@ -135,6 +155,7 @@ export async function GET(req: NextRequest) {
           "Erro interno ao buscar psicólogos vinculados.",
         ),
         psychologists: [],
+        pendingRequests: [],
       },
       { status: 500 },
     );

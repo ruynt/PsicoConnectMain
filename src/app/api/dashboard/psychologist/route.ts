@@ -135,6 +135,7 @@ export async function GET(req: NextRequest) {
         where: {
           psychologistId: psychologist.id,
           active: true,
+          status: "APPROVED",
         },
       }),
 
